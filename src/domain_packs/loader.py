@@ -84,3 +84,8 @@ class PackRegistry:
 
     def get_criteria(self, pack_id: str) -> list[dict[str, Any]]:
         return self.get(pack_id)["criteria"]
+
+    def taxonomy(self, pack_id: str) -> "PackTaxonomy":
+        from .taxonomy import PackTaxonomy
+
+        return PackTaxonomy(self.get(pack_id))

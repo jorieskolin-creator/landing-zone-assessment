@@ -605,3 +605,4 @@ Material changes should update the date and append a short entry below.
 |---|---|---|
 | 2026-09-06 | 1.0 | Initial repository plan. Treats criteria as frozen, defines file-based first implementation, and schedules Knowledge Base and Tactic Playbook integration before full pipeline and real-case verification. |
 | 2026-09-06 | 1.1 | Started Work 1 and Work 3 only: pack contract, loader/registry, frozen A–H JSON catalogue, and pack validation. FinOps kernel import replacement remains a later increment in the engine repository. |
+| 2026-09-06 | 1.2 | Work 2: pack-driven taxonomy replaces A–F unions, [A-F][1-5] regexes, six-domain loops, and five-wide criterion generation. Batch titles, routing terms, diagnosis keys, and output-contract prefixes come from the selected pack. |
