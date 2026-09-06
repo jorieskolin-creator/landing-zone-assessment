@@ -1,0 +1,17 @@
+{
+  "name": "Landing Zone Assessment Docs",
+  "install": "python3 --version && echo 'Static documentation set — no dependencies to install.'",
+  "terminals": [
+    {
+      "name": "docs-server",
+      "command": "python3 -m http.server 8000 --bind 0.0.0.0",
+      "description": "Serves the Landing Zone Assessment HTML documents and Markdown plan over HTTP on port 8000. Open http://localhost:8000/ for the document index."
+    }
+  ],
+  "ports": [
+    {
+      "name": "docs",
+      "port": 8000
+    }
+  ]
+}
