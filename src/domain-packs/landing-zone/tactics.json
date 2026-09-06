@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "schemaVersion": "lz_tactics_v1",
+  "status": "contract_defined_content_pending",
+  "description": "Landing Zone Tactic Playbook contract. Content is added in later work. Tactics are permissioned responses, not evidence.",
+  "id_pattern": "TAC-[A-Z]+-\\d{3}",
+  "id_prefixes": ["TAC-ORG", "TAC-IAM", "TAC-NET", "TAC-SEC", "TAC-VEN", "TAC-POL", "TAC-OBS", "TAC-IAC"],
+  "tactics": []
+}

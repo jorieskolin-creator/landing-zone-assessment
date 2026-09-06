@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "description": "Quality Gate is code-owned publication authority. GO / WARN / BLOCK are evidence sufficiency, not customer pass or fail.",
+  "publication_states": ["GO", "WARN", "BLOCK"],
+  "meaning": "evidence_sufficiency_not_customer_pass_fail",
+  "assessment_sufficiency_owns_maturity_publication": true,
+  "quality_gate_owns_action_safety": true,
+  "models_cannot_change_the_decision": true,
+  "fail_closed": true,
+  "block_starts_a_decision_conversation": true
+}

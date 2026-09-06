@@ -604,3 +604,4 @@ Material changes should update the date and append a short entry below.
 | Date | Version | Change |
 |---|---|---|
 | 2026-09-06 | 1.0 | Initial repository plan. Treats criteria as frozen, defines file-based first implementation, and schedules Knowledge Base and Tactic Playbook integration before full pipeline and real-case verification. |
+| 2026-09-06 | 1.1 | Started Work 1 and Work 3 only: pack contract, loader/registry, frozen A–H JSON catalogue, and pack validation. FinOps kernel import replacement remains a later increment in the engine repository. |

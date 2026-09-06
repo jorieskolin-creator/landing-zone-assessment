@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "model": "adr-002-resolution-based-pairs",
+  "description": "Deterministic pair scoring policy for Landing Zone. This file is policy data, not scoring code.",
+  "unknown_is_not_zero": true,
+  "provider_blending": "forbidden",
+  "scoring_surface": "provider_scoped_criterion_instance",
+  "maturity_labels": ["Foundation", "Pilot", "Rollout", "Operate"],
+  "exclude_from_denominator": ["out_of_scope", "not_applicable"],
+  "anti_pattern_clearance_requires_tested_absence": true,
+  "capability_cannot_conceal_confirmed_paired_antipattern": true,
+  "silent_design_area": "evidence_gap_not_negative_score",
+  "partial_resolution_credit": true,
+  "separate_observed_and_resolution_adjusted_maturity": true,
+  "assessment_sufficiency_separate_from_roadmap_actionability": true
+}

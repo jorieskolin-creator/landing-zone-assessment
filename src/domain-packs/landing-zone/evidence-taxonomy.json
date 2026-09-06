@@ -1,0 +1,74 @@
+{
+  "version": "1.0.0",
+  "description": "Evidence authority is independent of file transport. Class ranks preventive claims; representation is a separate field.",
+  "evidence_classes": {
+    "platform": {
+      "id": "platform",
+      "class_number": 1,
+      "meaning": "Exported control-plane state. Resolves existence, attachment and enforcement.",
+      "examples": [
+        "hierarchy export",
+        "role assignments",
+        "policy assignments",
+        "network attachments",
+        "log destinations"
+      ]
+    },
+    "document": {
+      "id": "document",
+      "class_number": 2,
+      "meaning": "Intent, design, process, or infrastructure definition. Cannot by itself prove a control is currently enforced.",
+      "examples": [
+        "architecture documents",
+        "IaC",
+        "policy catalogues",
+        "exception registers"
+      ]
+    },
+    "workshop": {
+      "id": "workshop",
+      "class_number": 3,
+      "meaning": "Operating-model knowledge and evidence leads. Cannot replace platform evidence or become a finding by itself.",
+      "examples": [
+        "questionnaire answers",
+        "workshop observations",
+        "ownership explanations"
+      ]
+    }
+  },
+  "representations": ["text", "image", "derived"],
+  "object_types": [
+    "Inventory",
+    "Identity-binding",
+    "Policy-assignment",
+    "Network-path",
+    "Log-sink",
+    "IaC",
+    "Workshop"
+  ],
+  "authority_rules": [
+    "An uploaded control-plane export remains Class 1 even though it was not collected through a live connection.",
+    "A design document remains Class 2 and cannot, by itself, prove that a control is currently enforced.",
+    "A workshop response remains Class 3 and cannot replace platform evidence.",
+    "Class 3 cannot award Embedded for a missing preventive control.",
+    "Knowledge Base and Tactic Playbook records are not customer evidence."
+  ],
+  "usage_boundaries": {
+    "reference_kb_allowed_uses": [
+      "rubric_context",
+      "maturity_examples",
+      "antipattern_examples",
+      "evidence_requirements",
+      "validation_questions",
+      "tactic_selection",
+      "remediation_patterns",
+      "risk_notes"
+    ],
+    "reference_kb_forbidden_uses": [
+      "customer_current_state_claim",
+      "source_evidence_quote",
+      "audited_finding",
+      "phase1_evidence_quote"
+    ]
+  }
+}

@@ -1,0 +1,1856 @@
+{
+  "version": "1.0.0",
+  "description": "Provider evidence contracts copied from the frozen catalogue. Prose contracts are preserved; object IDs are not invented.",
+  "providers": [
+    "azure",
+    "aws",
+    "gcp"
+  ],
+  "kind_values": [
+    "mapped",
+    "native",
+    "not_applicable"
+  ],
+  "records": [
+    {
+      "id": "A1",
+      "intent_id": "authoritative-org-root",
+      "stream": "capability",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Entra tenant ID, Tenant Root Group, MCA/EA billing account attached to the tenant."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organizations management account, Root, ALL_FEATURES enabled; no extra orgs holding prod accounts."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organization resource + Cloud Identity; billing account linked to the org, not to a lone project."
+        }
+      }
+    },
+    {
+      "id": "A2",
+      "intent_id": "management-plane-hygiene",
+      "stream": "capability",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No app resource groups in Management / Identity / Connectivity platform subscriptions beyond platform services."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organizations management account has no application VPCs, data stores or IAM users for app teams."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No application folders or projects under the bootstrap/seed project; org-level services only."
+        }
+      }
+    },
+    {
+      "id": "A3",
+      "intent_id": "billing-contract-alignment",
+      "stream": "capability",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "MCA/EA billing account, billing profiles, invoice sections vs management group tree."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Consolidated billing, payer account, linked accounts; AWS Organizations vs Billing Conductor if used."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud Billing account, org-level billing export, projects billed outside the org."
+        }
+      }
+    },
+    {
+      "id": "A4",
+      "intent_id": "administrative-boundary",
+      "stream": "capability",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Extra Entra tenants, B2B guest tenants, Azure DevOps orgs, unused EA enrollments."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Standalone accounts outside the org, extra Organizations, AWS Gov/China partitions if present."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Projects with no parent org, extra Google Workspace domains, unmanaged GCP folders."
+        }
+      }
+    },
+    {
+      "id": "A5",
+      "intent_id": "root-recovery",
+      "stream": "capability",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Break-glass Entra cloud-only accounts, PIM for Global Admin, emergency access package."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Root MFA, hardware key, no root access keys; Organizations delegated admin; Account Recovery."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Super-admin dual control, recovery email/phone, organization-admin not bound to one human."
+        }
+      }
+    },
+    {
+      "id": "B1",
+      "intent_id": "federated-workforce-identity",
+      "stream": "capability",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Entra ID / AD FS federation; cloud-only users listed and justified."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IAM Identity Center (SSO) to the IdP; IAM users for humans are exceptions."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud Identity / Workforce Identity Federation; no standing Google user as org admin for staff."
+        }
+      }
+    },
+    {
+      "id": "B2",
+      "intent_id": "privileged-access-timebound",
+      "stream": "capability",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Entra PIM eligible roles, activation logs, Access Reviews."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Identity Center permission sets, session duration, CloudTrail; no standing AdministratorAccess on humans."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "PAM / IAM Conditions / time-bound grants; no standing roles/owner on users at org root."
+        }
+      }
+    },
+    {
+      "id": "B3",
+      "intent_id": "workload-identity",
+      "stream": "capability",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Managed identities, workload identity federation (GitHub/ADO), no client secrets in pipelines."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IRSA / instance profiles / IAM Roles Anywhere; IAM user access keys for workloads absent or aged."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Attached service accounts, Workload Identity Federation; no downloaded JSON keys for automation."
+        }
+      }
+    },
+    {
+      "id": "B4",
+      "intent_id": "least-privilege-inheritance",
+      "stream": "capability",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "MG/subscription/RG RBAC; Owner at Tenant Root Group listed; custom roles over Owner."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCPs + Identity Center permission sets by OU; IAM policies not attached at org root for humans."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Folder/project IAM; organization-level roles/owner and editor listed and justified."
+        }
+      }
+    },
+    {
+      "id": "B5",
+      "intent_id": "break-glass-monitored",
+      "stream": "capability",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud-only break-glass accounts, excluded from PIM but alerted via Entra / Sentinel."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Break-glass IAM role or root procedure; CloudTrail + GuardDuty / EventBridge alert on use."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Break-glass super-admin or PAM emergency grant; Cloud Audit Logs alert."
+        }
+      }
+    },
+    {
+      "id": "C1",
+      "intent_id": "hierarchy-encodes-policy",
+      "stream": "capability",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Management group tree from Tenant Root; Azure Policy assignments at MG."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "OU tree; SCPs attached to OUs, not only to individual accounts."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Folder tree; Organization Policy on org/folders, not only on projects."
+        }
+      }
+    },
+    {
+      "id": "C2",
+      "intent_id": "platform-vs-app-lz",
+      "stream": "capability",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CAF platform MGs/subscriptions (Identity, Connectivity, Management) vs Corp/Online app MGs."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Log Archive, Audit, Network, Identity accounts vs workload OUs (Control Tower / custom)."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Bootstrap, logging, networking, security folders vs application folders."
+        }
+      }
+    },
+    {
+      "id": "C3",
+      "intent_id": "naming-tagging-enforced",
+      "stream": "capability",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Policy required-tags; naming via Bicep/AVM or subscription vending."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCP / Config / Tag Policies; Control Tower or AFT account naming."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Org policy, labels, project-id convention in the project factory."
+        }
+      }
+    },
+    {
+      "id": "C4",
+      "intent_id": "governed-vending",
+      "stream": "capability",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Subscription vending (Azure LZ accelerator, ALZ, service catalog)."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Account Factory / AFT / custom Organizations pipeline."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Project factory (Terraform), Seed + CI; no ad-hoc console projects."
+        }
+      }
+    },
+    {
+      "id": "C5",
+      "intent_id": "environment-separation",
+      "stream": "capability",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Corp-prod vs Corp-nonprod MGs; separate subscriptions; no shared Owner group."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Prod vs SDLC OUs; SCPs differ; no shared admin permission set."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Prod vs nonprod folders; VPC-SC / IAM differ by folder."
+        }
+      }
+    },
+    {
+      "id": "D1",
+      "intent_id": "hub-with-inspection",
+      "stream": "capability",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Hub-spoke or vWAN; Azure Firewall / NVA; spoke peering without use-remote-gateway exceptions unlisted."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Transit Gateway / Cloud WAN; inspection VPC; no VPC-peering spaghetti as the primary pattern."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Shared VPC + hub; Cloud Firewall / NGFW; no project-level public default."
+        }
+      }
+    },
+    {
+      "id": "D2",
+      "intent_id": "hybrid-connectivity-owned",
+      "stream": "capability",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "ExpressRoute / VPN Gateway in Connectivity subscription; no app-level ER circuits."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "DX Gateway / VPN on the network account; TGW attachments governed."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Dedicated/Partner Interconnect on the host project; no per-app interconnects."
+        }
+      }
+    },
+    {
+      "id": "D3",
+      "intent_id": "central-dns",
+      "stream": "capability",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Private DNS zones in Connectivity; Azure Policy for private-endpoint DNS; inbound/outbound resolvers."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Route 53 private hosted zones + Resolver rules in the network account."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud DNS private zones on the host project; inbound/outbound forwarding."
+        }
+      }
+    },
+    {
+      "id": "D4",
+      "intent_id": "private-by-default",
+      "stream": "capability",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Policy deny public IP / public blob / public Key Vault; Firewall / NAT at hub."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCP deny public S3/SG 0.0.0.0/0; centralized egress via TGW + firewall."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Org policy constrainPublicIp / disable public buckets; Cloud NAT at hub."
+        }
+      }
+    },
+    {
+      "id": "D5",
+      "intent_id": "lz-segmentation",
+      "stream": "capability",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Spoke VNets per LZ; NSG/Azure Firewall policies; no prod-nonprod peering by default."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Account+VPC per LZ; SG/NACL + TGW route tables isolate prod."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Service projects + VPC-SC perimeters; Shared VPC subnet isolation."
+        }
+      }
+    },
+    {
+      "id": "E1",
+      "intent_id": "preventive-baseline",
+      "stream": "capability",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Policy security initiative (MCSB) assigned at MG with deny/deployIfNotExists."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCPs + Control Tower / Config conformance pack; Security Hub standards."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organization Policy constraints + SCC Premium posture; essential org policies."
+        }
+      }
+    },
+    {
+      "id": "E2",
+      "intent_id": "central-threat-detection",
+      "stream": "capability",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Defender for Cloud / Defender XDR at tenant; Sentinel or equivalent connected."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "GuardDuty org auto-enable, Security Hub, Detective; delegated admin in Audit account."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Security Command Center at org; Event Threat Detection; findings exported."
+        }
+      }
+    },
+    {
+      "id": "E3",
+      "intent_id": "encryption-key-management",
+      "stream": "capability",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SSE required; Key Vault in platform; CMK where claimed; no keys in ARM parameters."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "S3/EBS/RDS encryption required by SCP/Config; KMS in security account; no plaintext SSM."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CMEK/CSE as claimed; Cloud KMS in security folder; no unencrypted persistent disks as default."
+        }
+      }
+    },
+    {
+      "id": "E4",
+      "intent_id": "secrets-management",
+      "stream": "capability",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Key Vault / App Config; no secrets in ADO lib groups as the primary store."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Secrets Manager / SSM Parameter (secure); no secrets in CodeCommit or plain SSM."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Secret Manager; no secrets in Cloud Build substitutions or repos."
+        }
+      }
+    },
+    {
+      "id": "E5",
+      "intent_id": "security-ops-placement",
+      "stream": "capability",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Security/Management subscription; Defender, Sentinel, Key Vault HSM as designed."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Audit + Security Tooling accounts (Control Tower); delegated admins set."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Security folder: SCC, KMS, Secret Manager; Essential Contacts for security."
+        }
+      }
+    },
+    {
+      "id": "F1",
+      "intent_id": "central-activity-logs",
+      "stream": "capability",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Activity Log + Entra diagnostic settings to central Log Analytics / Storage; MG-level."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Org CloudTrail to Log Archive account; integrity validation; no trail gaps."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Org-level Cloud Audit Logs sinks to a logging project; no sink exclusions that drop admin activity."
+        }
+      }
+    },
+    {
+      "id": "F2",
+      "intent_id": "inventory-truth",
+      "stream": "capability",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Resource Graph, Management Group API, Policy insights, Entra PIM export."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organizations, Config aggregator, IAM Access Analyzer, Resource Explorer."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud Asset Inventory, Resource Manager, Policy Analyzer, SCC assets."
+        }
+      }
+    },
+    {
+      "id": "F3",
+      "intent_id": "baseline-monitoring",
+      "stream": "capability",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Monitor / Service Health / Policy compliance alerts on platform subscriptions."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CloudWatch on org trail, TGW, Config; Control Tower lifecycle events."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud Monitoring on sinks, Interconnect, org policies; Essential Contacts."
+        }
+      }
+    },
+    {
+      "id": "F4",
+      "intent_id": "platform-backup",
+      "stream": "capability",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IaC repos + state; Key Vault backup; Recovery Services for platform where relevant."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "AFT/Control Tower backup, Route 53, KMS CMKs, org trail bucket versioning."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Terraform state backup, Cloud DNS export, KMS, org-policy export."
+        }
+      }
+    },
+    {
+      "id": "F5",
+      "intent_id": "update-agent-baseline",
+      "stream": "capability",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Update Manager / Automanage / Arc; policy guest configuration."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Systems Manager patch, State Manager; no unmanaged instances outside SSM."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "VM Manager / OS Config; no unmanaged GCE fleets if GCE is in scope."
+        }
+      }
+    },
+    {
+      "id": "G1",
+      "intent_id": "policy-inheritance",
+      "stream": "capability",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Policy at MG with initiative sets; Policy Insights effective assignments."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCPs on OUs; RCP/declarative policies if used; Access Analyzer."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organization Policy on org/folders; hierarchy evaluation."
+        }
+      }
+    },
+    {
+      "id": "G2",
+      "intent_id": "deny-insecure-defaults",
+      "stream": "capability",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Deny/modify policies for public IP, public storage, allowed locations, required diagnostics."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCP deny s3:PutBucketPublic, leave-org, root user, disable CloudTrail/Config."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "constraints/compute.vmExternalIpAccess, storage.publicAccessPrevention, iam.disableServiceAccountKeyCreation."
+        }
+      }
+    },
+    {
+      "id": "G3",
+      "intent_id": "exemption-with-expiry",
+      "stream": "capability",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Policy exemption resources with expiresOn; waiver process."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCP OU exclusions documented; Control Tower detective/preventive skip list with tickets."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Org-policy custom constraints / allow lists with owners; no silent restoreDefault."
+        }
+      }
+    },
+    {
+      "id": "G4",
+      "intent_id": "cost-tag-guardrails",
+      "stream": "capability",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "required-tags policy; allowed locations; Management Group budgets / Cost Management."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Tag policies; allowed-region SCP; Budgets on accounts."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "labels + org policy resource locations; budgets on billing accounts/folders."
+        }
+      }
+    },
+    {
+      "id": "G5",
+      "intent_id": "compliance-export",
+      "stream": "capability",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Azure Policy compliance + Resource Graph; Defender regulatory standards if in scope."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Config conformance, Security Hub standards, Audit Manager if in scope."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCC posture / Compliance reports; Policy Analyzer."
+        }
+      }
+    },
+    {
+      "id": "H1",
+      "intent_id": "platform-as-code",
+      "stream": "capability",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Bicep/Terraform ALZ; policy-as-code; GitHub/ADO with PR."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Control Tower + AFT / Landing Zone Accelerator / custom Terraform; no console-first org changes."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Terraform foundation (project factory, org policy); Config Connector if used."
+        }
+      }
+    },
+    {
+      "id": "H2",
+      "intent_id": "vending-pipeline",
+      "stream": "capability",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Subscription vending workflow / ALZ accelerator / service catalog."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Account Factory / AFT / Service Catalog."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Project factory pipeline + IAM + Shared VPC attachment."
+        }
+      }
+    },
+    {
+      "id": "H3",
+      "intent_id": "drift-detection",
+      "stream": "capability",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "What-if / drift on Terraform; Azure Policy compliance; Activity Log on MG policy deletes."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CloudFormation drift / Terraform drift; Config; Control Tower drift."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Terraform plan in CI against org; SCC/CAI diffs; org-policy change logs."
+        }
+      }
+    },
+    {
+      "id": "H4",
+      "intent_id": "self-service-guardrailed",
+      "stream": "capability",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Service catalog / ARM template spec / vending app in use."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Service Catalog / AFT requests from app teams."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Project factory self-service with org-policy guardrails."
+        }
+      }
+    },
+    {
+      "id": "H5",
+      "intent_id": "platform-change-management",
+      "stream": "capability",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "PR + pipeline on ALZ; break-glass portal with Activity Log and catch-up PR."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "AFT/LZA pipeline; SCP change review; break-glass with CloudTrail."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Foundation pipeline; org-policy change review; break-glass with audit logs."
+        }
+      }
+    },
+    {
+      "id": "AP-A1",
+      "intent_id": "shadow-tenants",
+      "stream": "antipattern",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Second Entra tenant with subscriptions; MSDN / personal tenants used for prod."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Member accounts not in the org; root-less standalone prod accounts."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No-organization projects; billing on a user account."
+        }
+      }
+    },
+    {
+      "id": "AP-A2",
+      "intent_id": "workloads-in-management-plane",
+      "stream": "antipattern",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App resource groups in the Management or Tenant Root subscription."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Application VPCs, S3 data or RDS in the Organizations management account."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App GKE or data projects under the seed/bootstrap project."
+        }
+      }
+    },
+    {
+      "id": "AP-A3",
+      "intent_id": "billing-split-from-tech",
+      "stream": "antipattern",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "EA enrollment not matching management groups; Azure Plan vs tenant mismatch."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Payer account in a different org; linked accounts billed but not in Organizations."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Billing account owned by a user; projects billed outside the org."
+        }
+      }
+    },
+    {
+      "id": "AP-A4",
+      "intent_id": "unbounded-guest-root",
+      "stream": "antipattern",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Guest Global Admin or Owner at Tenant Root Group."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "External IAM or assumed roles with AdministratorAccess on the management account."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "External users with roles/resourcemanager.organizationAdmin."
+        }
+      }
+    },
+    {
+      "id": "AP-A5",
+      "intent_id": "unowned-root-credentials",
+      "stream": "antipattern",
+      "design_area_id": "A",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Shared Global Admin password; no break-glass; no PIM."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Root access keys exist; root MFA unset; root used as a daily login."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Single super-admin; recovery options stale; no 2-step verification."
+        }
+      }
+    },
+    {
+      "id": "AP-B1",
+      "intent_id": "standing-root-equivalent",
+      "stream": "antipattern",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Permanent Global Admin or Owner at Tenant Root Group."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IAM users or SSO groups with AdministratorAccess on the management account, standing."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Users with roles/owner or organizationAdmin at org, standing."
+        }
+      }
+    },
+    {
+      "id": "AP-B2",
+      "intent_id": "local-cloud-users",
+      "stream": "antipattern",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Cloud-only Entra users for staff; shared admin mailboxes."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IAM users with passwords/keys as the daily path; unused Identity Center."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Consumer Gmail or unmanaged Google users on org IAM."
+        }
+      }
+    },
+    {
+      "id": "AP-B3",
+      "intent_id": "long-lived-keys-as-identity",
+      "stream": "antipattern",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SP client secrets in ADO/GitHub; unused managed identity."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IAM user access keys for CI and humans; keys never rotated."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Downloaded SA JSON keys in repos or Secret Manager used as identity."
+        }
+      }
+    },
+    {
+      "id": "AP-B4",
+      "intent_id": "unscoped-owner-at-root",
+      "stream": "antipattern",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App groups assigned Owner at Tenant Root or intermediate MG."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Dev SSO group with AdministratorAccess on * or on the root OU."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App groups with roles/editor or owner on the organization."
+        }
+      }
+    },
+    {
+      "id": "AP-B5",
+      "intent_id": "unmonitored-break-glass",
+      "stream": "antipattern",
+      "design_area_id": "B",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No break-glass; or Global Admin shared and unalerted."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Root used as a shared login; no CloudTrail alarm on root."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Super-admin used daily; no audit-log alert."
+        }
+      }
+    },
+    {
+      "id": "AP-C1",
+      "intent_id": "flat-sprawl",
+      "stream": "antipattern",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "All subscriptions under Tenant Root Group."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "All accounts in Root; empty OU design."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "All projects directly under the organization."
+        }
+      }
+    },
+    {
+      "id": "AP-C2",
+      "intent_id": "apps-in-platform",
+      "stream": "antipattern",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App resource groups in Connectivity or Management subscriptions."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Workload VPCs in the Network or Audit account."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App GKE in the shared-vpc host or logging project."
+        }
+      }
+    },
+    {
+      "id": "AP-C3",
+      "intent_id": "adhoc-naming",
+      "stream": "antipattern",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No required-tag policy; subscription names like 'test2-final'."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No tag policies; account emails as the only identifier."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No label convention; project IDs are random or personal."
+        }
+      }
+    },
+    {
+      "id": "AP-C4",
+      "intent_id": "clickops-birth",
+      "stream": "antipattern",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Portal-created subscriptions not in the vending app."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Organizations 'Add account' by hand; no AFT/Control Tower."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Console 'create project' by developers."
+        }
+      }
+    },
+    {
+      "id": "AP-C5",
+      "intent_id": "mixed-environments",
+      "stream": "antipattern",
+      "design_area_id": "C",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Prod and dev resource groups in one subscription with shared Owner."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Prod and sandbox in one account; one admin role."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Prod and playground in one project or shared folder IAM."
+        }
+      }
+    },
+    {
+      "id": "AP-D1",
+      "intent_id": "per-app-internet-edge",
+      "stream": "antipattern",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Public IPs on app VMs; app-level Azure Firewalls; no hub."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IGW on every VPC; no TGW; SG 0.0.0.0/0 common."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Public IPs on GCE; per-project Cloud NAT/VPN."
+        }
+      }
+    },
+    {
+      "id": "AP-D2",
+      "intent_id": "flat-global-network",
+      "stream": "antipattern",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Full-mesh VNet peering; AllowVnetInbound NSGs."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "TGW default route table associates all; 0.0.0.0/0 SG."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "One big Shared VPC with default-allow and no VPC-SC."
+        }
+      }
+    },
+    {
+      "id": "AP-D3",
+      "intent_id": "split-brain-dns",
+      "stream": "antipattern",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No central Private DNS; privatelink zones missing."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Resolver rules; each VPC has its own private zone or none."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Cloud DNS private zone; 169.254.169.254 tribal hacks."
+        }
+      }
+    },
+    {
+      "id": "AP-D4",
+      "intent_id": "public-as-default",
+      "stream": "antipattern",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Storage public blobs; public AKS API; no deny policy."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Public S3, public RDS, 22/3389 from 0.0.0.0/0."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Public buckets, public GKE masters, 0.0.0.0/0 firewall."
+        }
+      }
+    },
+    {
+      "id": "AP-D5",
+      "intent_id": "unmanaged-peering-mesh",
+      "stream": "antipattern",
+      "design_area_id": "D",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "VNet peerings with no CMDB; undocumented ER authorizations."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "VPC peering + TGW attachments unlabelled; unused DX VIFs."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "VPC peering spaghetti; leftover interconnect VLANs."
+        }
+      }
+    },
+    {
+      "id": "AP-E1",
+      "intent_id": "optional-security",
+      "stream": "antipattern",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "MCSB assigned as Audit only; Defender off on most subscriptions."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "GuardDuty not org-enabled; no SCPs for encryption."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCC Standard or off; org policies unset."
+        }
+      }
+    },
+    {
+      "id": "AP-E2",
+      "intent_id": "siem-islands",
+      "stream": "antipattern",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Per-sub Log Analytics; Defender not connected to a central Sentinel."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "GuardDuty per-account without org; no delegated admin."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SCC at project level only; no org-level findings."
+        }
+      }
+    },
+    {
+      "id": "AP-E3",
+      "intent_id": "keys-in-code",
+      "stream": "antipattern",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Key Vault empty of CMK; secrets in Git; disks platform-default despite CMK policy on slides."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "KMS keys unused; AKIA keys in GitHub; S3 default encryption off."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CMEK unused; JSON keys in Cloud Source; PD encryption default only."
+        }
+      }
+    },
+    {
+      "id": "AP-E4",
+      "intent_id": "secrets-in-pipelines",
+      "stream": "antipattern",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Client secrets in ADO variable groups; Key Vault unused."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "IAM keys in Actions secrets; Secrets Manager unused."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SA JSON in Cloud Build; Secret Manager unused."
+        }
+      }
+    },
+    {
+      "id": "AP-E5",
+      "intent_id": "security-as-ticket",
+      "stream": "antipattern",
+      "design_area_id": "E",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Security MG; Defender emails to a DL nobody triages."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Audit account; Security Hub findings ignored."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No security folder; SCC email notifications off."
+        }
+      }
+    },
+    {
+      "id": "AP-F1",
+      "intent_id": "logs-left-in-subscription",
+      "stream": "antipattern",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No diagnostic settings at MG; 90-day Activity Log only."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No org CloudTrail; per-account trails off or 7-day."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No org sink; default 30-day audit logs."
+        }
+      }
+    },
+    {
+      "id": "AP-F2",
+      "intent_id": "no-inventory",
+      "stream": "antipattern",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Resource Graph practice; MG tree in a slide."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Config aggregator; Organizations console rarely opened."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Asset Inventory; project list from memory."
+        }
+      }
+    },
+    {
+      "id": "AP-F3",
+      "intent_id": "app-monitoring-only",
+      "stream": "antipattern",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App Insights everywhere; no alert on diagnostic-setting deletion."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CW on Lambdas; org trail delivery failures unalerted."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "App SRE golden signals; sink failures silent."
+        }
+      }
+    },
+    {
+      "id": "AP-F4",
+      "intent_id": "no-platform-restore",
+      "stream": "antipattern",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Local ARM templates; Key Vault purge protection off."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Local Terraform state; org trail bucket without versioning."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "State in a personal GCS bucket; no KMS backup story."
+        }
+      }
+    },
+    {
+      "id": "AP-F5",
+      "intent_id": "snowflake-agents",
+      "stream": "antipattern",
+      "design_area_id": "F",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Azure Arc/Update Manager coverage; custom images untracked."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "SSM agent missing; unmanaged AMIs."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "OS Config off; mystery GCE images."
+        }
+      }
+    },
+    {
+      "id": "AP-G1",
+      "intent_id": "policy-as-pdf",
+      "stream": "antipattern",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "CAF deck, no Policy assignments at MG."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Well-Architected whitepaper, empty SCPs (FullAWSAccess only)."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Security whitepaper, org policies at default."
+        }
+      }
+    },
+    {
+      "id": "AP-G2",
+      "intent_id": "root-allow-all",
+      "stream": "antipattern",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No deny assignments; Audit-only everywhere."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "FullAWSAccess on Root; no additional SCPs."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "All org policies at default / inherit."
+        }
+      }
+    },
+    {
+      "id": "AP-G3",
+      "intent_id": "permanent-exemptions",
+      "stream": "antipattern",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "MG excluded from MCSB; expiresOn null."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "OU without SCPs; Control Tower ungoverned OU with prod accounts."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Folder with restored defaults; production projects inside."
+        }
+      }
+    },
+    {
+      "id": "AP-G4",
+      "intent_id": "no-cost-policy",
+      "stream": "antipattern",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No allowed-locations; no required-tags; no MG budgets."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No region SCP; no tag policies; no Budgets."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No resourceLocations constraint; no labels; no budgets."
+        }
+      }
+    },
+    {
+      "id": "AP-G5",
+      "intent_id": "screenshot-compliance",
+      "stream": "antipattern",
+      "design_area_id": "G",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Policy Insights export; CAF checklist ticked in a workshop."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Config aggregator export; WAFR notes as evidence."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No SCC posture export; workshop scores as evidence."
+        }
+      }
+    },
+    {
+      "id": "AP-H1",
+      "intent_id": "clickops-platform",
+      "stream": "antipattern",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Portal-built MG tree and Policy; ARM exports as 'IaC'."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Console Organizations + IAM; no AFT/LZA."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Console folders and org policies; Terraform unused."
+        }
+      }
+    },
+    {
+      "id": "AP-H2",
+      "intent_id": "email-vending",
+      "stream": "antipattern",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Email to platform; portal subscription create."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Ticket to cloud team; Organizations 'Add account'."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Slack to GCP admin; console project."
+        }
+      }
+    },
+    {
+      "id": "AP-H3",
+      "intent_id": "drift-accepted",
+      "stream": "antipattern",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Terraform state years old; Policy changed in portal."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "AFT unused after initial accounts; SCPs edited live."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Foundation repo frozen; org policies edited in console."
+        }
+      }
+    },
+    {
+      "id": "AP-H4",
+      "intent_id": "ticket-only-self-service",
+      "stream": "antipattern",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No vending app; ALZ used once."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No Account Factory access for app teams."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "No project factory; admin creates every project."
+        }
+      }
+    },
+    {
+      "id": "AP-H5",
+      "intent_id": "undocumented-hotfixes",
+      "stream": "antipattern",
+      "design_area_id": "H",
+      "providers": {
+        "azure": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Policy exception in portal; no PR."
+        },
+        "aws": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Live SCP edit during incident; AFT unaware."
+        },
+        "gcp": {
+          "kind": "mapped",
+          "applicability": "applicable",
+          "contract": "Org policy restoreDefault during outage; repo stale."
+        }
+      }
+    }
+  ]
+}

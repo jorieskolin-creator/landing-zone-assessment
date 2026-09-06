@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "schemaVersion": "lz_knowledge_base_v1",
+  "status": "contract_defined_content_pending",
+  "description": "Landing Zone Knowledge Base contract. Content is added in later work. Must never be cited as customer-state evidence.",
+  "topics": [],
+  "allowed_interpretation_use": [
+    "rubric_context",
+    "maturity_examples",
+    "antipattern_examples",
+    "evidence_requirements",
+    "validation_questions"
+  ],
+  "prohibited_use": [
+    "customer_current_state_claim",
+    "source_evidence_quote",
+    "audited_finding"
+  ],
+  "load_policy": "fail_visible_if_required_content_missing",
+  "must_not_fallback_to_finops_content": true
+}

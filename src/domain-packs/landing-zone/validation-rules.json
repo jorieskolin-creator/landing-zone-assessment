@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "description": "Landing Zone pack validation rules. Criterion iteration comes from the pack registry, not from A–F string patterns.",
+  "phase1": {
+    "required_streams": ["capability", "antipattern"],
+    "score_range": {"min": 0, "max": 3},
+    "required_fields_per_item": ["count", "evidence", "reasoning"],
+    "evidence_min_length_when_scored": 20,
+    "silence_keywords": ["silent", "absent", "not found", "no evidence", "missing", "not mentioned", "unknown"],
+    "unknown_is_not_zero": true
+  },
+  "providers": {
+    "valid_ids": ["azure", "aws", "gcp"],
+    "valid_kinds": ["mapped", "native", "not_applicable"],
+    "valid_applicability": ["applicable", "not_applicable", "out_of_scope"]
+  },
+  "phase3": {
+    "executive_summary_min_length": 100,
+    "weasel_words": [
+      "consider",
+      "might",
+      "could potentially",
+      "perhaps",
+      "it may be worth",
+      "you could try",
+      "we suggest exploring"
+    ],
+    "tactic_id_pattern": "TAC-[A-Z]+-\\d{3}",
+    "require_tactic_citations_when_actions_exist": true
+  }
+}
