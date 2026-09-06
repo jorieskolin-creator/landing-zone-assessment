@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence-Driven Landing Zone Assessment — Stakeholder Proposal</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d1618'/%3E%3Crect x='8' y='8' width='16' height='4' fill='%230c7a5c'/%3E%3Crect x='8' y='14' width='16' height='4' fill='%23ffffff'/%3E%3Crect x='8' y='20' width='10' height='4' fill='%23ffffff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/fraunces@latest/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/fraunces@latest/index-italic.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@latest/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@latest/index.css">
+<script>/* FIX: mark JS availability early — content must never stay hidden if scripts fail */document.documentElement.classList.add('js');</script>
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --paper:#ffffff;
+  --ink:#0d1618;
+  --ink2:#39474d;
+  --mute:#67767c;
+  --line:#e6eae8;
+  --line2:#d5ddd9;
+  --acc:#0c7a5c;
+  --acc-dark:#0a5d47;
+  --acc-soft:#edf6f1;
+  --go:#0c7a5c;      --go-soft:#e9f5ef;   --go-line:#bfe3d4;
+  --warn:#a86400;    --warn-soft:#faf2e1; --warn-line:#ecd6a8;
+  --block:#bb3d2c;   --block-soft:#fbeeec;--block-line:#eec6bf;
+  --steel:#33597a;   --steel-soft:#edf2f7;
+  --serif:'Fraunces Variable',Georgia,'Times New Roman',serif;
+  --sans:'Inter Variable',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono Variable','JetBrains Mono',ui-monospace,monospace;
+  --nav-h:66px;
+  --shadow:0 18px 44px -22px rgba(13,22,24,.22);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font:400 16px/1.68 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--acc);color:#fff}
+img{max-width:100%;display:block}
+a{color:inherit}
+section{scroll-margin-top:calc(var(--nav-h) + 18px)}
+[id]{scroll-margin-top:calc(var(--nav-h) + 18px)} /* FIX: anchors also land below the fixed header when targets are divs */
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(20px,4.5vw,44px)}
+.mono{font-family:var(--mono)}
+
+/* ============ TYPE HELPERS ============ */
+.kicker{display:inline-flex;align-items:center;gap:10px;font:600 11px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--acc-dark)}
+.kicker::before{content:"";width:9px;height:9px;background:var(--acc);flex:none}
+.kicker.amber{color:var(--warn)}.kicker.amber::before{background:var(--warn)}
+h1,h2,h3{font-family:var(--serif);font-weight:560;letter-spacing:-.015em;color:var(--ink)}
+.sec-title{font-size:clamp(1.85rem,3.4vw,2.7rem);line-height:1.12;margin:16px 0 14px;max-width:22ch}
+.lead{color:var(--ink2);font-size:clamp(1rem,1.35vw,1.12rem);max-width:62ch}
+.sec{padding:clamp(64px,9vw,112px) 0;border-top:1px solid var(--line)}
+.sec-head{margin-bottom:clamp(38px,5vw,60px)}
+
+/* ============ REVEAL (FIX: hidden only when JS is confirmed active) ============ */
+.js .reveal{opacity:0;transform:translateY(26px);transition:opacity .75s ease,transform .75s cubic-bezier(.2,.65,.2,1);transition-delay:var(--d,0s)}
+.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .js .reveal{opacity:1;transform:none;transition:none}
+  *{animation:none!important}
+}
+
+/* ============ NAV ============ */
+#progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--acc);transform-origin:0 50%;transform:scaleX(0);z-index:60}
+header.nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1280px;margin:0 auto;height:100%;padding:0 clamp(18px,3vw,36px);display:flex;align-items:center;gap:26px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;flex:none}
+.brand-mark{width:30px;height:30px;background:var(--ink);position:relative;flex:none}
+.brand-mark i{position:absolute;left:7px;right:7px;height:3px;background:#fff}
+.brand-mark i:nth-child(1){top:8px;background:var(--acc)}
+.brand-mark i:nth-child(2){top:14px}
+.brand-mark i:nth-child(3){top:20px;right:14px}
+.brand b{font:600 12px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.brand small{display:block;font:500 10px/1.3 var(--mono);letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+.nav-links{display:flex;gap:4px;margin-left:auto;align-items:center}
+.nav-links a{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);text-decoration:none;padding:10px 12px;position:relative;transition:color .25s}
+.nav-links a::after{content:"";position:absolute;left:12px;right:12px;bottom:5px;height:2px;background:var(--acc);transform:scaleX(0);transform-origin:0 50%;transition:transform .3s}
+.nav-links a:hover{color:var(--ink)}
+.nav-links a.active{color:var(--ink)}
+.nav-links a.active::after,.nav-links a:hover::after{transform:scaleX(1)}
+.nav-cta{flex:none;font:700 10px/1 var(--mono);letter-spacing:.14em;color:var(--warn);border:1px solid var(--warn-line);background:var(--warn-soft);padding:8px 11px;text-transform:uppercase;text-decoration:none;transition:.25s}
+.nav-cta:hover{background:var(--warn);color:#fff}
+.burger{display:none;margin-left:auto;background:none;border:1px solid var(--line2);width:40px;height:40px;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.burger span{width:16px;height:2px;background:var(--ink);transition:.3s}
+.m-menu{display:none}
+@media(max-width:1060px){
+  .nav-links,.nav-cta{display:none}
+  .burger{display:flex}
+  .m-menu{display:block;position:fixed;top:var(--nav-h);left:0;right:0;background:#fff;border-bottom:1px solid var(--line);z-index:49;max-height:0;overflow:hidden;transition:max-height .4s ease}
+  header.nav.open + .m-menu{max-height:420px}
+  .m-menu a{display:block;padding:14px 26px;font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);text-decoration:none;border-top:1px solid var(--line)}
+  .m-menu a:hover{background:var(--acc-soft);color:var(--acc-dark)}
+  header.nav.open .burger span:nth-child(1){transform:translateY(3.5px) rotate(45deg)}
+  header.nav.open .burger span:nth-child(2){transform:translateY(-3.5px) rotate(-45deg)}
+}
+
+/* ============ HERO ============ */
+.hero{padding:calc(var(--nav-h) + clamp(56px,8vw,96px)) 0 clamp(56px,7vw,88px);position:relative;background-image:radial-gradient(circle,rgba(13,22,24,.055) 1px,transparent 1px);background-size:26px 26px}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:140px;background:linear-gradient(transparent,#fff);pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:clamp(40px,5vw,72px);align-items:start;position:relative;z-index:1}
+.eyebrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:26px}
+.eyebrow .tag{font:600 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;padding:7px 10px;border:1px solid var(--line2);color:var(--mute)}
+.eyebrow .tag.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+h1.display{font-size:clamp(2.7rem,5.6vw,4.5rem);line-height:1.02;letter-spacing:-.025em;margin-bottom:24px}
+h1.display em{font-style:italic;color:var(--acc-dark)}
+.hero .lead{margin-bottom:28px}
+.hero-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:34px}
+.hchip{display:inline-flex;align-items:center;gap:8px;font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--ink2);border:1px solid var(--line2);background:#fff;padding:9px 13px;transition:.25s}
+.hchip svg{width:12px;height:12px;stroke:var(--acc);flex:none}
+.hchip:hover{border-color:var(--acc);color:var(--acc-dark);transform:translateY(-2px)}
+.principle{border-left:3px solid var(--acc);padding:6px 0 6px 22px;max-width:56ch}
+.principle p{font-family:var(--serif);font-size:clamp(1.05rem,1.5vw,1.25rem);line-height:1.5;color:var(--ink)}
+.principle .mono{display:block;margin-top:10px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.hero-link{display:inline-flex;align-items:center;gap:10px;margin-top:30px;font:700 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink);text-decoration:none;border-bottom:2px solid var(--acc);padding-bottom:6px}
+.hero-link svg{width:14px;height:14px;transition:transform .3s}
+.hero-link:hover{color:var(--acc-dark)}
+.hero-link:hover svg{transform:translateY(4px)}
+
+/* Engine summary card */
+.engine-card{background:#fff;border:1px solid var(--line2);box-shadow:var(--shadow);animation:float 8s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--ink);color:#fff;padding:14px 18px}
+.ec-id{display:flex;align-items:center;gap:10px;font:600 10px/1 var(--mono);letter-spacing:.16em}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--acc);position:relative;flex:none}
+.dot-live::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--acc);animation:pulse 2s infinite}
+@keyframes pulse{0%{transform:scale(.5);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+.ec-status{font:600 9px/1 var(--mono);letter-spacing:.14em;color:#9fd8c3;border:1px solid rgba(159,216,195,.4);padding:5px 8px}
+.ec-sub{display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line);font:500 10px/1.4 var(--mono);letter-spacing:.08em;color:var(--mute);text-transform:uppercase}
+.ec-sub svg{width:12px;height:12px;stroke:var(--acc);flex:none}
+.ec-rows{list-style:none}
+.ec-rows li{padding:16px 18px;border-bottom:1px solid var(--line);transition:background .25s}
+.ec-rows li:hover{background:var(--acc-soft)}
+.ec-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.ec-name{font-weight:600;font-size:13.5px}
+.ec-rows p{font-size:12.5px;color:var(--mute);line-height:1.55}
+.ec-meta{display:flex;align-items:center;gap:10px;margin-top:10px;font:500 9.5px/1 var(--mono);letter-spacing:.1em;color:var(--mute)}
+.conf{position:relative;width:86px;height:4px;background:#e4eae7;overflow:hidden;flex:none}
+.conf i{position:absolute;inset:0;width:0;transition:width 1.4s cubic-bezier(.2,.65,.2,1) .5s}
+body.loaded .conf i{width:var(--w)}
+li.go .conf i{background:var(--go)} li.warn .conf i{background:var(--warn)} li.block .conf i{background:var(--block)}
+.gate{font:700 9.5px/1 var(--mono);letter-spacing:.14em;padding:5px 8px;display:inline-flex;align-items:center;gap:6px;flex:none}
+.gate::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.gate.go{color:var(--go);background:var(--go-soft);border:1px solid var(--go-line)}
+.gate.warn{color:var(--warn);background:var(--warn-soft);border:1px solid var(--warn-line)}
+.gate.block{color:var(--block);background:var(--block-soft);border:1px solid var(--block-line)}
+.ec-foot{padding:13px 18px;font:500 9.5px/1.6 var(--mono);letter-spacing:.08em;color:var(--mute);text-transform:uppercase}
+
+/* ============ STATS ============ */
+.stats{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats-in{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:clamp(26px,3.4vw,42px) clamp(18px,2.6vw,40px);border-left:1px solid var(--line)}
+.stat:first-child{border-left:none}
+.stat .num{font:560 clamp(2.2rem,4vw,3.3rem)/1 var(--serif);color:var(--ink);display:flex;align-items:baseline;gap:2px}
+.stat .num small{font-size:.5em;color:var(--acc)}
+.stat .lbl{margin-top:8px;font:600 10px/1.5 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+
+/* ============ 01 CONCEPT FLOW ============ */
+.flow{display:flex;align-items:stretch}
+.flow-card{flex:1;border:1px solid var(--line);padding:clamp(24px,2.8vw,36px);position:relative;background:#fff;transition:.3s}
+.flow-card:hover{border-color:var(--acc);transform:translateY(-4px);box-shadow:var(--shadow)}
+.flow-card .role{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--acc-dark)}
+.flow-card h3{font-size:clamp(1.15rem,1.7vw,1.4rem);margin:14px 0 10px}
+.flow-card p{font-size:14px;color:var(--ink2)}
+.flow-card .idx{position:absolute;top:22px;right:22px;font:560 30px/1 var(--serif);color:var(--line2)}
+.flow-arr{flex:none;width:56px;display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.flow-arr svg{width:22px;height:22px}
+
+/* ============ 02 PREP ============ */
+.prep-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.prep-col{display:grid;gap:22px}
+.pcard{border:1px solid var(--line);padding:clamp(24px,2.8vw,34px);background:#fff;transition:.3s}
+.pcard:hover{border-color:var(--acc);transform:translateY(-3px)}
+.pcard .ptag{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.pcard h3{font-size:1.25rem;margin:12px 0 10px}
+.pcard p{font-size:14px;color:var(--ink2)}
+.safe{background:var(--ink);color:#dfe9e5;padding:clamp(26px,3vw,38px);position:relative;overflow:hidden}
+.safe::before{content:"";position:absolute;top:-70px;right:-70px;width:220px;height:220px;border:1px solid rgba(12,122,92,.45);border-radius:50%}
+.safe::after{content:"";position:absolute;top:-40px;right:-40px;width:160px;height:160px;border:1px solid rgba(12,122,92,.3);border-radius:50%}
+.safe .ptag{color:#8fd0ba}
+.safe h3{color:#fff;font-size:1.3rem;margin:12px 0 12px}
+.safe p{font-size:13.5px;color:#aebcb7;margin-bottom:12px}
+.safe-list{list-style:none;margin-top:20px;display:grid;gap:0;border-top:1px solid rgba(255,255,255,.14)}
+.safe-list li{display:grid;grid-template-columns:34px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.14);align-items:start}
+.safe-list svg{width:16px;height:16px;stroke:#8fd0ba;margin-top:3px}
+.safe-list b{display:block;font:700 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#fff}
+.safe-list span{font-size:12.5px;color:#aebcb7}
+
+/* ============ 03 QUAD ============ */
+.quad{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);background:#fff}
+.quad>div{padding:clamp(26px,3vw,40px);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transition:background .3s}
+.quad>div:nth-child(2n){border-right:none}
+.quad>div:nth-child(n+3){border-bottom:none}
+.quad>div:hover{background:var(--acc-soft)}
+.quad .n{font:560 42px/1 var(--serif);color:var(--line2);transition:color .3s}
+.quad>div:hover .n{color:var(--acc)}
+.quad h3{font-size:1.3rem;margin:14px 0 8px}
+.quad p{font-size:14px;color:var(--ink2);max-width:44ch}
+
+/* ============ 04 PROCESS ============ */
+.mantra{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font:600 clamp(11px,1.4vw,13px)/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:clamp(30px,4vw,46px)}
+.mantra i{color:var(--acc);font-style:normal}
+.stages{display:flex;align-items:stretch}
+.stage{flex:1;border:1px solid var(--line);background:#fff;padding:clamp(20px,2.4vw,30px);display:flex;flex-direction:column;transition:.3s}
+.stage:hover{border-color:var(--acc);transform:translateY(-4px);box-shadow:var(--shadow)}
+.stage-tag{font:700 10px/1 var(--mono);letter-spacing:.16em;color:#fff;background:var(--ink);padding:6px 9px;align-self:flex-start}
+.stage:hover .stage-tag{background:var(--acc)}
+.stage h3{font-size:1.2rem;margin:14px 0 12px}
+.stage ul{list-style:none;display:grid;gap:8px;margin-bottom:18px}
+.stage li{font-size:12.5px;color:var(--ink2);padding-left:16px;position:relative}
+.stage li::before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;background:var(--acc)}
+.stage-out{margin-top:auto;border-top:1px dashed var(--line2);padding-top:12px;font:600 10px/1.5 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.stage-out b{color:var(--acc-dark)}
+.st-arr{flex:none;width:48px;display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.st-arr svg{width:20px;height:20px}
+.gate-legend{margin-top:26px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;border:1px solid var(--line);padding:14px 18px;background:var(--acc-soft)}
+.gate-legend p{font-size:12.5px;color:var(--ink2)}
+
+/* ============ DAY SECTIONS ============ */
+.day-grid{display:grid;grid-template-columns:5fr 7fr;gap:clamp(34px,5vw,72px);align-items:start}
+.day-grid.flip .dl{order:2}
+.dl .stagechip{display:inline-block;font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;border:1px solid var(--line2);padding:7px 10px;color:var(--mute);margin-bottom:18px}
+.card{border:1px solid var(--line);background:#fff;padding:clamp(24px,2.8vw,34px);transition:.3s}
+.card + .card{margin-top:20px}
+.card:hover{border-color:var(--acc);box-shadow:var(--shadow)}
+.card-tag{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--acc-dark)}
+.card h3{font-size:1.25rem;margin:12px 0 12px}
+.ticks{list-style:none;display:grid;gap:9px}
+.ticks li{font-size:13.5px;color:var(--ink2);padding-left:18px;position:relative}
+.ticks li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;background:var(--acc)}
+.card-out{margin-top:20px;border-top:1px dashed var(--line2);padding-top:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font:600 10px/1.5 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.card-out b{color:var(--acc-dark)}
+.card.note-block{border-left:3px solid var(--block)}
+.card.note-block .card-tag{color:var(--block)}
+.prin-line{margin-top:16px;font-family:var(--serif);font-style:italic;font-size:1.05rem;color:var(--ink)}
+.gifts .card-tag{color:var(--steel)}
+.day-stack{display:grid;gap:20px}
+.day-pair{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}
+.day-pair .card{height:100%;display:flex;flex-direction:column}
+.day-pair .card + .card{margin-top:0}
+.day-pair .card-out,.day-pair .prin-line{margin-top:auto}
+.scope-bar{border:1px solid var(--line);border-left:3px solid var(--block);background:#fff;padding:clamp(20px,2.4vw,28px) clamp(22px,2.6vw,32px)}
+.scope-bar .card-tag{color:var(--block)}
+.scope-bar h3{font-size:1.2rem;margin:10px 0 8px}
+.scope-bar p{font-size:14.5px;color:var(--ink2);max-width:78ch}
+.scope-locks{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.scope-locks span{font:600 11px/1 var(--mono);letter-spacing:.06em;border:1px solid var(--line2);padding:9px 12px;background:#fff;color:var(--ink2)}
+
+/* ============ 07 MASTER DATA ============ */
+.md-grid{display:grid;grid-template-columns:5fr 7fr;gap:clamp(34px,5vw,70px);align-items:start}
+.md-fig{margin:26px 0 0}
+.md-fig img{mix-blend-mode:multiply;opacity:.92;width:100%;max-width:440px;margin:0 auto}
+.md-fig figcaption{margin-top:12px;text-align:center;font:600 10px/1.6 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.kud{list-style:none;display:grid;gap:14px}
+.kud li{border:1px solid var(--line);border-left-width:3px;padding:18px 22px;background:#fff;transition:.3s}
+.kud li:hover{transform:translateX(6px)}
+.kud li.k{border-left-color:var(--go)} .kud li.u{border-left-color:var(--warn)} .kud li.d{border-left-color:var(--steel)}
+.kud b{display:flex;align-items:center;gap:10px;font:700 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.kud li.k b{color:var(--go)} .kud li.u b{color:var(--warn)} .kud li.d b{color:var(--steel)}
+.kud p{margin-top:8px;font-size:13.5px;color:var(--ink2)}
+.prows{margin-top:26px;border-top:1px solid var(--line)}
+.prow{display:grid;grid-template-columns:52px 1fr;gap:18px;padding:20px 4px;border-bottom:1px solid var(--line)}
+.prow .rn{font:560 24px/1 var(--serif);font-style:italic;color:var(--acc)}
+.prow h4{font-family:var(--serif);font-size:1.1rem;margin-bottom:6px}
+.prow p{font-size:13.5px;color:var(--ink2)}
+.prow p em{font-style:italic;color:var(--ink)}
+
+/* ============ 08 DECISIONS ============ */
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font:600 11.5px/1 var(--mono);letter-spacing:.06em;border:1px solid var(--line2);padding:11px 15px;background:#fff;transition:.25s;cursor:default}
+.chip:hover{border-color:var(--acc);background:var(--acc-soft);color:var(--acc-dark);transform:translateY(-2px)}
+
+/* ============ 09 AUDIENCES ============ */
+.aud{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.aud-card{border:1px solid var(--line);border-top:3px solid var(--ink);background:#fff;padding:clamp(24px,2.8vw,34px);transition:.3s}
+.aud-card:hover{border-top-color:var(--acc);transform:translateY(-4px);box-shadow:var(--shadow)}
+.aud-card .for{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.aud-card h3{font-size:1.25rem;margin:12px 0 10px}
+.aud-card p{font-size:13.5px;color:var(--ink2)}
+
+/* ============ 10 SCOPE ============ */
+.scope{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.tile{border:1px solid var(--line);background:#fff;padding:clamp(22px,2.6vw,32px);position:relative;transition:.3s;overflow:hidden}
+.tile::after{content:"→";position:absolute;right:20px;bottom:16px;font:600 16px var(--mono);color:var(--acc);opacity:0;transform:translateX(-8px);transition:.3s}
+.tile:hover{border-color:var(--acc);transform:translateY(-4px)}
+.tile:hover::after{opacity:1;transform:none}
+.tile .si{font:700 10px/1 var(--mono);letter-spacing:.16em;color:var(--mute)}
+.tile h3{font-size:1.15rem;margin:12px 0 8px}
+.tile p{font-size:13px;color:var(--ink2)}
+.tile .opt{position:absolute;top:18px;right:18px;font:700 9px/1 var(--mono);letter-spacing:.14em;color:var(--steel);background:var(--steel-soft);border:1px solid #c9d7e4;padding:5px 8px;text-transform:uppercase}
+
+/* ============ 11 TAKES ============ */
+.takes{border-top:1px solid var(--line)}
+.take{display:grid;grid-template-columns:90px 1fr;gap:22px;padding:26px 8px;border-bottom:1px solid var(--line);transition:.3s;align-items:start}
+.take:hover{background:var(--acc-soft);padding-left:22px}
+.take .tn{font:560 30px/1 var(--serif);color:var(--line2)}
+.take:hover .tn{color:var(--acc)}
+.take h3{font-size:1.25rem;margin-bottom:6px}
+.take p{font-size:14px;color:var(--ink2);max-width:70ch}
+
+/* ============ CLOSING ============ */
+.closing{background:var(--acc-soft);border-top:1px solid var(--line)}
+.closing h2{font-size:clamp(2rem,4vw,3.2rem);max-width:24ch;margin-bottom:34px}
+.roles{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-bottom:38px}
+.role-card{border-top:2px solid var(--ink);padding-top:16px}
+.role-card b{font:700 11px/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:8px}
+.role-card p{font-size:13px;color:var(--ink2)}
+.closing .big{font-family:var(--serif);font-style:italic;font-size:clamp(1.15rem,2vw,1.5rem);max-width:46ch;margin-bottom:18px}
+.closing .fin{font-size:15px;color:var(--ink2);max-width:70ch;margin-bottom:36px}
+.btn{display:inline-flex;align-items:center;gap:12px;padding:16px 26px;background:var(--ink);color:#fff;font:700 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-decoration:none;border:none;cursor:pointer;transition:.3s}
+.btn svg{width:14px;height:14px;transition:transform .3s}
+.btn:hover{background:var(--acc);transform:translateY(-2px)}
+.btn:hover svg{transform:translateY(3px)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line2)}
+.btn.ghost:hover{border-color:var(--acc);color:var(--acc-dark);background:#fff}
+.foot-note{margin-top:44px;padding-top:20px;border-top:1px solid var(--line2);font:500 10.5px/1.8 var(--mono);letter-spacing:.06em;color:var(--mute)}
+
+/* ============ BAND / MARQUEE ============ */
+.band{background:var(--ink);overflow:hidden;padding:16px 0}
+.band-track{display:flex;width:max-content;animation:slide 36s linear infinite}
+.band span{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:#8fd0ba;white-space:nowrap;padding-right:20px}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* ============ IMPLEMENTATION ============ */
+.impl-hero{padding:clamp(70px,9vw,110px) 0 clamp(50px,6vw,80px)}
+.impl-chips{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 30px}
+.boundary{border:1px solid var(--ink);padding:clamp(20px,2.6vw,30px);background:#fff;position:relative}
+.boundary .btag{position:absolute;top:-9px;left:22px;background:#fff;padding:0 10px;font:700 10px/1.4 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--warn)}
+.boundary p{font-family:var(--serif);font-size:clamp(1.05rem,1.6vw,1.3rem);line-height:1.5}
+.boundary p b{color:var(--acc-dark)}
+/* pipe */
+.pipe{max-width:860px}
+.pstep{display:grid;grid-template-columns:56px 1fr;gap:24px;position:relative;padding-bottom:34px}
+.pstep::before{content:"";position:absolute;left:27.5px;top:58px;bottom:0;width:1px;background:var(--line2)}
+.pstep:last-child::before{display:none}
+.pnum{width:56px;height:56px;border:1px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font:700 15px var(--mono);transition:.3s;position:relative;z-index:1}
+.pstep:hover .pnum{background:var(--acc);border-color:var(--acc);color:#fff}
+.ptitle{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.ptitle h3{font-size:1.25rem}
+.psub{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--acc-dark);background:var(--acc-soft);border:1px solid var(--go-line);padding:6px 9px}
+.pstep p{margin-top:8px;font-size:14px;color:var(--ink2);max-width:64ch}
+.rule-strip{margin-top:10px;border:1px solid var(--ink);background:var(--ink);color:#dfe9e5;padding:clamp(18px,2.4vw,26px) clamp(20px,2.8vw,32px);display:grid;gap:10px}
+.rule-strip .ok{font:600 11.5px/1.7 var(--mono);letter-spacing:.1em}
+.rule-strip .ok i{color:#8fd0ba;font-style:normal}
+.rule-strip .no{font:600 11.5px/1.7 var(--mono);letter-spacing:.1em;color:#f0b3aa}
+/* domains */
+.dom{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.dom-card{border:1px solid var(--line);background:#fff;padding:clamp(24px,2.8vw,34px);transition:.3s}
+.dom-card:hover{border-color:var(--acc);transform:translateY(-4px);box-shadow:var(--shadow)}
+.dom-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.dom-l{width:38px;height:38px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px var(--mono);flex:none;transition:.3s}
+.dom-card:hover .dom-l{background:var(--acc)}
+.dom-card h3{font-size:1.2rem}
+.dom-tag{font-family:var(--serif);font-style:italic;color:var(--mute);font-size:1rem;margin-bottom:14px}
+/* horizons */
+.horiz{display:flex;align-items:stretch}
+.hstep{flex:1;border-top:2px solid var(--ink);padding:20px 22px 0 0;position:relative;transition:.3s}
+.hstep:hover{border-top-color:var(--acc)}
+.hstep::before{content:"";position:absolute;top:-5px;left:0;width:8px;height:8px;background:var(--acc)}
+.hstep h3{font-size:1.15rem;margin-bottom:4px}
+.hstep .ht{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--acc-dark);display:block;margin-bottom:10px}
+.hstep p{font-size:13px;color:var(--ink2)}
+/* table */
+.tbl-wrap{border:1px solid var(--line);overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;min-width:640px;background:#fff}
+.tbl th{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute);text-align:left;padding:16px 20px;background:var(--ink);color:#9fb3ac}
+.tbl td{padding:15px 20px;border-top:1px solid var(--line);vertical-align:top;font-size:13.5px}
+.tbl td:first-child{font-weight:600;color:var(--ink);white-space:nowrap;width:250px;font-family:var(--mono);font-size:12px;letter-spacing:.02em}
+.tbl td:last-child{color:var(--ink2)}
+.tbl tbody tr{transition:background .2s}
+.tbl tbody tr:hover{background:var(--acc-soft)}
+/* layers */
+.layers{max-width:940px}
+.layer{display:grid;grid-template-columns:52px 220px 1fr;gap:20px;align-items:start;border:1px solid var(--line2);background:#fff;padding:20px 24px;margin-bottom:-1px;transition:.3s;position:relative}
+.layer:hover{background:var(--acc-soft);border-color:var(--acc);z-index:1;transform:translateX(8px)}
+.layer .li{font:700 11px/1.6 var(--mono);color:var(--mute)}
+.layer h3{font-size:1.1rem}
+.layer .q{font:700 11px/1.6 var(--mono);letter-spacing:.06em;color:var(--acc-dark);margin-bottom:4px}
+.layer p{font-size:13px;color:var(--ink2)}
+@media(min-width:960px){.layer{margin-left:calc(var(--i)*22px);box-shadow:-6px 6px 0 -1px #fff,-6px 6px 0 0 var(--line)}}
+/* types */
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.type{border:1px solid var(--line);border-left:3px solid var(--tc,var(--ink));background:#fff;padding:24px;transition:.3s}
+.type:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.type .tb{font:700 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tc,var(--ink));background:var(--tbs,var(--acc-soft));padding:6px 8px;display:inline-block;border:1px solid var(--line)}
+.type h3{font-size:1.1rem;margin:14px 0 6px}
+.type .tt{font-size:12.5px;font-style:italic;font-family:var(--serif);color:var(--mute);margin-bottom:8px}
+.type p{font-size:12.5px;color:var(--ink2)}
+/* gates */
+.gates{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.gcard{border:1px solid var(--line);border-top:3px solid var(--gc);background:#fff;padding:26px;transition:.3s}
+.gcard:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.gcard p{margin-top:14px;font-size:13.5px;color:var(--ink2)}
+/* sample */
+.sample{border:1px solid var(--line2);box-shadow:var(--shadow);position:relative;background:#fff}
+.sample header{background:var(--ink);color:#fff;padding:18px 26px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.sample header .st{font:700 11px/1.5 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.sample header .st i{color:#8fd0ba;font-style:normal}
+.stamp{transform:rotate(4deg);border:1.5px solid #f0b3aa;color:#f0b3aa;font:700 9px/1 var(--mono);letter-spacing:.2em;padding:6px 10px;text-transform:uppercase}
+.s-grid{display:grid;grid-template-columns:1fr 1fr}
+.s-row{padding:18px 26px;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.s-row:nth-child(2n){border-right:none}
+.s-row.full{grid-column:1/-1;border-right:none}
+.s-row dt{font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--acc-dark);margin-bottom:8px}
+.s-row dd{font-size:13.5px;color:var(--ink2)}
+/* final */
+.final h2{font-size:clamp(2rem,4vw,3.1rem);max-width:22ch;margin-bottom:22px}
+.final h2 em{font-style:italic;color:var(--acc-dark)}
+.backlink{display:inline-flex;align-items:center;gap:10px;font:700 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-decoration:none;border:1px solid var(--line2);padding:14px 20px;transition:.3s;margin-top:34px}
+.backlink:hover{border-color:var(--acc);color:var(--acc-dark);background:#fff}
+footer.site{border-top:1px solid var(--line);padding:30px 0}
+footer.site .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:500 10.5px/1.8 var(--mono);letter-spacing:.08em;color:var(--mute)}
+#toTop{position:fixed;right:22px;bottom:22px;width:46px;height:46px;background:var(--ink);color:#fff;border:none;cursor:pointer;font:700 15px var(--mono);opacity:0;pointer-events:none;transition:.3s;z-index:40}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{background:var(--acc)}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:1020px){
+  .hero-grid,.day-grid,.md-grid,.prep-grid,.day-pair{grid-template-columns:1fr}
+  .day-grid.flip .dl{order:0}
+  .aud,.scope{grid-template-columns:1fr 1fr}
+  .roles,.types{grid-template-columns:1fr 1fr}
+  .gates{grid-template-columns:1fr}
+  .dom{grid-template-columns:1fr}
+  .stats-in{grid-template-columns:1fr 1fr}
+  .stat:nth-child(3){border-left:none}
+  .stat{border-top:1px solid var(--line)}
+  .stat:nth-child(-n+2){border-top:none}
+  .stages,.flow,.horiz{flex-direction:column}
+  .st-arr,.flow-arr{width:auto;height:40px}
+  .st-arr svg,.flow-arr svg{transform:rotate(90deg)}
+  .layer{grid-template-columns:44px 1fr}
+  .layer .q{grid-column:2}
+  .layer p{grid-column:2}
+}
+@media(max-width:640px){
+  .quad,.aud,.scope,.roles,.types,.s-grid{grid-template-columns:1fr}
+  .quad>div{border-right:none}
+  .quad>div:nth-child(n+3){border-bottom:1px solid var(--line)}
+  .quad>div:last-child{border-bottom:none}
+  .s-row{border-right:none}
+  .take{grid-template-columns:1fr;gap:8px}
+  .stats-in{grid-template-columns:1fr 1fr}
+}
+
+
+/* ============ SAFE EVIDENCE ACQUISITION DETAIL ============ */
+.safe-acq-open{
+  margin-top:24px;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:16px 18px;
+  border:1px solid var(--line2);
+  border-left:3px solid var(--acc);
+  background:#fff;
+  color:var(--ink);
+  cursor:pointer;
+  text-align:left;
+  transition:border-color .25s,background .25s,transform .25s,box-shadow .25s;
+}
+.safe-acq-open:hover{
+  border-color:var(--acc);
+  background:var(--acc-soft);
+  transform:translateY(-2px);
+  box-shadow:var(--shadow);
+}
+.safe-acq-open:focus-visible{outline:3px solid rgba(12,122,92,.22);outline-offset:3px}
+.safe-acq-open .safe-acq-open-icon{
+  width:36px;height:36px;flex:none;display:grid;place-items:center;
+  background:var(--ink);color:#fff;
+}
+.safe-acq-open .safe-acq-open-icon svg{width:19px;height:19px}
+.safe-acq-open .safe-acq-open-copy{flex:1}
+.safe-acq-open .safe-acq-open-copy b{
+  display:block;
+  font:700 10px/1.3 var(--mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--acc-dark);
+  margin-bottom:5px;
+}
+.safe-acq-open .safe-acq-open-copy span{
+  display:block;
+  font:600 13px/1.5 var(--sans);
+  color:var(--ink);
+}
+.safe-acq-open .safe-acq-open-arrow{font:700 18px/1 var(--mono);color:var(--acc);flex:none}
+
+.safe-acq-modal{
+  position:fixed;inset:0;z-index:1000;
+  display:none;
+  background:rgba(13,22,24,.72);
+  backdrop-filter:blur(6px);
+  padding:16px;
+}
+.safe-acq-modal.open{display:block}
+.safe-acq-dialog{
+  position:relative;
+  width:min(1280px,100%);
+  height:calc(100vh - 32px);
+  margin:0 auto;
+  overflow:auto;
+  background:#fff;
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 30px 90px rgba(0,0,0,.32);
+  border-radius:18px;
+  overscroll-behavior:contain;
+}
+.safe-acq-close{
+  position:sticky;top:14px;float:right;z-index:10;
+  width:44px;height:44px;margin:14px 14px -58px 0;
+  border:1px solid #d7dfeb;border-radius:50%;
+  background:rgba(255,255,255,.96);color:#10234a;
+  font:700 21px/1 var(--sans);cursor:pointer;
+  box-shadow:0 8px 24px rgba(16,35,74,.12);
+}
+.safe-acq-close:hover{background:#eef5ff;border-color:#7ca4e3}
+.safe-acq-close:focus-visible{outline:3px solid rgba(47,99,183,.24);outline-offset:3px}
+.safe-acq-shell{min-width:1120px;padding:42px 44px 54px;color:#0f172a;background:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.safe-acq-title{
+  margin:0 auto 18px;text-align:center;color:#0b1d45;
+  font-size:48px;line-height:1.02;letter-spacing:-1.4px;font-weight:900;
+}
+.safe-acq-policy{
+  width:760px;margin:0 auto 14px;padding:12px 20px;
+  display:flex;gap:13px;align-items:center;justify-content:center;
+  border:1.5px solid #77a5ee;border-radius:12px;
+  background:linear-gradient(180deg,#fff,#f8fbff);
+  color:#0b1d45;text-align:center;font-size:15px;line-height:1.42;font-weight:750;
+  box-shadow:0 8px 24px rgba(47,99,183,.08);
+}
+.safe-acq-policy svg{width:30px;height:30px;flex:none;stroke:#2f63b7}
+.safe-acq-explainer{
+  width:840px;margin:0 auto 28px;padding:16px 20px;
+  border-left:4px solid #2f63b7;background:#f5f9ff;
+  color:#334155;font-size:14px;line-height:1.62;
+}
+.safe-acq-explainer strong{color:#0b1d45}
+
+.safe-acq-canvas{position:relative;width:1100px;height:1780px;margin:0 auto;background:#fff}
+.safe-acq-lines{position:absolute;inset:0;width:1100px;height:1780px;z-index:1;pointer-events:none}
+.safe-acq-lines path,.safe-acq-lines line,.safe-acq-lines polyline{fill:none;stroke:#0b1d45;stroke-width:2.2}
+.safe-acq-lines .loop-line{stroke:#d14343;stroke-dasharray:8 6}
+.safe-acq-lines text{font-family:Inter,Arial,sans-serif;font-size:14px;font-weight:800;fill:#d14343}
+.safe-acq-node{
+  position:absolute;z-index:2;
+  display:flex;align-items:center;gap:14px;
+  padding:12px 16px;border:1.6px solid #9bb8e5;border-radius:13px;
+  background:#fff;box-shadow:0 8px 24px rgba(31,66,135,.08);overflow:hidden;
+}
+.safe-acq-node .nicon{width:38px;height:38px;flex:0 0 38px;color:#2f63b7;display:grid;place-items:center}
+.safe-acq-node .nicon svg{width:100%;height:100%;stroke:currentColor}
+.safe-acq-node .ncopy{flex:1;min-width:0;text-align:center}
+.safe-acq-node .ntitle{font-size:18px;line-height:1.15;font-weight:850;color:#0b1d45;margin-bottom:5px}
+.safe-acq-node .nbody{font-size:14px;line-height:1.30;font-weight:650;color:#0f172a}
+.safe-acq-node.branch{height:154px}
+.safe-acq-node.branch.doc{border-color:#70a968;background:linear-gradient(180deg,#fff,#f6fbf5)}
+.safe-acq-node.branch.doc .nicon{color:#2e7d32}
+.safe-acq-node.branch.data{border-color:#ae83d5;background:linear-gradient(180deg,#fff,#fbf7ff)}
+.safe-acq-node.branch.data .nicon{color:#8e55bd}
+.safe-acq-node.branch.visual{border-color:#ed965c;background:linear-gradient(180deg,#fff,#fff8f2)}
+.safe-acq-node.branch.visual .nicon{color:#e36a1a}
+.safe-acq-ai{border-color:#72a0e7;background:linear-gradient(180deg,#fff,#f7fbff)}
+.safe-acq-chip{display:inline-block;margin:0 0 7px;padding:4px 10px;border-radius:999px;background:#2f63b7;color:#fff;font-size:11px;line-height:1;font-weight:850;letter-spacing:.02em}
+.safe-acq-sufficiency{
+  margin-top:9px;padding-top:8px;border-top:1.5px dashed #6f9fe8;
+  color:#0f172a;font-size:13px;line-height:1.2;font-weight:850;text-align:center;
+}
+.safe-acq-branch-label{
+  position:absolute;z-index:4;background:#fff;padding:2px 5px;
+  font-size:12px;line-height:1;font-weight:900;
+}
+.safe-acq-branch-label.yes{left:414px;top:1275px;color:#2e7d32}
+.safe-acq-branch-label.no{left:770px;top:1197px;color:#d14343}
+.safe-acq-packets{
+  position:absolute;z-index:2;left:350px;top:1474px;width:400px;height:100px;
+  padding:13px 16px;border:1.6px solid #72a0e7;border-radius:13px;
+  background:linear-gradient(180deg,#fff,#f1f6ff);box-shadow:0 8px 24px rgba(31,66,135,.08);
+  display:flex;gap:14px;align-items:center;color:#0b1d45;
+}
+.safe-acq-packets .nicon{width:38px;height:38px;flex:none;color:#2f63b7}
+.safe-acq-packets .nicon svg{width:100%;height:100%;stroke:currentColor}
+.safe-acq-packets .ncopy{flex:1;text-align:center}
+.safe-acq-packets .ntitle{font-size:19px;font-weight:900;margin-bottom:4px}
+.safe-acq-packets .nbody{font-size:14px;line-height:1.34;font-weight:750}
+.safe-acq-boundary-line{position:absolute;left:45px;right:45px;top:1636px;border-top:3px dashed #1b4f9f;z-index:1}
+.safe-acq-boundary{
+  position:absolute;z-index:2;left:325px;top:1598px;width:450px;height:76px;
+  border-radius:10px;background:#103b84;color:white;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  box-shadow:0 10px 25px rgba(16,59,132,.16);text-align:center;
+}
+.safe-acq-boundary svg{width:34px;height:34px;stroke:white;flex:none}
+.safe-acq-boundary strong{display:block;font-size:18px;line-height:1.12;font-weight:900}
+.safe-acq-boundary span{display:block;margin-top:3px;font-size:14px;line-height:1.15;font-weight:750}
+.safe-acq-analysis{
+  position:absolute;z-index:2;left:310px;top:1704px;width:480px;height:60px;
+  border:1.6px solid #9bb8e5;border-radius:12px;background:#fff;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  color:#0b1d45;font-size:24px;line-height:1;font-weight:950;
+  box-shadow:0 8px 24px rgba(31,66,135,.08);
+}
+.safe-acq-analysis svg{width:32px;height:32px;stroke:#2f63b7}
+.safe-acq-return-label{
+  position:absolute;z-index:3;left:814px;top:778px;width:238px;
+  color:#d14343;font-size:11px;line-height:1.3;font-weight:800;text-align:center;
+  background:#fff;padding:3px 5px;
+}
+body.safe-acq-lock{overflow:hidden}
+@media(max-width:760px){
+  .safe-acq-open{align-items:flex-start}
+  .safe-acq-open .safe-acq-open-copy span{font-size:12.5px}
+  .safe-acq-modal{padding:0}
+  .safe-acq-dialog{height:100vh;border-radius:0}
+}
+
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-in">
+    <a class="brand" href="#assessment">
+      <span class="brand-mark"><i></i><i></i><i></i></span>
+      <span><b>Landing Zone Engine</b><small>Evidence-Driven Assessment</small></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#concept" data-link="concept">Concept</a>
+      <a href="#preparation" data-link="preparation">Preparation</a>
+      <a href="#truth" data-link="truth">Truth model</a>
+      <a href="#process" data-link="process">Process</a>
+      <a href="#days" data-link="days">The Days</a>
+      <a href="#masterdata" data-link="masterdata">Master Data</a>
+      <a href="#outcomes" data-link="outcomes">Outcomes</a>
+      <a href="#implementation" data-link="implementation">Implementation</a>
+    </nav>
+    <a class="nav-cta" href="#implementation">Proposal · Under Development</a>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span></button>
+  </div>
+</header>
+<nav class="m-menu" id="mmenu">
+  <a href="#concept">Concept</a>
+  <a href="#preparation">Preparation</a>
+  <a href="#truth">Truth model</a>
+  <a href="#process">Process</a>
+  <a href="#days">The Days</a>
+  <a href="#masterdata">Master Data</a>
+  <a href="#outcomes">Outcomes</a>
+  <a href="#implementation">Implementation Model</a>
+</nav>
+
+<main>
+<section class="hero" id="assessment" data-nav="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow reveal">
+        <span class="tag dark">Stakeholder-Level Proposal</span>
+        <span class="tag">Part I · Assessment</span>
+        <span class="tag">3 Days + Step 0</span>
+      </div>
+      <h1 class="display reveal" style="--d:.08s">Evidence-Driven <em>Landing Zone</em> Assessment</h1>
+      <p class="lead reveal" style="--d:.14s">From platform evidence, documents and stakeholder knowledge to a defensible current-state baseline in three days. An expert-facilitated assessment supported by the Landing Zone Engine — designed to turn control-plane inventory, architecture material and workshops into validated findings, focused priorities and an agreed path for the cloud foundation.</p>
+      <div class="hero-chips reveal" style="--d:.2s">
+        <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>3-day workshop window + Step 0 preparation</span>
+        <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Expert-led workshops</span>
+        <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Control-plane + document evidence</span>
+        <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Customer-validated decisions</span>
+      </div>
+      <div class="principle reveal" style="--d:.26s">
+        <p>The objective is not to maximize a landing-zone score. The objective is to understand what is configured, what is owned, what is uncertain, and what should change next.</p>
+        <span class="mono">Assessment principle</span>
+      </div>
+      <a class="hero-link reveal" style="--d:.32s" href="#process">See the assessment process <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 4v16m0 0l-6-6m6 6l6-6"/></svg></a>
+    </div>
+
+    <aside class="engine-card reveal" style="--d:.18s" aria-label="Landing Zone Engine summary preview">
+      <div class="ec-head">
+        <span class="ec-id"><span class="dot-live"></span>LANDING ZONE ENGINE · SUMMARY</span>
+        <span class="ec-status">SESSION-ONLY</span>
+      </div>
+      <div class="ec-sub"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="10" width="16" height="10"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>Deterministic sanitization · raw material excluded</div>
+      <ul class="ec-rows">
+        <li class="go">
+          <div class="ec-top"><span class="ec-name">Resource organization</span><span class="gate go">GO</span></div>
+          <p>Platform and application landing zones are separated; production subscriptions inherit parent policy.</p>
+          <div class="ec-meta">E-014 · INVENTORY · POLICY <span class="conf"><i style="--w:88%"></i></span> 88%</div>
+        </li>
+        <li class="warn">
+          <div class="ec-top"><span class="ec-name">Network topology</span><span class="gate warn">WARN</span></div>
+          <p>Hub connectivity is present; spoke routing and inspection points are only partially evidenced.</p>
+          <div class="ec-meta">E-022 · DIAGRAM · INTERVIEW <span class="conf"><i style="--w:57%"></i></span> 57%</div>
+        </li>
+        <li class="block">
+          <div class="ec-top"><span class="ec-name">Environment vending</span><span class="gate block">BLOCK</span></div>
+          <p>No evidence of automated subscription or account issuance with inherited guardrails.</p>
+          <div class="ec-meta">E-031 · GAP LOG <span class="conf"><i style="--w:11%"></i></span> 11%</div>
+        </li>
+      </ul>
+      <div class="ec-foot">GO / WARN / BLOCK reflect evidence sufficiency — not customer pass or fail.</div>
+    </aside>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="wrap stats-in">
+    <div class="stat reveal"><div class="num"><span class="count" data-target="3">0</span></div><div class="lbl">Day workshop window<br>+ Step 0 preparation</div></div>
+    <div class="stat reveal" style="--d:.08s"><div class="num"><span class="count" data-target="8">0</span></div><div class="lbl">Design areas<br>in the assessment pack</div></div>
+    <div class="stat reveal" style="--d:.16s"><div class="num"><span class="count" data-target="3">0</span></div><div class="lbl">Evidence classes<br>platform · document · workshop</div></div>
+    <div class="stat reveal" style="--d:.24s"><div class="num"><span class="count" data-target="100">0</span><small>%</small></div><div class="lbl">Deterministic sanitization<br>before any LLM analysis</div></div>
+  </div>
+</div>
+
+<section class="sec" id="concept" data-nav="concept">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">01 · The service concept</div>
+      <h2 class="sec-title reveal" style="--d:.06s">More than a checklist: a structured path from evidence to action.</h2>
+      <p class="lead reveal" style="--d:.12s">The assessment combines senior landing-zone facilitation with a governed analysis layer. The Engine does not replace expert judgment or customer decision authority. It improves the quality, consistency and traceability of the material used for those decisions.</p>
+    </div>
+    <div class="flow">
+      <article class="flow-card reveal"><span class="idx">i</span><span class="role">Expert facilitation</span><h3>Understand the real platform operating model</h3><p>Workshops capture both formal design and the silent knowledge that explains how identity, networking, security and application teams actually consume the cloud foundation.</p></article>
+      <div class="flow-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="flow-card reveal" style="--d:.12s"><span class="idx">ii</span><span class="role">Landing Zone Engine</span><h3>Create a disciplined assessment baseline</h3><p>The Engine structures platform inventory, documents and workshop attestations, challenges unsupported findings, exposes contradictions and missing evidence, and creates a traceable Summary for discussion.</p></article>
+      <div class="flow-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="flow-card reveal" style="--d:.2s"><span class="idx">iii</span><span class="role">Customer outcome</span><h3>Move from findings to agreed change</h3><p>The final output is not an automated list of demands, nor a recommendation to buy an accelerator. It is a customer-validated baseline and an agreed set of priorities, decisions, owners and next steps.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="preparation" data-nav="preparation">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">02 · What to prepare and how information is handled</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Customers are prepared before the workshop days begin.</h2>
+      <p class="lead reveal" style="--d:.12s">Before the assessment workshops, the customer is guided on what the assessment is, how the Landing Zone Engine is used, what kind of information is useful, and how privacy and controlled processing are taken into account. This helps the workshops focus on insight and decisions rather than basic orientation.</p>
+    </div>
+    <div class="prep-grid">
+      <div class="prep-col">
+        <article class="pcard reveal">
+          <span class="ptag">Useful information</span>
+          <h3>What is helpful to have available</h3>
+          <p>Examples include the tenant or organization construct, management-group / OU / folder diagrams, identity baseline, network design, policy or SCP catalogues, logging architecture, IaC or accelerator repositories, exception registers, and vending or account-factory process descriptions — material already created in normal platform work.</p>
+        </article>
+        <article class="pcard reveal" style="--d:.08s">
+          <span class="ptag">Workshop preparation</span>
+          <h3>How the customer prepares</h3>
+          <p>The customer identifies platform, identity, networking, security and application stakeholders, clarifies cloud and tenant scope, gathers the most useful documents and exports, and understands what kinds of examples, exceptions and silent knowledge will make the workshops more productive.</p>
+        </article>
+      </div>
+      <article class="safe reveal" style="--d:.1s">
+        <span class="ptag">Safety & privacy</span>
+        <h3>How the Landing Zone Engine protects customer information</h3>
+        <p>The Engine is designed so that raw customer material is not sent to the LLM. Sensitive information is removed deterministically already during the input and sanitization phase before any AI-assisted analysis is allowed. Only the minimum sanitized and structured content needed for the assessment is passed forward.</p>
+        <p>Assessment information is temporary by design. It is used only for the active session, is not intended to become a persistent external knowledge store, and can be deleted during the session on request. Remaining temporary assessment data is deleted when the session ends.</p>
+        <ul class="safe-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3l7 4v6c0 4-3 7-7 8-4-1-7-4-7-8V7l7-4z"/></svg><div><b>No raw material to the LLM</b><span>Original customer files and live inventory remain outside the AI reasoning boundary.</span></div></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 12l5 5L20 6"/></svg><div><b>Deterministic sanitization first</b><span>Secrets, account numbers and sensitive values are removed before AI-assisted analysis begins.</span></div></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><div><b>Session-only processing</b><span>Assessment data is temporary and used only for the active assessment session.</span></div></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14"/></svg><div><b>Deletion by design</b><span>Temporary assessment data can be deleted on request and is removed when the session ends.</span></div></li>
+        </ul>
+      </article>
+    </div>
+    <button type="button" class="safe-acq-open reveal" id="safeAcqOpen" style="--d:.16s">
+      <span class="safe-acq-open-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l6 2.4v5.3c0 4.1-2.4 7.7-6 9.3-3.6-1.6-6-5.2-6-9.3V5.4L12 3z"/></svg></span>
+      <span class="safe-acq-open-copy"><b>Landing Zone Engine · Safe evidence acquisition</b><span>Raw evidence is never supplied to generative reasoning models</span></span>
+      <span class="safe-acq-open-arrow" aria-hidden="true">↗</span>
+    </button>
+  </div>
+</section>
+
+<section class="sec" id="truth" data-nav="truth">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">03 · Why this approach is different</div>
+      <h2 class="sec-title reveal" style="--d:.06s">The assessment creates one shared, evidence-grounded point of reference.</h2>
+      <p class="lead reveal" style="--d:.12s">Traditional landing-zone reviews often leave information fragmented across architecture slides, interview notes, accelerator checklists and individual interpretations. This model creates one controlled Summary that becomes the Master Data for the final discussion. The Landing Zone Engine Summary is the basis for discussion — not a mandatory verdict. It helps experts and stakeholders discuss what is confirmed, what is uncertain, what matters, and what deserves action from the same evidence-grounded starting point.</p>
+    </div>
+    <div class="quad">
+      <div class="reveal"><div class="n">01</div><h3>Better clarity</h3><p>Configured control, documented intent, stakeholder assertion, planned activity, contradiction and missing evidence remain distinguishable.</p></div>
+      <div class="reveal" style="--d:.08s"><div class="n">02</div><h3>Better confidence</h3><p>Uncertainty is made visible instead of being hidden inside a polished “aligned to CAF / Control Tower” narrative.</p></div>
+      <div class="reveal" style="--d:.12s"><div class="n">03</div><h3>Better use of time</h3><p>Experts spend less time manually stitching together inventory and notes, and more time validating, interpreting and prioritizing.</p></div>
+      <div class="reveal" style="--d:.16s"><div class="n">04</div><h3>Better decisions</h3><p>The assessment ends in explicit customer choices, not only a maturity classification or an accelerator recommendation.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0;border-top:none">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker amber reveal">Landing-zone truth model</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Platform configuration, documents and workshops are not interchangeable.</h2>
+      <p class="lead reveal" style="--d:.12s">Landing-zone truth lives first in the control plane: hierarchy, identity bindings, policy attachments, shared networks and logging destinations. Documents explain intent. Workshops explain ownership, exceptions and whether the platform is actually used. An interview can explain a control-plane fact; it cannot replace one.</p>
+    </div>
+    <div class="types">
+      <article class="type reveal" style="--tc:var(--acc);--tbs:var(--acc-soft)">
+        <span class="tb">Class 1 · Platform</span>
+        <h3>Control-plane evidence</h3>
+        <p class="tt">Strongest for “is it so now?”</p>
+        <p>Live or exported inventory of tenants, management groups or OUs, subscriptions or accounts, policy and SCP assignments, identity roles, hub networks, log archives and vending configuration. Resolves whether a control exists, where it is attached, and whether it is enforced.</p>
+      </article>
+      <article class="type reveal" style="--tc:var(--steel);--tbs:var(--steel-soft);--d:.08s">
+        <span class="tb">Class 2 · Material</span>
+        <h3>Documents and IaC</h3>
+        <p class="tt">Strongest for intent and desired state</p>
+        <p>Landing-zone design, naming standards, exception process, RACI, Bicep / Terraform / accelerator repos. Resolves what the platform team intends to converge to. Drift between repo and tenant is itself a finding.</p>
+      </article>
+      <article class="type reveal" style="--tc:var(--warn);--tbs:var(--warn-soft);--d:.16s">
+        <span class="tb">Class 3 · People</span>
+        <h3>Workshops and interviews</h3>
+        <p class="tt">Strongest for operating model</p>
+        <p>How a new environment is requested, who can create subscriptions, why an exception exists, whether break-glass is rehearsed. May raise or lower confidence on an already evidenced control. Cannot award “embedded” maturity for a missing preventive guardrail.</p>
+      </article>
+      <article class="type reveal" style="--tc:var(--block);--tbs:var(--block-soft);--d:.24s">
+        <span class="tb">Scoring rule</span>
+        <h3>Unknown is not zero</h3>
+        <p class="tt">Silence is classified, not punished</p>
+        <p>No evidence after a scoped collector can become tested absence. Silence after only a workshop remains unknown. A silent design area does not receive a red score and does not generate remediation tactics.</p>
+      </article>
+    </div>
+    <div class="gate-legend reveal" style="margin-top:28px">
+      <span class="gate go">CONFIGURED</span>
+      <span class="gate warn">DECLARED</span>
+      <span class="gate block">UNKNOWN</span>
+      <p>A design document that says Deny, while the assignment is Audit, is a contradiction — not alignment. Workshops are used to explain the contradiction, not to vote it away.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="process" data-nav="process">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">04 · The assessment process</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Collect → Analyze → Validate → Decide → Commit</h2>
+      <p class="lead reveal" style="--d:.12s">The preparation step and workshop days are deliberately sequenced so the customer understands the logic, the evidence needs, the role of the Landing Zone Engine and how to prepare effectively.</p>
+    </div>
+    <div class="mantra reveal"><span>Establish the truth first</span><i>→</i><span>Decide what matters</span><i>→</i><span>Design implementation second</span></div>
+    <div class="stages">
+      <article class="stage reveal">
+        <span class="stage-tag">STEP 0</span>
+        <h3>Prepare & Align</h3>
+        <ul>
+          <li>Clarify the assessment logic, clouds, tenants and customer goals</li>
+          <li>Explain how the Landing Zone Engine is used and why it is safe</li>
+          <li>Prepare stakeholders, documents, exports and collector access</li>
+        </ul>
+        <div class="stage-out">Output → <b>Prepared Assessment Baseline</b></div>
+      </article>
+      <div class="st-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="stage reveal" style="--d:.08s">
+        <span class="stage-tag">DAY 1</span>
+        <h3>Understand & Collect</h3>
+        <ul>
+          <li>Align on scope, business goals and design-area coverage</li>
+          <li>Facilitate stakeholder workshops and interviews</li>
+          <li>Ingest inventory, documents, IaC and silent knowledge</li>
+        </ul>
+        <div class="stage-out">Output → <b>Structured Evidence Base</b></div>
+      </article>
+      <div class="st-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="stage reveal" style="--d:.16s">
+        <span class="stage-tag">DAY 2</span>
+        <h3>Analyze & Clarify</h3>
+        <ul>
+          <li>Close accidental evidence gaps with targeted re-collection</li>
+          <li>Run Engine analysis, verification and contradiction review</li>
+          <li>Calibrate the Summary with Landing Zone Experts</li>
+        </ul>
+        <div class="stage-out">Output → <b>Master Data Summary</b></div>
+      </article>
+      <div class="st-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="stage reveal" style="--d:.24s">
+        <span class="stage-tag">DAY 3</span>
+        <h3>Validate & Commit</h3>
+        <ul>
+          <li>Validate findings with the customer from the Summary</li>
+          <li>Prioritize by risk, dependency, value and operating constraint</li>
+          <li>Agree decisions, owners and next steps</li>
+        </ul>
+        <div class="stage-out">Output → <b>Agreed Landing Zone Change Plan</b></div>
+      </article>
+    </div>
+    <div class="gate-legend reveal">
+      <span class="gate go">GO</span>
+      <span class="gate warn">WARN</span>
+      <span class="gate block">BLOCK</span>
+      <p>indicate evidence sufficiency and confidence — not customer pass or fail.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="days" data-nav="days">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">05 · Step 0 — Prepare & Align</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Prepare the customer, the evidence baseline and the workshop logic.</h2>
+      <p class="lead reveal" style="--d:.12s">Step 0 happens before the three workshop days. Its purpose is to make sure the customer understands the assessment approach, the role of the Landing Zone Engine, the practical preparation needed, the clouds and tenants in scope, and the boundaries around information handling. If read-only collector access can be granted, inventory is captured here so Day 1 does not start blind.</p>
+    </div>
+    <div class="day-stack">
+      <div class="day-pair">
+        <article class="card reveal">
+          <span class="card-tag">Purpose</span>
+          <h3>Create a well-prepared starting point</h3>
+          <ul class="ticks">
+            <li>Clarify the purpose, scope, clouds, tenants, regions and intended outcomes.</li>
+            <li>Explain how the Landing Zone Engine supports the assessment and why it is used.</li>
+            <li>Set expectations for the workshops, participants and outputs.</li>
+            <li>Highlight the documents, exports and collector access that are helpful to prepare.</li>
+            <li>Explain the Engine’s safety model: deterministic sanitization first, no raw material to the LLM, temporary session-only processing and deletion controls.</li>
+          </ul>
+          <div class="card-out">Deliverable <b>Prepared Assessment Baseline</b></div>
+        </article>
+        <article class="card gifts reveal" style="--d:.08s">
+          <span class="card-tag">What it gives the customer</span>
+          <h3>Better workshops and better outcomes</h3>
+          <ul class="ticks">
+            <li>Less time spent explaining the process during the workshops.</li>
+            <li>Better readiness of stakeholders, source material and platform access.</li>
+            <li>Clearer understanding of what the Engine does and does not do.</li>
+            <li>Clear understanding of what information reaches AI, what does not, and how temporary assessment data is deleted.</li>
+            <li>A stronger foundation for efficient evidence collection and later analysis.</li>
+          </ul>
+          <p class="prin-line">Outcome: The customer enters Day 1 informed, aligned and ready.</p>
+        </article>
+      </div>
+      <aside class="scope-bar reveal" style="--d:.14s">
+        <span class="card-tag">Before Day 1</span>
+        <h3>Name the estate first</h3>
+        <p>Which cloud, which tenant, which design areas — and whether we may read the live platform. Write that down in Step 0. The three days then assess that named estate. They do not go looking for it.</p>
+        <div class="scope-locks">
+          <span>Cloud</span>
+          <span>Tenant / org</span>
+          <span>Design areas</span>
+          <span>Live inventory · yes or no</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">06 · Day 1 — Understand & Collect</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Understand the context and collect the evidence that matters.</h2>
+      <p class="lead reveal" style="--d:.12s">Day 1 builds the assessment foundation. The workshops focus on how the landing zone operates in reality — not only what the design says should happen. Platform inventory is ingested alongside documents so the Engine can already show which design areas are evidenced, silent or contradictory.</p>
+    </div>
+    <div class="day-grid">
+      <div class="dl">
+        <article class="card reveal">
+          <span class="card-tag">Purpose</span>
+          <h3>Build a reliable picture of the current state</h3>
+          <ul class="ticks">
+            <li>Confirm business objectives, regulatory constraints, scope and assessment expectations.</li>
+            <li>Engage platform, identity, networking, security, application and leadership stakeholders.</li>
+            <li>Review hierarchy, identity, network, policy, logging and vending as they actually exist.</li>
+            <li>Capture contradictions and areas where different teams experience different realities.</li>
+            <li>Identify evidence that may need targeted follow-up on Day 2.</li>
+          </ul>
+          <div class="card-out">Deliverable <b>Structured Evidence Base</b></div>
+        </article>
+      </div>
+      <div>
+        <article class="card reveal" style="--d:.08s">
+          <span class="card-tag">What good evidence looks like</span>
+          <h3>Use material already created in normal work</h3>
+          <ul class="ticks">
+            <li>Tenant / organization construct and billing alignment</li>
+            <li>Management group, OU or folder tree and subscription / account placement</li>
+            <li>Identity baseline, PIM or privileged-access design, federation</li>
+            <li>Hub-spoke, Virtual WAN or Shared VPC design and hybrid connectivity</li>
+            <li>Policy, SCP or organization-policy assignments and exemptions</li>
+            <li>Central logging, security account or project, backup and monitoring</li>
+            <li>IaC / accelerator repositories and vending or account-factory process</li>
+            <li>Exception register and operating-model RACI</li>
+          </ul>
+          <p class="prin-line">Principle: do not manufacture documents merely to “pass” the assessment.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">07 · Day 2 — Analyze & Clarify</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Turn evidence into a credible assessment baseline.</h2>
+      <p class="lead reveal" style="--d:.12s">Day 2 is where the Landing Zone Engine creates the structured assessment view. It analyzes the evidence, challenges weak findings, makes uncertainty visible and supports the experts in preparing the customer discussion. The Engine Summary becomes the agenda — not a blank workshop.</p>
+    </div>
+    <div class="day-grid">
+      <div class="dl">
+        <article class="card reveal">
+          <span class="card-tag">Purpose</span>
+          <h3>Analyze, verify and expose uncertainty</h3>
+          <ul class="ticks">
+            <li>Close accidental evidence gaps where a collector or document can still be obtained.</li>
+            <li>Analyze capability and anti-patterns across the agreed design areas.</li>
+            <li>Verify whether findings are actually supported by platform objects, documents or attestations.</li>
+            <li>Highlight silent areas, contradictions and missing information.</li>
+            <li>Create GO / WARN / BLOCK Quality Gate status.</li>
+            <li>Calibrate the result with Landing Zone Experts before customer validation.</li>
+          </ul>
+          <div class="card-out">Deliverable <b>Expert-Calibrated Master Data Summary</b></div>
+        </article>
+      </div>
+      <div>
+        <article class="card note-block reveal" style="--d:.08s">
+          <span class="card-tag">Why BLOCK can be valuable</span>
+          <h3>Insufficient evidence is useful information</h3>
+          <ul class="ticks">
+            <li>The control may exist but simply not have been collected.</li>
+            <li>The practice may exist informally but not be configured as a guardrail.</li>
+            <li>Stakeholders may disagree about what actually happens.</li>
+            <li>The capability may genuinely not exist.</li>
+            <li>The criterion may not matter for the agreed scope.</li>
+          </ul>
+          <p class="prin-line">BLOCK starts a decision conversation; it does not end the assessment.</p>
+        </article>
+        <article class="card reveal" style="--d:.14s">
+          <span class="card-tag">Day 2 discipline</span>
+          <h3>Do not let the room vote a silent area green</h3>
+          <p>Targeted questions are asked only where the pack is weak or contradictory: “Inventory shows production subscriptions outside Corp. Is that approved?” “PIM is described; is it enforced on platform roles?” Workshop claims without a platform object remain weak or unknown.</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="masterdata" data-nav="masterdata">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">08 · Master Data — Shared Reference Point</div>
+      <h2 class="sec-title reveal" style="--d:.06s">The Landing Zone Engine Summary becomes the shared reference point for the assessment.</h2>
+      <p class="lead reveal" style="--d:.12s">Master Data for discussion — one structured baseline instead of fragmented opinions. The Summary brings together evidence, findings, contradictions, missing evidence, candidate priorities and action themes so the final workshop can focus on interpretation and decisions rather than reconstructing the assessment.</p>
+    </div>
+    <div class="md-grid">
+      <div>
+        <span class="dl stagechip reveal">One controlled Summary · Master Data for the final discussion</span>
+        <ul class="kud">
+          <li class="k reveal"><b>What is known</b><p>Confirmed platform configuration and evidence-backed findings — including live attachments, IaC that matches the tenant, and attested operating practices that are corroborated.</p></li>
+          <li class="u reveal" style="--d:.08s"><b>What is uncertain</b><p>Missing evidence, silent design areas, contradictions between document and inventory, and low-confidence workshop-only claims.</p></li>
+          <li class="d reveal" style="--d:.12s"><b>What needs a decision</b><p>Priority, acceptance, action, deferral, further validation, or an approved exception to a landing-zone standard.</p></li>
+        </ul>
+      </div>
+      <div>
+        <div class="prows">
+          <div class="prow reveal"><span class="rn">i.</span><div><h4>Evidence activates knowledge.</h4><p>The Engine uses the Landing Zone Knowledge Base and Tactic Playbook to interpret and structure action, but not to invent customer facts. CAF, Control Tower and Cloud Setup guidance never counts as proof that the customer’s platform exists.</p></div></div>
+          <div class="prow reveal" style="--d:.08s"><span class="rn">ii.</span><div><h4>Experts remain responsible for judgment.</h4><p>The Engine narrows the decision space and surfaces uncertainty; it does not replace contextual interpretation of exemptions, mergers, or regulated boundaries.</p></div></div>
+          <div class="prow reveal" style="--d:.12s"><span class="rn">iii.</span><div><h4>The customer retains decision authority.</h4><p>The final question is not <em>“what did the Engine demand?”</em> but <em>“what matters enough for us to change?”</em></p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">09 · Day 3 — Validate & Commit</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Validate the findings, prioritize what matters and agree the change.</h2>
+      <p class="lead reveal" style="--d:.12s">Day 3 is a decision workshop. The experts do not simply present a report; they use the Summary as the agenda for validating the current state and agreeing where the customer should act. Implementation options remain behind this lock. An accelerator is not selected before the diagnosis is stable.</p>
+    </div>
+    <div class="day-grid flip">
+      <div class="dl">
+        <article class="card reveal">
+          <span class="card-tag">Possible decisions</span>
+          <h3>Not every gap becomes a remediation item</h3>
+          <ul class="ticks">
+            <li>Action approved</li>
+            <li>Further evidence required</li>
+            <li>Risk or gap accepted as an exception</li>
+            <li>Deferred to a later phase</li>
+            <li>No action required</li>
+            <li>Out of scope / not applicable</li>
+          </ul>
+          <p class="prin-line">Principle: landing-zone maturity serves business risk and delivery speed — not the other way around.</p>
+        </article>
+      </div>
+      <div>
+        <article class="card reveal" style="--d:.08s">
+          <span class="card-tag">Purpose</span>
+          <h3>Turn findings into explicit decisions</h3>
+          <ul class="ticks">
+            <li>Confirm, modify or reject major findings.</li>
+            <li>Resolve or consciously retain uncertainty.</li>
+            <li>Prioritize by blast radius, compliance, delivery friction and dependency.</li>
+            <li>Decide what requires action, more evidence, acceptance or deferral.</li>
+            <li>Assign ownership and agree first milestones.</li>
+          </ul>
+          <div class="card-out">Deliverable <b>Validated Current State + Agreed Change Plan</b></div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">10 · Stakeholder Value</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Different stakeholder groups gain different forms of value from the same governed assessment.</h2>
+    </div>
+    <div class="aud">
+      <article class="aud-card reveal">
+        <span class="for">For Leadership & CISO</span>
+        <h3>Foundation risk, made visible</h3>
+        <p>A clearer view of isolation, identity boundary, logging completeness, decision risk and where investment in the platform actually reduces blast radius.</p>
+      </article>
+      <article class="aud-card reveal" style="--d:.1s">
+        <span class="for">For Platform & Cloud Foundation</span>
+        <h3>A structured, shared baseline</h3>
+        <p>A structured current-state baseline, clearer evidence, stronger governance priorities and a better basis for vending, policy and network decisions.</p>
+      </article>
+      <article class="aud-card reveal" style="--d:.18s">
+        <span class="for">For Application & Security teams</span>
+        <h3>A practical conversation</h3>
+        <p>A more practical conversation about how workloads land, which guardrails are real, where exceptions live, and what will actually speed onboarding.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">11 · Assessment Scope</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Scope can be broad or targeted to the customer’s priorities.</h2>
+      <p class="lead reveal" style="--d:.12s">The domain pack is cloud-neutral in intent. Azure, AWS and Google Cloud differ in units of isolation and policy engines; the assessment names those units honestly rather than forcing a single vendor checklist.</p>
+    </div>
+    <div class="scope">
+      <article class="tile reveal"><span class="si">S·01</span><h3>Billing, tenant & account construct</h3><p>Enrollment, tenant or organization boundary, management account hygiene, billing alignment.</p></article>
+      <article class="tile reveal" style="--d:.06s"><span class="si">S·02</span><h3>Identity & access</h3><p>Federation, least privilege, privileged access, break-glass, workload identities.</p></article>
+      <article class="tile reveal" style="--d:.1s"><span class="si">S·03</span><h3>Resource organization</h3><p>Management groups, OUs or folders; platform versus application landing zones; naming and tagging.</p></article>
+      <article class="tile reveal" style="--d:.14s"><span class="si">S·04</span><h3>Network topology & connectivity</h3><p>Hub-spoke, Virtual WAN or Shared VPC; DNS; hybrid connectivity; inspection points.</p></article>
+      <article class="tile reveal" style="--d:.18s"><span class="si">S·05</span><h3>Security</h3><p>Preventive and detective controls, security operations placement, encryption and secrets posture.</p></article>
+      <article class="tile reveal" style="--d:.22s"><span class="si">S·06</span><h3>Management & observability</h3><p>Central logs, monitoring, backup, update management and operational telemetry.</p></article>
+      <article class="tile reveal" style="--d:.26s"><span class="si">S·07</span><h3>Governance & policy</h3><p>Policy, SCP or organization-policy inheritance, exemptions, cost guardrails, compliance evidence.</p></article>
+      <article class="tile reveal" style="--d:.3s"><span class="si">S·08</span><h3>Platform automation & DevOps</h3><p>IaC for the platform, CI/CD, subscription or account vending, drift control.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="outcomes" data-nav="outcomes">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">12 · Customer Deliverables</div>
+      <h2 class="sec-title reveal" style="--d:.06s">What the customer leaves with</h2>
+    </div>
+    <div class="takes reveal">
+      <div class="take"><span class="tn">01</span><div><h3>Validated current-state baseline</h3><p>A shared view of what is configured, what is missing, what is uncertain and what matters — with platform facts distinguished from workshop claims.</p></div></div>
+      <div class="take"><span class="tn">02</span><div><h3>Landing Zone Engine Summary as Master Data</h3><p>A structured, traceable basis for customer discussion, decision-making and future reassessment.</p></div></div>
+      <div class="take"><span class="tn">03</span><div><h3>Prioritized findings and decision themes</h3><p>A risk- and dependency-oriented view of where foundation work is justified first.</p></div></div>
+      <div class="take"><span class="tn">04</span><div><h3>Agreed Landing Zone Change Plan</h3><p>Initial actions, owners, milestones and next-step commitments aligned to the customer’s reality — without a premature accelerator decision.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec closing">
+  <div class="wrap">
+    <div class="kicker reveal">Closing view</div>
+    <h2 class="reveal" style="--d:.06s">Move from assessment effort to value-creation time.</h2>
+    <div class="roles">
+      <div class="role-card reveal"><b>Preparation</b><p>establishes the right starting point.</p></div>
+      <div class="role-card reveal" style="--d:.08s"><b>Landing Zone Experts</b><p>provide context, challenge and judgment.</p></div>
+      <div class="role-card reveal" style="--d:.16s"><b>Landing Zone Engine</b><p>provides evidence discipline, structure and consistency.</p></div>
+      <div class="role-card reveal" style="--d:.24s"><b>The Customer</b><p>provides validation and decision authority.</p></div>
+    </div>
+    <p class="big reveal">Start with the evidence. Build a shared view of reality. Then focus the workshop on the decisions that matter most.</p>
+    <p class="fin reveal" style="--d:.08s">The result is a faster, more credible and more actionable Landing Zone Assessment — designed to help stakeholders leave the room with clarity, ownership and an agreed next step for the cloud foundation.</p>
+    <a class="btn reveal" style="--d:.14s" href="#implementation">Explore the Implementation Model <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 4v16m0 0l-6-6m6 6l6-6"/></svg></a>
+    <p class="foot-note reveal">Evidence-Driven Landing Zone Assessment · Stakeholder-level proposal. Detailed Landing Zone Engine architecture, design-area criteria, evidence logic and facilitator guidance are available separately on demand.</p>
+  </div>
+</section>
+
+<div class="band" aria-hidden="true">
+  <div class="band-track">
+    <span>Establish the truth first · Design the implementation second · Evidence → Diagnosis → Priority → Implementation Pattern → Service Option ·&nbsp;</span>
+    <span>Establish the truth first · Design the implementation second · Evidence → Diagnosis → Priority → Implementation Pattern → Service Option ·&nbsp;</span>
+  </div>
+</div>
+
+<div id="implementation" data-nav="implementation">
+<section class="impl-hero">
+  <div class="wrap">
+    <a class="backlink reveal" style="margin:0 0 26px" href="#assessment">← Back to Evidence-Driven Landing Zone Assessment</a>
+    <div class="eyebrow reveal" style="--d:.06s">
+      <span class="tag dark">Part II</span>
+      <span class="tag" style="color:var(--warn);border-color:var(--warn-line);background:var(--warn-soft)">Proposal — Under Development</span>
+    </div>
+    <h1 class="display reveal" style="--d:.1s;font-size:clamp(2.3rem,4.6vw,3.8rem)">Implementation Model · <em>Proposal</em></h1>
+    <p class="lead reveal" style="--d:.16s">From a validated landing-zone assessment to a governed implementation proposal. The proposed Implementation Model is a second, separate Landing Zone Engine capability. It starts only after the assessment Summary has established and locked the current-state findings. Its purpose is to translate agreed findings into practical implementation options, potential responsibilities, dependencies, milestones, technical choices and relevant service capabilities — without allowing accelerator preferences to influence the diagnosis.</p>
+    <div class="impl-chips reveal" style="--d:.22s">
+      <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Post-assessment capability</span>
+      <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Validated Summary as input</span>
+      <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Separate governed pipeline</span>
+      <span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Human approval remains mandatory</span>
+    </div>
+    <div class="boundary reveal" style="--d:.28s">
+      <span class="btag">Core boundary</span>
+      <p><b>First establish what the evidence says.</b> Then decide what matters. Only after that may the Engine propose how an agreed change could be implemented — including Control Tower, Azure Landing Zone accelerators or Google Cloud Setup.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">01 · Why a separate implementation function</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Keep diagnosis independent from solution design.</h2>
+      <p class="lead reveal" style="--d:.12s">The Landing Zone Engine already produces evidence-backed diagnosis, a Planning Decision and a phased WHY / WHAT / HOW roadmap. The proposed next step is not to overload that assessment pipeline. Instead, a separate Create Implementation Plan function would use the validated Summary as its governed source object.</p>
+    </div>
+    <div class="flow">
+      <article class="flow-card reveal"><span class="idx">i</span><span class="role">Protect the diagnosis</span><h3>No solution-led assessment</h3><p>Accelerators, Service Portfolio items and technical options must not influence what the Engine concludes about the customer’s current platform.</p></article>
+      <div class="flow-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="flow-card reveal" style="--d:.12s"><span class="idx">ii</span><span class="role">Increase actionability</span><h3>Go beyond WHY / WHAT / HOW</h3><p>Add likely ownership, supporting stakeholders, dependencies, first milestones, success evidence and practical implementation patterns.</p></article>
+      <div class="flow-arr reveal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg></div>
+      <article class="flow-card reveal" style="--d:.2s"><span class="idx">iii</span><span class="role">Support buying decisions</span><h3>Connect evidence to delivery options</h3><p>Relevant supplier capabilities can be shown only after a validated problem and target outcome establish a genuine reason for them.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">02 · Proposed governed flow</div>
+      <h2 class="sec-title reveal" style="--d:.06s">The Implementation Model would operate as a second controlled pipeline.</h2>
+      <p class="lead reveal" style="--d:.12s">Each stage has a distinct purpose and permission. The implementation proposal can enrich the action path, but it cannot rewrite the validated findings that created the need.</p>
+    </div>
+    <div class="pipe">
+      <article class="pstep reveal"><div class="pnum">1</div><div><div class="ptitle"><h3>Input Gate</h3><span class="psub">Validated Summary</span></div><p>Confirm that the assessment is complete, findings are stable and implementation planning is permitted.</p></div></article>
+      <article class="pstep reveal"><div class="pnum">2</div><div><div class="ptitle"><h3>Actionability</h3><span class="psub">Eligible Findings</span></div><p>Filter out rejected, accepted, out-of-scope or insufficiently evidenced items. Silent design areas do not activate remediation tactics.</p></div></article>
+      <article class="pstep reveal"><div class="pnum">3</div><div><div class="ptitle"><h3>Pattern Match</h3><span class="psub">Implementation Model</span></div><p>Match each eligible finding to controlled implementation patterns and approved tactics — hierarchy retrofit, identity hardening, hub-spoke, vending, central logs.</p></div></article>
+      <article class="pstep reveal"><div class="pnum">4</div><div><div class="ptitle"><h3>Ownership</h3><span class="psub">Responsibility Proposal</span></div><p>Suggest accountable and supporting roles, clearly distinguishing evidence-backed roles from proposals.</p></div></article>
+      <article class="pstep reveal"><div class="pnum">5</div><div><div class="ptitle"><h3>Options</h3><span class="psub">Technical & Service Choices</span></div><p>Identify plausible technical approaches and relevant Service Portfolio capabilities, including native accelerators as options rather than defaults.</p></div></article>
+      <article class="pstep reveal"><div class="pnum">6</div><div><div class="ptitle"><h3>Sequence</h3><span class="psub">Dependencies & Milestones</span></div><p>Order the work around irreversible choices first: hierarchy, identity boundary, IP plan, logging destination.</p></div></article>
+      <article class="pstep reveal"><div class="pnum">7</div><div><div class="ptitle"><h3>Quality Gate</h3><span class="psub">Implementation Proposal</span></div><p>Validate grounding, role claims, technical options, portfolio matches and plan completeness.</p></div></article>
+    </div>
+    <div class="rule-strip reveal">
+      <div class="ok">Evidence <i>→</i> Diagnosis <i>→</i> Priority <i>→</i> Implementation Pattern <i>→</i> Service Option.</div>
+      <div class="no">✕ &nbsp;Never Service Option → search for a diagnosis.</div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">03 · What implementation planning would examine</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Move from an agreed finding to a practical delivery path.</h2>
+      <p class="lead reveal" style="--d:.12s">The Implementation Model should add enough delivery depth to make the proposal usable in a customer decision workshop, while still avoiding premature commitment to a specific accelerator or network pattern.</p>
+    </div>
+    <div class="dom">
+      <article class="dom-card reveal"><div class="dom-head"><span class="dom-l">A</span><h3>Governance & ownership</h3></div><p class="dom-tag">Confirm who can decide, own and execute</p><ul class="ticks"><li>Identify decision authority for tenant, identity, network and policy exceptions.</li><li>Confirm ownership of the platform landing zone versus application landing zones.</li><li>Identify decisions requiring customer approval versus routine platform execution.</li><li>Flag ownership gaps as implementation risks rather than silently assigning them.</li></ul></article>
+      <article class="dom-card reveal" style="--d:.06s"><div class="dom-head"><span class="dom-l">B</span><h3>Baseline & readiness</h3></div><p class="dom-tag">Validate the starting point before building</p><ul class="ticks"><li>Verify collector coverage, IaC repository access and exception-process existence.</li><li>Identify missing data, integrations or privileged-access prerequisites.</li><li>Separate immediate delivery work from discovery still required.</li><li>Establish what evidence will later prove the control is inherited and used.</li></ul></article>
+      <article class="dom-card reveal" style="--d:.1s"><div class="dom-head"><span class="dom-l">C</span><h3>Solution & integration design</h3></div><p class="dom-tag">Define a fit-for-context implementation pattern</p><ul class="ticks"><li>Present Control Tower, Azure Landing Zone, Google Cloud Setup or custom IaC as options aligned to the customer environment.</li><li>Reuse existing hubs, identity tenants and logging sinks where they are adequate.</li><li>Consider access control, IP overlap, hybrid constraints and operational ownership.</li><li>Use pilots where uncertainty or application-team adoption risk is material.</li></ul></article>
+      <article class="dom-card reveal" style="--d:.14s"><div class="dom-head"><span class="dom-l">D</span><h3>Operating model embedding</h3></div><p class="dom-tag">Make the change part of normal work</p><ul class="ticks"><li>A technically complete landing zone is not enough if nobody uses vending or honours exceptions afterwards.</li><li>Define recurring review of exemptions, drift and new-environment requests.</li><li>Integrate actions into existing platform and security forums.</li><li>Include enablement where application teams must change how they land workloads.</li></ul></article>
+      <article class="dom-card reveal" style="--d:.18s"><div class="dom-head"><span class="dom-l">E</span><h3>Measurement & acceptance</h3></div><p class="dom-tag">Define what successful implementation means</p><ul class="ticks"><li>Each proposal should contain measurable evidence that the intended outcome has actually been achieved.</li><li>Examples: time to vend a subscription, share of production subscriptions under the landing-zone parent, policy Deny coverage, log-archive completeness.</li><li>Track realized risk reduction separately from activity completion.</li></ul></article>
+      <article class="dom-card reveal" style="--d:.22s"><div class="dom-head"><span class="dom-l">F</span><h3>Scale & continuous improvement</h3></div><p class="dom-tag">Design for repeatability after the first rollout</p><ul class="ticks"><li>Show how a successful retrofit becomes a repeatable platform rather than a one-time project.</li><li>Standardize reusable controls, vending templates and exception handling.</li><li>Plan periodic reassessment against the original landing-zone findings.</li></ul></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">04 · Suggested delivery rhythm</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Implementation can progress from foundation to embedded operation.</h2>
+      <p class="lead reveal" style="--d:.12s">The exact timing should be customer-specific. The model can nevertheless structure work into logical horizons so irreversible choices are addressed before broader rollout.</p>
+    </div>
+    <div class="horiz">
+      <div class="hstep reveal"><h3>Foundation</h3><span class="ht">Clarify and prepare</span><p>Confirm ownership, hierarchy, identity boundary, IP plan, logging destination, scope and initial measures.</p></div>
+      <div class="hstep reveal" style="--d:.08s"><h3>Pilot</h3><span class="ht">Prove the pattern</span><p>Implement in a bounded landing zone, validate vending and inheritance, and surface hidden dependencies.</p></div>
+      <div class="hstep reveal" style="--d:.16s"><h3>Rollout</h3><span class="ht">Scale the capability</span><p>Move remaining subscriptions or accounts, extend guardrails, and retire snowflake paths.</p></div>
+      <div class="hstep reveal" style="--d:.24s"><h3>Operate & improve</h3><span class="ht">Make it continuous</span><p>Embed exception review, drift management, measurement and periodic reassessment.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">05 · What the Implementation Proposal would contain</div>
+      <h2 class="sec-title reveal" style="--d:.06s">A decision-ready implementation object for each agreed change.</h2>
+      <p class="lead reveal" style="--d:.12s">The model should produce more than a generic action sentence. Each material roadmap item can become a structured implementation proposal that experts and customer stakeholders review and amend during the assessment or follow-up planning session.</p>
+    </div>
+    <div class="tbl-wrap reveal">
+      <table class="tbl">
+        <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Validated Finding</td><td>The evidence-backed platform gap or operating-model issue that creates the need.</td></tr>
+          <tr><td>Business Consequence</td><td>Why the finding matters in blast radius, compliance, delivery speed or accountability terms.</td></tr>
+          <tr><td>Target Outcome</td><td>What should be measurably different after implementation.</td></tr>
+          <tr><td>Priority & Time Horizon</td><td>Immediate, Foundation, Planned or Validate First — with an appropriate implementation horizon.</td></tr>
+          <tr><td>Implementation Pattern</td><td>The controlled delivery model considered appropriate (for example hierarchy retrofit or vending).</td></tr>
+          <tr><td>Potential Accountable Owner</td><td>A likely owner role; evidence-backed where possible, otherwise explicitly marked as proposed.</td></tr>
+          <tr><td>Supporting Stakeholders</td><td>Identity, network, security, application and finance roles required to deliver or govern the change.</td></tr>
+          <tr><td>Technical Options</td><td>Native accelerators, custom IaC or hybrid — presented as options, not assumed facts.</td></tr>
+          <tr><td>Service Portfolio Match</td><td>Relevant supplier capabilities activated only by a validated need.</td></tr>
+          <tr><td>Dependencies</td><td>Prerequisites such as identity tenant design, IP plan or log-archive account.</td></tr>
+          <tr><td>First Milestone</td><td>A practical and bounded starting point, such as a pilot landing zone or management-group move.</td></tr>
+          <tr><td>Success Evidence</td><td>Control, artifact or operating metric showing that the intended outcome has actually been achieved.</td></tr>
+          <tr><td>Risks & Controls</td><td>Main implementation risks, including application disruption and exception backlog.</td></tr>
+          <tr><td>Proposal Confidence</td><td>How strongly the implementation proposal follows from validated evidence and known customer context.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">06 · Controlled knowledge layers</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Different knowledge assets answer different questions.</h2>
+    </div>
+    <div class="layers">
+      <div class="layer reveal" style="--i:0"><span class="li">L1</span><h3>Validated Summary</h3><div><div class="q">Why is change justified?</div><p>The assessment Summary remains the source of truth for findings, evidence confidence, priorities and customer decisions.</p></div></div>
+      <div class="layer reveal" style="--i:1;--d:.06s"><span class="li">L2</span><h3>Tactic Playbook</h3><div><div class="q">What response mechanism fits?</div><p>Approved tactics define bounded remediation mechanisms. They cannot create the finding or change the assessment score.</p></div></div>
+      <div class="layer reveal" style="--i:2;--d:.12s"><span class="li">L3</span><h3>Implementation Pattern KB</h3><div><div class="q">How could it be operationalized?</div><p>Reusable models for hierarchy retrofit, identity hardening, hub-spoke, vending, central logs and policy-as-code.</p></div></div>
+      <div class="layer reveal" style="--i:3;--d:.18s"><span class="li">L4</span><h3>Service Portfolio</h3><div><div class="q">How could we help?</div><p>Relevant service capabilities may be proposed only after the validated finding and implementation pattern establish a genuine fit.</p></div></div>
+      <div class="layer reveal" style="--i:4;--d:.24s"><span class="li">L5</span><h3>Customer Context</h3><div><div class="q">What constraints shape the plan?</div><p>Existing tooling, identity tenant, network, approved technologies, risk appetite and delivery constraints influence implementation choices.</p></div></div>
+      <div class="layer reveal" style="--i:5;--d:.3s"><span class="li">L6</span><h3>Human Validation</h3><div><div class="q">What will actually be agreed?</div><p>Experts and customer stakeholders confirm ownership, priorities, technology choices, scope, timing and commercial next steps.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">07 · Types of proposals</div>
+      <h2 class="sec-title reveal" style="--d:.06s">Not every recommendation should be presented as mandatory remediation.</h2>
+      <p class="lead reveal" style="--d:.12s">The Implementation Model should visibly distinguish why an option is being proposed. This prevents a useful sales capability from turning into an indiscriminate accelerator catalogue.</p>
+    </div>
+    <div class="types">
+      <article class="type reveal" style="--tc:var(--block);--tbs:var(--block-soft)"><span class="tb">Required / Risk-driven</span><h3>Needed to address a material issue</h3><p>Used when blast radius, obligation, identity boundary or a confirmed critical gap makes action necessary.</p></article>
+      <article class="type reveal" style="--tc:var(--go);--tbs:var(--go-soft);--d:.08s"><span class="tb">Recommended / Value-driven</span><h3>Evidence suggests meaningful benefit</h3><p>Used when the change is not mandatory but has a strong evidence-based case for speed or consistency.</p></article>
+      <article class="type reveal" style="--tc:var(--steel);--tbs:var(--steel-soft);--d:.16s"><span class="tb">Enabling</span><h3>Unlocks other agreed actions</h3><p>Used when one foundational capability — hierarchy, identity or logging — enables several downstream improvements.</p></article>
+      <article class="type reveal" style="--tc:var(--warn);--tbs:var(--warn-soft);--d:.24s"><span class="tb">Opportunity / Optional</span><h3>Adjacent value potential</h3><p>Clearly identified as an optional opportunity rather than a remediation requirement.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">08 · Deterministic Implementation Quality Gate</div>
+      <h2 class="sec-title reveal" style="--d:.06s">The proposal should earn permission to be shown.</h2>
+      <p class="lead reveal" style="--d:.12s">A separate quality gate would prevent fluent but weak implementation advice from being presented as decision-ready.</p>
+    </div>
+    <div class="gates">
+      <article class="gcard reveal" style="--gc:var(--go)"><span class="gate go">IMPLEMENTATION GO</span><p>Every material action maps to a validated finding, valid pattern and evidence-compatible target outcome. Ownership and technology claims are properly qualified, dependencies are coherent, and service matches are genuine.</p></article>
+      <article class="gcard reveal" style="--gc:var(--warn);--d:.1s"><span class="gate warn">IMPLEMENTATION WARN</span><p>The proposal is usable, but some ownership, technical choices, prerequisites or dependencies require customer confirmation or additional discovery before commitment.</p></article>
+      <article class="gcard reveal" style="--gc:var(--block);--d:.2s"><span class="gate block">IMPLEMENTATION BLOCK</span><p>An action lacks a valid finding, depends on rejected evidence, introduces unsupported customer facts, or appears to be driven by an accelerator or service rather than an established need.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker reveal">09 · Illustrative sample</div>
+      <h2 class="sec-title reveal" style="--d:.06s">How one validated finding could become an implementation proposal.</h2>
+      <p class="lead reveal" style="--d:.12s">The sample below illustrates the intended structure. It is not a universal prescription and would be validated against the customer’s actual organization and technology environment.</p>
+    </div>
+    <div class="sample reveal">
+      <header><span class="st">Example · <i>Application landing-zone placement</i></span><span class="stamp">Illustrative</span></header>
+      <dl class="s-grid">
+        <div class="s-row full"><dt>Validated finding</dt><dd>A material share of production subscriptions sits outside the Landing Zones management group and therefore does not inherit the preventive policy baseline.</dd></div>
+        <div class="s-row"><dt>Target outcome</dt><dd>Production workloads inherit the agreed Deny baseline by placement, with documented exemptions only, so new and existing environments share the same guardrails.</dd></div>
+        <div class="s-row"><dt>Implementation pattern</dt><dd>Pilot a subscription-move and exemption process for two production workloads, measure inheritance and disruption, then sequence remaining moves by blast radius.</dd></div>
+        <div class="s-row"><dt>Potential responsibility</dt><dd>Accountable: Cloud Foundation / Platform. Supporting: Identity, Networking, Security, Application owners. Final RACI requires customer validation.</dd></div>
+        <div class="s-row"><dt>Potential technical options</dt><dd>Native management-group move with policy inheritance; Azure Landing Zone or Control Tower alignment as an option if the current hierarchy cannot be retrofitted cleanly; custom IaC where the customer already operates a platform pipeline.</dd></div>
+        <div class="s-row"><dt>Potential service capability</dt><dd>Landing Zone retrofit / Cloud Foundation engineering — shown only because the validated placement gap creates a direct capability match.</dd></div>
+        <div class="s-row"><dt>First milestone</dt><dd>Select 2–3 production subscriptions, confirm IP and identity dependencies, define exemption rules, and prove policy inheritance after move.</dd></div>
+        <div class="s-row"><dt>Operating model</dt><dd>Add review of placement exceptions to an existing platform / security forum so the control becomes part of normal delivery rather than a one-time cleanup.</dd></div>
+        <div class="s-row"><dt>Rollout logic</dt><dd>Start with a bounded pilot, validate impact and usability, then expand using a documented move runbook and a closed exception path.</dd></div>
+        <div class="s-row full"><dt>Success evidence</dt><dd>Target share of production subscriptions under the landing-zone parent, Deny baseline inherited, exemptions traceable, vending used for new environments, and no unmanaged path remaining for production.</dd></div>
+        <div class="s-row full"><dt>Proposal confidence</dt><dd>High when inventory of subscription placement, policy assignment effect and application ownership are confirmed by the assessment; otherwise customer validation remains required.</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="sec final">
+  <div class="wrap">
+    <div class="kicker reveal">Proposed future capability</div>
+    <h2 class="reveal" style="--d:.06s">Establish the truth first. <em>Design the implementation second.</em></h2>
+    <p class="lead reveal" style="--d:.12s">The proposed Implementation Model would turn validated landing-zone findings into a more practical implementation and buying decision — while keeping diagnosis independent, recommendations evidence-triggered, and experts and customer stakeholders responsible for the final commitment.</p>
+    <a class="backlink reveal" style="--d:.18s" href="#assessment">← Return to Assessment Proposal</a>
+  </div>
+</section>
+</div>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Evidence-Driven Landing Zone Assessment · Implementation Model · Proposal — Under Development</span>
+    <span>Conceptual extension of the Evidence-Driven Landing Zone Assessment and Landing Zone Engine. Delivery concepts are generalized and re-authored for this proposal; customer-specific implementation details remain subject to validation.</span>
+  </div>
+</footer>
+
+
+<!-- SAFE EVIDENCE ACQUISITION — embedded HTML detail -->
+<div class="safe-acq-modal" id="safeAcqModal" role="dialog" aria-modal="true" aria-labelledby="safeAcqTitle" aria-hidden="true">
+  <div class="safe-acq-dialog" id="safeAcqDialog">
+    <button type="button" class="safe-acq-close" id="safeAcqClose" aria-label="Close safe evidence acquisition diagram">×</button>
+    <div class="safe-acq-shell">
+      <h2 class="safe-acq-title" id="safeAcqTitle">PRE-ANALYSIS ACQUISITION ENGINE</h2>
+      <div class="safe-acq-policy">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true"><path d="M12 3l6 2.4v5.3c0 4.1-2.4 7.7-6 9.3-3.6-1.6-6-5.2-6-9.3V5.4L12 3z"/><rect x="9.3" y="10.2" width="5.4" height="4.8" rx="1"/><path d="M10.3 10.2V8.9a1.7 1.7 0 013.4 0v1.3"/></svg>
+        <div>Raw evidence may be processed only by approved acquisition processors.<br>Raw evidence is never supplied to generative reasoning models.</div>
+      </div>
+      <div class="safe-acq-explainer"><strong>Privacy is enforced before analysis, not merely promised at the model layer.</strong> Raw customer files, inventory exports and workshop notes remain inside approved acquisition processors, where content is validated, parsed, classified, sanitized and converted into governed design-area packets. Only those controlled packets may cross the LLM boundary. If coverage is insufficient, the Engine requests a targeted re-read through the governed acquisition loop rather than exposing the original evidence to a generative model.</div>
+
+      <div class="safe-acq-canvas" aria-label="Pre-analysis acquisition engine flowchart">
+        <svg class="safe-acq-lines" viewBox="0 0 1100 1780" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <marker id="safeArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#0b1d45" stroke="none"/></marker>
+            <marker id="safeRedArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#d14343" stroke="none"/></marker>
+            <marker id="safeGreenArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2e7d32" stroke="none"/></marker>
+          </defs>
+
+          <!-- main vertical spine -->
+          <line x1="550" y1="72" x2="550" y2="94" marker-end="url(#safeArrow)"/>
+          <line x1="550" y1="224" x2="550" y2="248" marker-end="url(#safeArrow)"/>
+
+          <!-- source split -->
+          <line x1="550" y1="378" x2="550" y2="404"/>
+          <line x1="155" y1="404" x2="945" y2="404"/>
+          <line x1="155" y1="404" x2="155" y2="428" marker-end="url(#safeArrow)"/>
+          <line x1="550" y1="404" x2="550" y2="428" marker-end="url(#safeArrow)"/>
+          <line x1="945" y1="404" x2="945" y2="428" marker-end="url(#safeArrow)"/>
+
+          <!-- source merge -->
+          <polyline points="155,590 155,614 550,614"/>
+          <line x1="550" y1="590" x2="550" y2="623" marker-end="url(#safeArrow)"/>
+          <polyline points="945,590 945,614 550,614"/>
+
+          <!-- controlled acquisition spine -->
+          <line x1="550" y1="689" x2="550" y2="716" marker-end="url(#safeArrow)"/>
+          <line x1="550" y1="866" x2="550" y2="890" marker-end="url(#safeArrow)"/>
+          <line x1="550" y1="1040" x2="550" y2="1064" marker-end="url(#safeArrow)"/>
+
+          <!-- coverage decision: YES continues; NO enters bounded re-read loop -->
+          <line x1="450" y1="1264" x2="450" y2="1294" stroke="#2e7d32" marker-end="url(#safeGreenArrow)"/>
+          <path class="loop-line" d="M750 1208 L788 1208 L788 1190 L808 1190" marker-end="url(#safeRedArrow)"/>
+
+          <!-- AI gap analyzer -> targeted re-read -->
+          <line x1="925" y1="1260" x2="925" y2="1288" marker-end="url(#safeArrow)"/>
+
+          <!-- targeted re-read -> re-enter Security / Privacy Gate -->
+          <path class="loop-line" d="M1040 1348 L1070 1348 L1070 792 L752 792" marker-end="url(#safeRedArrow)"/>
+
+          <!-- quality gate -> packets -> governed boundary -> analysis -->
+          <line x1="550" y1="1444" x2="550" y2="1472" marker-end="url(#safeArrow)"/>
+          <line x1="550" y1="1574" x2="550" y2="1596" marker-end="url(#safeArrow)"/>
+          <line x1="550" y1="1674" x2="550" y2="1702" marker-end="url(#safeArrow)"/>
+        </svg>
+
+        <div class="safe-acq-node" style="left:395px;top:0;width:310px;height:72px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><ellipse cx="12" cy="5" rx="6.5" ry="2.5"/><path d="M5.5 5v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5V5M5.5 10v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-5"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Raw Evidence / KB</div></div>
+        </div>
+
+        <div class="safe-acq-node" style="left:350px;top:96px;width:400px;height:128px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3l6 2.4v5.3c0 4.1-2.4 7.7-6 9.3-3.6-1.6-6-5.2-6-9.3V5.4L12 3z"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Ingestion Safety Gate</div><div class="nbody">malware scan<br>MIME / file type validation<br>file size / encryption / macros<br>hash / source ID / duplicate check</div></div>
+        </div>
+
+        <div class="safe-acq-node" style="left:350px;top:250px;width:400px;height:128px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3.5 11.5l8-8h6l3 3v6l-8 8-9-9z"/><circle cx="16.4" cy="7.6" r="1"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Source Type Classification</div><div class="nbody">text / document<br>control-plane inventory<br>workshop attestation<br>architecture visual</div></div>
+        </div>
+
+        <div class="safe-acq-node branch doc" style="left:25px;top:430px;width:260px;height:160px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 12h6M9 15h6"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Document / Text Parsing</div><div class="nbody">text / sections / tables /<br>metadata / provenance</div></div>
+        </div>
+
+        <div class="safe-acq-node branch data" style="left:415px;top:430px;width:270px;height:160px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 9h16M4 14h16M9 4v16M15 4v16"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Control-plane / Structured Analysis</div><div class="nbody">Inventory / CSV / JSON /<br>MG-OU-folder trees /<br>policy assignments /<br>IAM bindings / reconciliation /<br>missingness / drift /<br>landing-zone signals</div></div>
+        </div>
+
+        <div class="safe-acq-node branch visual" style="left:815px;top:430px;width:260px;height:160px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="3.5" y="4" width="17" height="16" rx="2"/><circle cx="9" cy="9" r="1.4"/><path d="M5.5 17l4.2-4.2 2.8 2.8 2.6-2.6 3.4 4"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Architecture / Visual Content</div><div class="nbody">diagram detection / OCR /<br>topology boards / visual<br>metadata / provenance</div></div>
+        </div>
+
+        <div class="safe-acq-node" style="left:365px;top:625px;width:370px;height:64px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7l8-4 8 4-8 4-8-4zM4 12l8 4 8-4M4 17l8 4 8-4"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Structured Source Objects</div></div>
+        </div>
+
+        <div class="safe-acq-node" style="left:350px;top:718px;width:400px;height:148px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="6" y="10" width="12" height="9" rx="2"/><path d="M8.5 10V8a3.5 3.5 0 017 0v2"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Security / Privacy Gate</div><div class="nbody">DLP / secrets<br>PII / sensitive values<br>redaction<br>raw-value suppression<br>allow / block</div></div>
+        </div>
+
+        <div class="safe-acq-node" style="left:350px;top:892px;width:400px;height:148px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5z"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Initial Classification</div><div class="nbody">A–H design-area routing<br>criterion candidates<br>evidence type<br>knowledge type<br>structured-data signals</div></div>
+        </div>
+
+        <div class="safe-acq-node" style="left:350px;top:1066px;width:400px;height:198px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M4 19V10M9 19V6M14 19v-4M19 19V3"/><path d="M3 19h18"/></svg></div>
+          <div class="ncopy">
+            <div class="ntitle">Coverage Measurement</div>
+            <div class="nbody">extraction completeness<br>evidence density<br>KB completeness<br>data-signal coverage<br>contradiction coverage<br>provenance integrity</div>
+            <div class="safe-acq-sufficiency">sufficient? yes / no</div>
+          </div>
+        </div>
+        <div class="safe-acq-branch-label yes">yes</div>
+        <div class="safe-acq-branch-label no">no</div>
+
+        <div class="safe-acq-node" style="left:350px;top:1296px;width:400px;height:148px">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 3l7 4v7l-7 7-7-7V7l7-4z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Packet Quality Gate</div><div class="nbody">correct form<br>no sensitive information<br>coverage metrics verified<br>re-read deltas measurable<br>packet allow / block</div></div>
+        </div>
+
+        <div class="safe-acq-node safe-acq-ai" style="left:810px;top:1120px;width:230px;height:140px">
+          <div class="ncopy"><div class="ntitle">AI Gap Analyzer</div><span class="safe-acq-chip">Metrics only</span><div class="nbody">density / completeness<br>missing concepts / words<br>category semantic hints</div></div>
+        </div>
+
+        <div class="safe-acq-node safe-acq-ai" style="left:810px;top:1290px;width:230px;height:112px">
+          <div class="ncopy"><div class="ntitle">Targeted Re-read</div><div class="nbody">retrieval plan execution<br>focused extraction<br>bounded iteration</div></div>
+        </div>
+        <div class="safe-acq-return-label">re-enter Security / Privacy Gate</div>
+
+        <div class="safe-acq-packets">
+          <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7l8-4 8 4-8 4-8-4zM4 7v10l8 4 8-4V7M12 11v10"/></svg></div>
+          <div class="ncopy"><div class="ntitle">Governed A–H Packets</div><div class="nbody">Evidence Packet A–H<br>Knowledge Packet A–H<br>Control-plane Evidence A–H</div></div>
+        </div>
+
+        <div class="safe-acq-boundary-line"></div>
+        <div class="safe-acq-boundary"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 3l6 2.4v5.3c0 4.1-2.4 7.7-6 9.3-3.6-1.6-6-5.2-6-9.3V5.4L12 3z"/></svg><div><strong>GOVERNED LLM BOUNDARY</strong><span>No raw evidence beyond this point</span></div></div>
+        <div class="safe-acq-analysis"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 18l5-5 4 3 7-8"/><path d="M15 8h5v5"/></svg>REAL ANALYSIS PIPELINE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<button id="toTop" aria-label="Back to top">↑</button>
+
+<script>
+(function(){
+  var body=document.body;
+  requestAnimationFrame(function(){body.classList.add('loaded');});
+
+  /* reveal on scroll */
+  var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}});},{threshold:.12,rootMargin:'0px 0px -36px 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el){ro.observe(el);});
+
+  /* progress bar + toTop */
+  var bar=document.getElementById('progress'),topBtn=document.getElementById('toTop');
+  function onScroll(){var h=document.documentElement;var p=h.scrollTop/Math.max(1,(h.scrollHeight-h.clientHeight));bar.style.transform='scaleX('+p+')';topBtn.classList.toggle('show',h.scrollTop>900);}
+  addEventListener('scroll',onScroll,{passive:true});onScroll();
+  topBtn.addEventListener('click',function(){scrollTo({top:0,behavior:'smooth'});});
+
+  /* FIX: intercept all in-page anchors.
+     Native hash navigation inside embedded previews/iframes can blank the view;
+     programmatic scrolling keeps everything on the current document. */
+  var nav=document.getElementById('nav');
+  function goTo(id){
+    var t=document.getElementById(id);
+    if(!t)return;
+    var y=t.getBoundingClientRect().top+window.pageYOffset-(nav.offsetHeight+18);
+    window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+    try{history.replaceState(null,'','#'+id);}catch(err){}
+    /* safety: make sure the destination is visible even if reveals haven't fired yet */
+    if(t.classList.contains('reveal'))t.classList.add('in');
+    var kids=t.querySelectorAll('.reveal');
+    if(t.tagName==='SECTION'){for(var i=0;i<kids.length;i++){kids[i].classList.add('in');}}
+  }
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){
+    a.addEventListener('click',function(ev){
+      var id=a.getAttribute('href').slice(1);
+      if(!id)return;
+      var target=document.getElementById(id);
+      if(target){
+        ev.preventDefault();
+        goTo(id);
+        nav.classList.remove('open');
+      }
+    });
+  });
+  /* handle a hash already present on load */
+  if(location.hash){var hid=location.hash.slice(1);if(document.getElementById(hid)){setTimeout(function(){goTo(hid);},120);}}
+
+  /* scrollspy */
+  var links={};document.querySelectorAll('[data-link]').forEach(function(a){links[a.dataset.link]=a;});
+  var spy=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){for(var k in links){links[k].classList.remove('active');}var l=links[e.target.dataset.nav];if(l)l.classList.add('active');}});},{rootMargin:'-38% 0px -55% 0px'});
+  document.querySelectorAll('[data-nav]').forEach(function(s){spy.observe(s);});
+
+  /* counters */
+  function count(el){var t=parseInt(el.dataset.target,10),d=1300,s=null;function f(ts){if(!s)s=ts;var p=Math.min(1,(ts-s)/d);var v=Math.round(t*(1-Math.pow(1-p,3)));el.textContent=v;if(p<1)requestAnimationFrame(f);}requestAnimationFrame(f);}
+  var co=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){count(e.target);co.unobserve(e.target);}});},{threshold:.5});
+  document.querySelectorAll('.count').forEach(function(el){co.observe(el);});
+
+  /* mobile menu */
+  var burger=document.getElementById('burger');
+  burger.addEventListener('click',function(){nav.classList.toggle('open');});
+  document.querySelectorAll('#mmenu a').forEach(function(a){a.addEventListener('click',function(){nav.classList.remove('open');});});
+})();
+</script>
+
+<script>
+(function(){
+  var openBtn=document.getElementById('safeAcqOpen');
+  var modal=document.getElementById('safeAcqModal');
+  var dialog=document.getElementById('safeAcqDialog');
+  var closeBtn=document.getElementById('safeAcqClose');
+  if(!openBtn||!modal||!dialog||!closeBtn)return;
+  var lastFocus=null;
+  function openModal(){
+    lastFocus=document.activeElement;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('safe-acq-lock');
+    dialog.scrollTop=0;
+    setTimeout(function(){closeBtn.focus();},0);
+  }
+  function closeModal(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    document.body.classList.remove('safe-acq-lock');
+    if(lastFocus&&lastFocus.focus)lastFocus.focus();
+  }
+  openBtn.addEventListener('click',openModal);
+  closeBtn.addEventListener('click',closeModal);
+  modal.addEventListener('click',function(e){if(e.target===modal)closeModal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
+})();
+</script>
+
+</body>
+</html>
+

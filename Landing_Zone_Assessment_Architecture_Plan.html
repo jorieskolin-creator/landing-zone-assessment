@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Landing Zone Assessment — Architecture Plan</title>
+<meta name="description" content="Self-contained architecture plan for a Landing Zone Assessment Engine that reuses the FinOps Engine kernel and replaces the domain pack.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%2312202b%22%2F%3E%3Ctext%20x%3D%2216%22%20y%3D%2222%22%20text-anchor%3D%22middle%22%20font-family%3D%22Georgia%2Cserif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%20fill%3D%22%23f2efe8%22%3ELZ%3C%2Ftext%3E%3C%2Fsvg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f2efe8;--paper-2:#e7e2d6;--card:#fbf9f4;
+  --ink:#12202b;--ink-2:#2c3d4a;--muted:#5c6b76;
+  --rule:#d4cfc4;--rule-soft:#e4dfd4;
+  --teal:#0f6a6a;--teal-ink:#0b4f4f;--teal-soft:#e3f0ef;
+  --copper:#a85b32;--copper-soft:#f6ece5;
+  --gate:#2d5f4e;--gate-soft:#e8f2ed;
+  --warn:#8c6d2f;--warn-soft:#f6f0e2;
+  --block:#9a3f36;--block-soft:#f7e8e6;
+  --extend:#395a7f;--extend-soft:#e7eef4;
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"Source Sans 3","Source Sans Pro",ui-sans-serif,system-ui,sans-serif;
+  --shadow:0 0 0 1px rgba(18,32,43,.06),0 1px 2px -1px rgba(18,32,43,.06),0 2px 8px 0 rgba(18,32,43,.04);
+  --radius:1.15rem;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text-wrap:balance;margin:0}
+p,li{text-wrap:pretty}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;color:#d4e8e6}
+.skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:var(--paper);padding:8px 12px;border-radius:8px;z-index:80}
+.skip:focus{left:8px}
+.top{position:sticky;top:0;z-index:40;background:rgba(242,239,232,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(212,207,196,.8)}
+.top-inner{max-width:72rem;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 20px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--serif);font-size:11px;font-weight:600;flex:none}
+.brand strong{display:block;font:600 13px/1.2 var(--sans)}
+.brand em{display:block;font-style:normal;font-size:11px;color:var(--muted)}
+.toc{display:none;align-items:center;gap:4px;margin-left:auto;overflow:auto}
+.toc a{text-decoration:none;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.toc a.is-active,.toc a:hover{background:var(--ink);color:var(--paper)}
+.toc-mobile{display:flex;padding:0 16px 8px;margin:0}
+.print-btn{margin-left:auto;border:0;background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 14px;font:600 12px var(--sans);cursor:pointer;flex:none}
+@media(min-width:1100px){
+  .toc{display:flex}
+  .toc-mobile{display:none}
+  .print-btn{margin-left:0}
+}
+main{max-width:72rem;margin:0 auto;padding:0 20px 48px}
+.hero{border-bottom:1px solid var(--rule);padding:48px 0 56px}
+.eyebrow{display:flex;align-items:center;gap:12px;margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--teal)}
+.eyebrow::before{content:"";width:32px;height:1px;background:var(--teal)}
+h1{font-size:clamp(2.2rem,6vw,3.75rem);line-height:1.08;max-width:18ch}
+h1 em{font-style:italic;color:var(--teal)}
+h2{font-size:clamp(1.7rem,3vw,2.25rem);line-height:1.15;max-width:22ch}
+.lede{margin:16px 0 0;max-width:48rem;font-size:17px;line-height:1.65;color:var(--ink-2)}
+.lede.wide{font-size:clamp(1.05rem,1.6vw,1.25rem)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.tag{border:1px solid var(--rule);background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.howto{margin-top:28px;border-left:4px solid var(--teal);background:var(--card);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);color:var(--ink-2);font-size:14.5px;line-height:1.55}
+.howto b{color:var(--ink)}
+.quotes{display:grid;gap:16px;margin-top:36px}
+@media(min-width:800px){.quotes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.quote{margin:0;border-left:4px solid var(--teal);background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.quote figcaption{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+.quote blockquote{margin:8px 0 0;font-family:var(--serif);font-size:17px;line-height:1.35}
+.sec{padding:56px 0;scroll-margin-top:84px}
+.sec-body{margin-top:36px}
+.grid3,.grid2,.split,.cards2{display:grid;gap:16px}
+@media(min-width:800px){
+  .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid2,.split,.cards2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .principles{margin-top:32px}
+}
+.card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.stat{margin:0;font-family:var(--serif);font-size:1.7rem;color:var(--teal)}
+.card h3{font-size:1.15rem;line-height:1.3}
+.card p,.note p,.phase p{margin:8px 0 0;color:var(--ink-2);font-size:14px;line-height:1.6}
+.ink-panel{margin-top:32px;background:var(--ink);color:var(--paper);border-radius:var(--radius);padding:28px 32px}
+.ink-panel .teal-soft{color:#c5e3e0}
+.ink-title{margin:8px 0 12px;font-family:var(--serif);font-size:clamp(1.35rem,2vw,1.7rem);line-height:1.3;color:var(--paper)}
+.ink-panel p{margin:0;color:#d5ddd9;font-size:14px;line-height:1.6}
+.micro{margin:0 0 8px;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.muted{color:var(--muted)}
+.teal{color:var(--teal)}
+.copper{color:var(--copper)}
+.stack{display:grid;gap:16px}
+.stack-sm{display:grid;gap:10px}
+.xcard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.xcard summary{display:flex;gap:12px;align-items:flex-start;cursor:pointer;list-style:none;padding:18px 20px}
+.xcard summary::-webkit-details-marker{display:none}
+.xcard h3{font-size:1.2rem;margin-top:4px}
+.xcard .sum{margin:6px 0 0;color:var(--ink-2);font-size:14px;line-height:1.5}
+.chev{width:32px;height:32px;flex:none;margin-top:2px;border-radius:999px;background:var(--paper-2);position:relative}
+.chev::before{content:"";position:absolute;inset:12px 10px 8px;border:solid var(--muted);border-width:0 1.6px 1.6px 0;transform:rotate(45deg);transform-origin:center}
+.xcard[open] .chev::before{inset:8px 10px 12px;transform:rotate(225deg)}
+.xbody{border-top:1px solid var(--rule-soft);padding:16px 20px 20px}
+.xbody>p{margin:0;color:var(--ink-2);font-size:14px;line-height:1.6}
+.ticks{list-style:none;margin:0;padding:0}
+.ticks li{display:flex;gap:8px;align-items:flex-start;margin:6px 0;color:var(--ink-2);font-size:13.5px;line-height:1.5}
+.ticks svg{width:14px;height:14px;flex:none;margin-top:3px;color:var(--teal)}
+.split .copper + .ticks svg,.ticks .copper{color:var(--copper)}
+.split > div:last-child .ticks svg{color:var(--copper)}
+.class-head{display:flex;justify-content:flex-end}
+.num{font-family:var(--serif);font-size:1.7rem;color:var(--muted)}
+.strong{margin:4px 0 0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.class-card h3{font-size:1.6rem;margin-top:8px}
+.note{background:rgba(231,226,214,.8);border-radius:var(--radius);padding:20px}
+.note h3{font-size:1.15rem}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.sw.copper{background:var(--copper)}.sw.extend{background:var(--extend)}.sw.gate{background:var(--gate)}
+.sw.warn{background:var(--warn)}.sw.block{background:var(--block)}
+.stages{list-style:none;margin:0;padding:0;display:grid;gap:32px}
+.stage{display:grid;gap:12px}
+@media(min-width:800px){.stage{grid-template-columns:72px minmax(0,1fr);gap:24px}}
+.step{width:48px;height:48px;border-radius:999px;background:var(--copper);color:var(--paper);display:grid;place-items:center;font-family:var(--serif);font-size:18px;font-weight:600;box-shadow:0 8px 18px rgba(168,91,50,.22)}
+.stage-card{background:var(--card);border-radius:22px;padding:22px 24px;box-shadow:var(--shadow)}
+.stage-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start}
+.stage-card>h3,.stage-head h3{font-size:clamp(1.3rem,2vw,1.75rem);line-height:1.2;max-width:40rem}
+.stage-card>p{margin:12px 0 0;color:var(--ink-2);font-size:15px;line-height:1.6}
+.cards2{margin-top:20px}
+.kind{display:inline-flex;align-items:center;border-radius:999px;border:1px solid currentColor;padding:6px 10px;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.kind.ai{color:var(--copper);background:var(--copper-soft);border-color:rgba(168,91,50,.3)}
+.kind.det{color:var(--extend);background:var(--extend-soft);border-color:rgba(57,90,127,.25)}
+.kind.gate{color:var(--gate);background:var(--gate-soft);border-color:rgba(45,95,78,.25)}
+.kind.mix{color:var(--warn);background:var(--warn-soft);border-color:rgba(140,109,47,.3)}
+.kind.human{color:var(--block);background:var(--block-soft);border-color:rgba(154,63,54,.25)}
+.logic{border-left:4px solid;border-radius:12px;padding:12px 14px}
+.logic b{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.logic p{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.logic.copper{border-color:var(--copper);background:var(--copper-soft)} .logic.copper b{color:var(--copper)}
+.logic.ink{border-color:var(--extend);background:rgba(57,90,127,.08)} .logic.ink b{color:var(--extend)}
+.logic.gate{border-color:var(--gate);background:var(--gate-soft)} .logic.gate b{color:var(--gate)}
+.logic.block{border-color:var(--block);background:var(--block-soft)} .logic.block b{color:var(--block)}
+.logic.warn{border-color:var(--warn);background:var(--warn-soft)} .logic.warn b{color:var(--warn)}
+.domains{position:relative}
+.dom-in,.rk-in{position:absolute;opacity:0;pointer-events:none}
+.dom-tabs,.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.dom-tabs label,.filters label,.rk-lab{border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;background:var(--card);box-shadow:var(--shadow);cursor:pointer;color:var(--ink-2)}
+.dom-panel{display:none;padding:24px}
+.dom-name{font-size:1.85rem;margin:4px 0 8px}
+.rows{list-style:none;margin:0;padding:0}
+.rows li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--rule-soft);color:var(--ink-2);font-size:14px}
+.rows em{font-style:normal;font-size:11px;color:var(--muted);flex:none}
+.workshop{margin-top:20px;background:rgba(231,226,214,.8);border-radius:12px;padding:16px}
+.workshop ul{margin:8px 0 0;padding:0 0 0 18px;color:var(--ink-2);font-size:14px}
+.table-wrap{overflow:auto;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-top:24px}
+table{width:100%;min-width:640px;border-collapse:collapse;text-align:left;font-size:14px}
+th,td{padding:12px 16px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule)}
+tbody th{font-weight:600;color:var(--ink);width:28%}
+.reuse{position:relative}
+.filters{position:relative}
+#rk-all:checked ~ .filters label[for="rk-all"],
+#rk-keep:checked ~ .filters label[for="rk-keep"],
+#rk-replace:checked ~ .filters label[for="rk-replace"],
+#rk-extend:checked ~ .filters label[for="rk-extend"]{background:var(--ink);color:var(--paper);box-shadow:none}
+.reuse-grid{margin-top:8px}
+#rk-keep:checked ~ .reuse-grid > :not(.keep),
+#rk-replace:checked ~ .reuse-grid > :not(.replace),
+#rk-extend:checked ~ .reuse-grid > :not(.extend){display:none}
+.badge{display:inline-flex;border-radius:999px;padding:4px 10px;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.badge.keep{color:var(--teal);background:var(--teal-soft)}
+.badge.replace{color:var(--copper);background:var(--copper-soft)}
+.badge.extend{color:var(--extend);background:var(--extend-soft)}
+.reuse-card h3{margin-top:12px;font-size:1.5rem}
+.reuse-list{list-style:none;margin:16px 0 0;padding:0}
+.reuse-list li{margin:0 0 12px}
+.item-name{margin:0;font-size:14px;font-weight:600;color:var(--ink)}
+.phases{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.phase{display:grid;gap:8px}
+@media(min-width:800px){.phase{grid-template-columns:88px minmax(0,1fr);gap:24px;padding:24px}}
+.italic{font-style:italic}
+.phase .ticks{margin-top:12px}
+.phase .ticks svg{color:var(--muted)}
+.callout{border-left:4px solid var(--teal);padding:20px}
+.callout.copper{border-left-color:var(--copper)}
+.callout h3{font-size:1.15rem}
+.callout ul{margin:10px 0 0;padding:0 0 0 18px;color:var(--ink-2);font-size:14px;line-height:1.55}
+.callout li{margin:6px 0}
+.callout p{margin:10px 0 0}
+.callout b{color:var(--ink)}
+.foot{max-width:72rem;margin:0 auto;padding:32px 20px 48px;border-top:1px solid var(--rule);text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
+.foot span{display:block;margin-top:6px}
+@media print{
+  .top,.print-btn,.skip,.howto,.toc,.toc-mobile{display:none !important}
+  body{background:#fff}
+  .sec,.hero{break-inside:avoid}
+  .xcard,.card,.stage-card{box-shadow:none;border:1px solid var(--rule)}
+  a{text-decoration:none}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none !important}
+}
+#dom-A:checked ~ #panel-A{display:block}#dom-A:checked ~ .dom-tabs label[for="dom-A"]{background:var(--ink);color:var(--paper)}#dom-B:checked ~ #panel-B{display:block}#dom-B:checked ~ .dom-tabs label[for="dom-B"]{background:var(--ink);color:var(--paper)}#dom-C:checked ~ #panel-C{display:block}#dom-C:checked ~ .dom-tabs label[for="dom-C"]{background:var(--ink);color:var(--paper)}#dom-D:checked ~ #panel-D{display:block}#dom-D:checked ~ .dom-tabs label[for="dom-D"]{background:var(--ink);color:var(--paper)}#dom-E:checked ~ #panel-E{display:block}#dom-E:checked ~ .dom-tabs label[for="dom-E"]{background:var(--ink);color:var(--paper)}#dom-F:checked ~ #panel-F{display:block}#dom-F:checked ~ .dom-tabs label[for="dom-F"]{background:var(--ink);color:var(--paper)}#dom-G:checked ~ #panel-G{display:block}#dom-G:checked ~ .dom-tabs label[for="dom-G"]{background:var(--ink);color:var(--paper)}#dom-H:checked ~ #panel-H{display:block}#dom-H:checked ~ .dom-tabs label[for="dom-H"]{background:var(--ink);color:var(--paper)}</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="#hero">
+      <span class="mark">LZ</span>
+      <span>
+        <strong>Landing Zone Assessment</strong>
+        <em>Architecture plan · kernel reuse</em>
+      </span>
+    </a>
+    <nav class="toc" aria-label="Sections">
+      <a href="#verdict">Verdict</a><a href="#evaluation">Four files</a><a href="#truth">Truth model</a><a href="#flow">Thinking flow</a><a href="#domains">Domain pack</a><a href="#reuse">Reuse map</a><a href="#roadmap">Build sequence</a>
+    </nav>
+    <button class="print-btn" type="button" onclick="window.print()">Print / PDF</button>
+  </div>
+  <nav class="toc toc-mobile" aria-label="Sections">
+    <a href="#verdict">Verdict</a><a href="#evaluation">Four files</a><a href="#truth">Truth model</a><a href="#flow">Thinking flow</a><a href="#domains">Domain pack</a><a href="#reuse">Reuse map</a><a href="#roadmap">Build sequence</a>
+  </nav>
+</header>
+<main id="main">
+  <header id="hero" class="hero">
+    <p class="eyebrow">Evidence-gated engine layer · reuse plan</p>
+    <h1>Landing Zone Assessment <em>thinking flow</em></h1>
+    <p class="lede wide">Reuse the FinOps Engine kernel — packets, pairs, gates, unknown-is-not-zero — and replace the domain pack with eight landing-zone design areas. Control plane first. Workshops explain. Accelerators wait behind the lock.</p>
+    <div class="tags"><span class="tag">8 design areas · 80 criteria</span><span class="tag">240 shared sub-criteria</span><span class="tag">3 evidence classes</span><span class="tag">Azure · AWS · GCP packs</span></div>
+    <aside class="howto">
+      <b>This file is the plan.</b>
+      Open it in any browser, attach it to mail, drop it in Drive or SharePoint, or print to PDF. No app or login required.
+    </aside>
+    <div class="quotes"><figure class="quote"><figcaption>Assessment principle</figcaption><blockquote>The objective is not to maximize a landing-zone score. The objective is to understand what is configured, what is owned, what is uncertain, and what should change next.</blockquote></figure><figure class="quote"><figcaption>Reuse instruction</figcaption><blockquote>Reuse the kernel: packets, pairs, gates, unknown-is-not-zero. Replace the domain pack. Describe every provider check in the Engine, or do not score it.</blockquote></figure><figure class="quote"><figcaption>Authority</figcaption><blockquote>An interview can explain a control-plane fact; it cannot replace one. CAF, Control Tower and Cloud Setup never count as proof that the customer’s platform exists.</blockquote></figure></div>
+  </header>
+  <section id="verdict" class="sec">
+    <p class="eyebrow">Architect’s verdict</p>
+    <h2>The FinOps Engine is already a Landing Zone Engine with the wrong knowledge pack.</h2>
+    <p class="lede">The cognitive model in the thinking-flow visual is the product. Dual-stream forensic audit, independent verification, deterministic pair scoring, tactic permissioning, and a code-owned Quality Gate transfer without change of meaning. What does not transfer is the subject: cloud-financial practice versus cloud-foundation control plane.</p>
+    <div class="sec-body">
+    <div class="grid3"><article class="card"><p class="stat">Keep</p><p>Execution kernel, acquisition spine, pair math, QG, tactic ID contract, RunTrace.</p></article><article class="card"><p class="stat">Replace</p><p>A–F FinOps rubric, personas, prompts, keywords, tactics, A1 tagging analyzer, report copy.</p></article><article class="card"><p class="stat">Extend</p><p>Step 0 scope, Class 1 inventory lane, Class 3 workshop objects, provider packs, expert lock.</p></article></div>
+    <div class="grid3 principles"><article class="card"><h3>Reuse the kernel. Replace the pack.</h3><p>Packets, pairs, gates, unknown-is-not-zero, tactic IDs, fact-check and publication control are the product. Categories, criteria, questions, personas and tactics are data.</p></article><article class="card"><h3>Control plane first.</h3><p>Landing-zone truth lives in hierarchy, identity bindings, policy attachments, shared networks and logging destinations. Documents explain intent. Workshops explain ownership. Their mechanics may align; their authority remains separate.</p></article><article class="card"><h3>Unknown is not zero. N/A is not Crawl.</h3><p>Silence after only a workshop remains unknown. A silent design area does not receive a red score and does not generate remediation tactics. Out-of-scope clouds are not scored.</p></article><article class="card"><h3>Establish the truth first. Design the implementation second.</h3><p>Accelerators, Service Portfolio items and technical options must not influence what the Engine concludes about the customer’s current platform.</p></article><article class="card"><h3>The Engine narrows. Experts judge. The customer decides.</h3><p>GO / WARN / BLOCK are evidence sufficiency, not customer pass or fail. The Summary is Master Data for discussion, not a mandatory verdict.</p></article></div>
+    <div class="ink-panel">
+      <p class="micro teal-soft">Recommended shape</p>
+      <p class="ink-title">One kernel. Two domain packs. FinOps remains A–F. Landing Zone is A–H. They share packets, pairs, gates and dispatch. They never share criteria, quotes or tactics.</p>
+      <p>Do not fork the repository into a copy. Introduce a domain-pack interface at <code>src/knowledge_base/</code>, widen <code>DomainId</code>, and load LZ JSON. The FinOps A1 tagging analyzer stays FinOps-only.</p>
+    </div></div>
+  </section>
+  <section id="evaluation" class="sec">
+    <p class="eyebrow">Four source files</p>
+    <h2>What each FinOps artefact actually contributes.</h2>
+    <p class="lede">The thinking-flow file is the cognitive model to clone. The other three are the operational depth behind it: execution plane, pre-boundary acquisition, and a permissioned response library. All are illustrative — not mandatory FinOps rules for Landing Zone.</p>
+    <div class="sec-body"><div class="stack"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">finops-engine-thinking-flow</p>
+        <h3>Thinking Flow</h3>
+        <p class="sum">Cognitive skeleton — reuse almost intact</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><p>This is the file to clone as a mental model. Eight stages from untrusted source to publication. Dual streams. Independent verification. Deterministic scoring. Tactic permissioning. Visible GO / WARN / BLOCK. The LZ thinking flow is this diagram with three additions: Step 0 scope, evidence-class rank, and a human decision overlay.</p>
+      <div class="split">
+        <div>
+          <p class="micro teal">Transfer</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Customer evidence vs reference KB clean-room</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Model is not the primary parser</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Unknown is not zero; silence is classified</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Diagnosis is not a roadmap; tactics are not evidence</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Quality Gate is code, not a model vote</li></ul>
+        </div>
+        <div>
+          <p class="micro copper">Adapt</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Document-first self-serve intake → workshop + inventory + documents</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Six FinOps domains → eight design areas</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Persona set and Crawl–Walk–Run methodology copy</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>No control-plane object identity in the original cards</li></ul>
+        </div>
+      </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">FinOps Engine — Current Architecture</p>
+        <h3>Current Architecture</h3>
+        <p class="sum">Execution kernel — reuse as-is, rebrand later</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><p>The Railway control plane, governed packets, role routing, PostgreSQL ledger and Redis fences are domain-agnostic. LZ should ride this kernel rather than re-implement dispatch. Vercel remains UI-only.</p>
+      <div class="split">
+        <div>
+          <p class="micro teal">Transfer</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Client-owned parsing, text-only 2 MB JSON intake</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Run lifecycle UUID, 24 h deadline, at-most-once send</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>REASONER / WORKHORSE / QUALITY_CHECKER</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Application-owned PG + Redis</li></ul>
+        </div>
+        <div>
+          <p class="micro copper">Adapt</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Add inventory and workshop as first-class source types in the API notes</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>KB path src/knowledge_base/ becomes a pack, not a FinOps tree</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Prototype shared-password auth is still fine for the LZ prototype</li></ul>
+        </div>
+      </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Customer Evidence Acquisition Pipeline</p>
+        <h3>Evidence Acquisition</h3>
+        <p class="sum">Pre-boundary pipeline — extend, do not fork</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><p>The 12-step acquisition spine is already the LZ proposal’s Pre-Analysis Acquisition Engine. The invariant is identical: raw evidence never reaches a generative model. The missing lane is control-plane structured analysis. The questionnaire is Class 3, not a substitute for Class 1.</p>
+      <div class="split">
+        <div>
+          <p class="micro teal">Transfer</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Ingress safety, magic bytes, SHA-256, fail-closed macros</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Canonical objects with stable IDs</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Complete-source privacy scan</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Packet quality gate, exact outgoing-payload re-scan</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Metrics-only gap analyzer (non-generative) as intended next control</li></ul>
+        </div>
+        <div>
+          <p class="micro copper">Adapt</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>New source type: control-plane inventory (MG/OU/folder trees, assignments, bindings)</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>New source type: workshop attestation</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Routing A–F → A–H</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Contradiction coverage as a first-class coverage metric</li></ul>
+        </div>
+      </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">FinOps Tactic Playbook</p>
+        <h3>Tactic Playbook</h3>
+        <p class="sum">Schema reuse — content replace</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><p>The playbook schema is already the LZ Implementation Pattern layer. PRIMARY / SUPPORTING / RELATED, when_to_use, prerequisites, owners, acceptance criteria, risks and controls — keep the shape. Replace every tactic. Do not let CAF or an accelerator become a finding.</p>
+      <div class="split">
+        <div>
+          <p class="micro teal">Transfer</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Binding model and mandatory_when_activated</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Activity goal / when not to use / artefacts</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Search and category filter UX as a KB review surface</li></ul>
+        </div>
+        <div>
+          <p class="micro copper">Adapt</p>
+          <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>New IDs: TAC-ORG, TAC-IAM, TAC-NET, TAC-SEC, TAC-VEN, TAC-POL, TAC-OBS, TAC-IAC</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Owners: Cloud Foundation, Identity, Network, SOC — not FinOps Lead</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Implementation Model (Part II) sits after this, not inside it</li></ul>
+        </div>
+      </div></div>
+  </details></div></div>
+  </section>
+  <section id="truth" class="sec">
+    <p class="eyebrow">Landing-zone truth model</p>
+    <h2>Platform configuration, documents and workshops are not interchangeable.</h2>
+    <p class="lede">This is the main cognitive addition FinOps did not need. FinOps can live on documents, tables and interviews. Landing Zone truth lives first in the control plane. The rest of the thinking flow is downstream of that rank.</p>
+    <div class="sec-body"><div class="grid3"><article class="card class-card">
+      <div class="class-head"><span class="num">01</span></div>
+      <h3>Platform</h3>
+      <p class="strong">Is it so now?</p>
+      <p>Live or exported inventory: hierarchy, policy and SCP assignments, identity bindings, hub networks, log archives, vending. Resolves existence, attachment and enforcement.</p>
+    </article><article class="card class-card">
+      <div class="class-head"><span class="num">02</span></div>
+      <h3>Documents &amp; IaC</h3>
+      <p class="strong">Intended state</p>
+      <p>Design, naming, RACI, Bicep / Terraform / accelerator repos. Drift between repo and tenant is itself a finding — not a wash.</p>
+    </article><article class="card class-card">
+      <div class="class-head"><span class="num">03</span></div>
+      <h3>Workshops</h3>
+      <p class="strong">Operating model</p>
+      <p>How a new environment is requested, who can create subscriptions, why an exception exists, whether break-glass is rehearsed. Raises or lowers confidence. Cannot award Embedded for a missing preventive guardrail.</p>
+    </article></div><div class="grid3"><article class="note"><h3>Unknown is not zero</h3><p>Silence after a scoped collector can become tested absence. Silence after only a workshop remains unknown. A silent design area does not receive a red score and does not generate remediation tactics.</p></article><article class="note"><h3>Contradiction, not alignment</h3><p>A design document that says Deny, while the assignment is Audit, is a contradiction. Workshops explain it. They do not vote it away.</p></article><article class="note"><h3>GO / WARN / BLOCK</h3><p>Evidence sufficiency — not customer pass or fail. BLOCK starts a decision conversation. It does not end the assessment.</p></article></div></div>
+  </section>
+  <section id="flow" class="sec">
+    <p class="eyebrow">Cognitive model</p>
+    <h2>The LZ thinking flow is the FinOps skeleton plus three joints.</h2>
+    <p class="lede">Stages 1–7 of the FinOps visual remain. Insert Step 0 before intake. Stamp evidence class through every later stage. End with expert calibration and customer decision, not only a generated report. Open a card for the key question, reasoning logic, grounding and reliability control.</p>
+    <div class="sec-body"><div class="legend">
+    <span><i class="sw copper"></i>AI reasoning</span>
+    <span><i class="sw extend"></i>Deterministic</span>
+    <span><i class="sw gate"></i>Gate</span>
+    <span><i class="sw warn"></i>Mixed</span>
+    <span><i class="sw block"></i>Human</span>
+  </div><ol class="stages"><li class="stage">
+      <span class="step">0</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Scope lock — name the estate first</h3>
+          <span class="kind gate">Gate / validation</span>
+        </div>
+        <p>Step 0 is the LZ-specific front door. FinOps starts at upload. Landing Zone starts by declaring which clouds, tenants and design areas are in scope, and whether live inventory may be read.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Hard boundary</p>
+        <h3>Named estate, not discovery</h3>
+        <p class="sum">Which cloud, which tenant, which design areas — and may we read the live platform?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Which cloud, which tenant, which design areas — and may we read the live platform?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Write the scope object before any criterion is scored. Provider packs not in scope are not evaluated and must not become zeros.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Step 0 output: Prepared Assessment Baseline. Cloud / tenant / design areas / live inventory yes or no.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Scoring against an unnamed estate is a BLOCK. Extra directories found later are findings against A4, not silent expansion of scope.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>The three days assess that named estate. They do not go looking for it.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Pack loader</p>
+        <h3>Provider packs in, others silent</h3>
+        <p class="sum">Which evidence contracts are live for this run?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Which evidence contracts are live for this run?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Load Azure, AWS and/or GCP packs from the domain catalogue. Native-only objects stay native. Do not invent a fake twin on another cloud.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Criterion record.providers.{azure,aws,gcp}.kind = mapped | native | not_applicable.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>If a provider check is not in the pack, the Engine cannot assess it. Silence is data.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Runtime: Step 0 scopes Azure + AWS → GCP objects are not scored as zero.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">1</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Source intake, three evidence classes, safety boundary</h3>
+          <span class="kind gate">Gate / validation</span>
+        </div>
+        <p>Reuse FinOps local parsing and DLP. Add a control-plane inventory lane and a workshop-attestation lane. Raw material still never reaches a generative model.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Class 1</p>
+        <h3>Control-plane inventory</h3>
+        <p class="sum">Is it so now, in the tenant?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Is it so now, in the tenant?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Hierarchy, policy assignments, identity bindings, hub networks, log archives, vending config. Resolves existence, attachment and enforcement.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Resource Graph / Organizations / Cloud Asset Inventory exports. Policy Insights, PIM, SCP, org-policy.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>An interview can explain a control-plane fact. It cannot replace one.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>A design document that says Deny, while the assignment is Audit, is a contradiction — not alignment.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Class 2</p>
+        <h3>Documents and IaC</h3>
+        <p class="sum">What does the platform team intend to converge to?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>What does the platform team intend to converge to?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Landing-zone design, naming standards, exception process, RACI, Bicep / Terraform / accelerator repos. Drift between repo and tenant is itself a finding.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Existing FinOps parsers: PDF.js, DOMPurify, SheetJS, zip.js, Tesseract. Plus repo file trees as structured sources.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Do not manufacture documents merely to pass the assessment.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>IaC that matches the tenant corroborates. IaC that does not is a H3 drift finding, not proof of H1.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Class 3</p>
+        <h3>Workshops and interviews</h3>
+        <p class="sum">How is the platform actually used — and by whom?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>How is the platform actually used — and by whom?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>48 facilitator questions across A–H. Answers are leads for inventory, owners and exceptions. They may raise or lower confidence on an already evidenced control.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Interview questionnaire objects with criterion refs (A-Q1 → A1 · A4 · AP-A1).</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Cannot award Embedded maturity for a missing preventive guardrail. Cannot vote a silent area green.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>PIM is described; is it enforced on platform roles? Workshop claims without a platform object remain weak or unknown.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Safety</p>
+        <h3>Deterministic DLP before any model</h3>
+        <p class="sum">Can this pack cross the LLM boundary?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Can this pack cross the LLM boundary?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Reuse FinOps complete-source scan. Secrets block. Account numbers, tenant IDs used as values, and sensitive identifiers redact. Sanitized values are scanned again.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>deterministic_evidence_privacy_v1. Session-only processing. Deletion by design.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>No raw files, full inventory dumps, page rasters or unapproved visual regions cross the governed boundary.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Use the existence of a public-storage gap as evidence; do not echo subscription IDs or break-glass passwords.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">2</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Registry, class tags, A–H packetization</h3>
+          <span class="kind det">Deterministic</span>
+        </div>
+        <p>Same provenance machinery. Different routing dictionary. Every chunk carries an evidence class so later stages cannot launder a workshop claim into inventory.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Traceability</p>
+        <h3>Stable locators</h3>
+        <p class="sum">Can every later quote point at an exact object, page, row or attestation?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Can every later quote point at an exact object, page, row or attestation?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Source / page / chunk / row / inventory-object IDs persist before domain reasoning.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>SourceRegistry, SourceRecord, SourcePage — already in the kernel.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>A plausible CAF statement without a registry location is not strong evidence.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>src-014, assignment-policy-deny-public-ip, mg-corp-prod — not ‘the security deck’.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Routing</p>
+        <h3>Design-area packets A–H</h3>
+        <p class="sum">Which chunks belong in Identity versus Network versus Vending?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Which chunks belong in Identity versus Network versus Vending?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Deterministic keyword + object-type routing into eight bounded packets. Empty routing is source silence; omitted relevant chunks are not.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Replace DOMAIN_TERMS. Add object-type maps from provider packs (pim-policy, scp, org-policy, log-sink).</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Each design area receives a tailored evidence universe. Cross-domain contamination is a reliability failure.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Token-routing evidence does not exist here. A PIM activation log belongs in B, not in G.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">3</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Dual-stream forensic audit</h3>
+          <span class="kind ai">AI reasoning</span>
+        </div>
+        <p>Reuse Phase 1 exactly: eight batches in parallel, five capabilities paired with five anti-patterns, three shared questions each. The model explains approved inventory metrics. It cannot create them.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Capability stream</p>
+        <h3>What good looks like</h3>
+        <p class="sum">Are the three shared sub-criteria supported, not supported, or unknown from this packet?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Are the three shared sub-criteria supported, not supported, or unknown from this packet?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Same output schema as FinOps. count = supported questions. not_assessed is not a zero.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Governed A–H packet + knowledge_context from LZ KB. Provider evidence objects, not a second questionnaire.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Every positive claim must resolve to an exact packet chunk and matching quote.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Privileged roles are eligible rather than permanently assigned — only if PIM / Identity Center / PAM evidence is in the packet.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Anti-pattern stream</p>
+        <h3>Harmful patterns, tested absence</h3>
+        <p class="sum">Is the harmful pattern confirmed, partial, tested-absent, or unknown-absent?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Is the harmful pattern confirmed, partial, tested-absent, or unknown-absent?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Reuse antiPatternSemantics. Tested absence requires the provider pack’s absence query to have run.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>No standing Global Admin assignments. No IAM user access keys on humans. Not looking is not clearance.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>A capability at 3 with its paired anti-pattern confirmed present is a contradiction. Phase 3 may not narrate excellence over it.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Workloads in the management plane is AP-A2. A workshop ‘we don’t do that’ does not clear it.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">4</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Independent evidence verification</h3>
+          <span class="kind gate">Gate / validation</span>
+        </div>
+        <p>QUALITY_CHECKER remains a separate role. Add one LZ-specific rule: Class rank. Platform objects outrank documents. Documents outrank interviews.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Class rank</p>
+        <h3>Authority is not a vote</h3>
+        <p class="sum">Does this quote actually have the authority the claim needs?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Does this quote actually have the authority the claim needs?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>GO on a preventive control requires Class 1. Class 2 can support intent. Class 3 can explain exceptions and operating model.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>evidence_source class field on every quote. Contradiction coverage as its own metric.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Do not let the room vote a silent area green. Targeted questions only where the pack is weak or contradictory.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Inventory shows production subscriptions outside Corp. Is that approved? The answer becomes an exemption record, not a rewritten placement fact.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">5</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Scoring, resolution, named roll-up</h3>
+          <span class="kind det">Deterministic</span>
+        </div>
+        <p>Keep ADR-002. Change the denominator and the headline labels. Never blend clouds.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Denominator</p>
+        <h3>In-scope and applicable</h3>
+        <p class="sum">What is actually on the score surface for this run?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>What is actually on the score surface for this run?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Maturity depth and anti-pattern burden divide by criteria that are in Step 0 scope and not marked not-applicable.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Pair registry stays canonical. Engine never infers pairs from matching IDs.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Out-of-scope GCP is not a silent 0. Unknown is not Crawl.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Azure identity GO, AWS identity WARN — never a blended 3.2.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Gates</p>
+        <h3>Sufficiency ≠ actionability</h3>
+        <p class="sum">May we publish a classification, and may we publish a roadmap?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>May we publish a classification, and may we publish a roadmap?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Assessment Sufficiency owns Foundation/Pilot/Rollout publication. Quality Gate owns whether actions are safe. Same separation as FinOps.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Density / resolution floors remain calibration parameters, versioned per domain pack — not FinOps logic.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Silent design area (&lt;10% density) produces evidence-collection guidance, not remediation tactics.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>A BLOCK on vending does not mean the customer failed. It means the evidence is not enough to act.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">6</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Diagnosis, personas, planning decision</h3>
+          <span class="kind mix">Mixed control</span>
+        </div>
+        <p>Same split: evidence summary is fact-only; diagnosis interprets; planning_decision is GO / CONDITIONAL_GO / NO_GO; roadmap is permissioned by confidence.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Personas</p>
+        <h3>Three lenses, one fact base</h3>
+        <p class="sum">What does the same diagnosis mean for CISO, Platform, and Application/Security?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>What does the same diagnosis mean for CISO, Platform, and Application/Security?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Replace FinOps Lead / CFO / Engineering Lead. Facts must agree. Vocabulary and emphasis may differ. No invented blast-radius numbers.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>lz_personas.json. Locked Phase 2 metrics.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Persona changes emphasis, not scores, source truth, or confidence.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>CISO: isolation and identity boundary. Platform: vending and inheritance. App/Security: how workloads actually land.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Permissioning</p>
+        <h3>Tactics after diagnosis</h3>
+        <p class="sum">Does a verified finding activate a playbook mechanism?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Does a verified finding activate a playbook mechanism?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Reuse tactic ID contract. Silent areas do not activate tactics. CAF / Control Tower / Cloud Setup never count as proof of customer state.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>LZ Tactic Playbook: hierarchy retrofit, identity hardening, hub-spoke, vending, central logs, policy-as-code.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>A plausible accelerator name is not enough. IDs must exist exactly. Implementation options stay behind the lock.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>If a roadmap cites TAC-VEN-00x while C4 is silent, regenerate or remove it.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li><li class="stage">
+      <span class="step">7</span>
+      <article class="stage-card">
+        <div class="stage-head">
+          <h3>Expert calibration, customer decision, publication</h3>
+          <span class="kind human">Human decision</span>
+        </div>
+        <p>FinOps publication is a Quality Gate on a generated report. Landing Zone publication is a Quality Gate plus a human Day 2 lock plus a Day 3 customer decision. The Engine is Master Data for discussion, not a mandatory verdict.</p>
+        <div class="cards2"><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Day 2</p>
+        <h3>Expert-calibrated Summary</h3>
+        <p class="sum">Is this Summary fit to put in front of the customer as a shared agenda?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>Is this Summary fit to put in front of the customer as a shared agenda?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Experts remain responsible for exemptions, mergers, regulated boundaries. The Engine surfaces uncertainty; it does not replace judgment.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>New checkpoint: expert_calibration. Findings can be confirmed, annotated, or returned to acquisition.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>Experts cannot silently rewrite inventory facts. They can mark customer-context constraints.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>BLOCK starts a decision conversation. It does not end the assessment.</p></div>
+          </div></div>
+  </details><details class="xcard">
+    <summary>
+      <div>
+        <p class="micro muted">Day 3</p>
+        <h3>Customer retains decision authority</h3>
+        <p class="sum">What matters enough for us to change?</p>
+      </div>
+      <span class="chev" aria-hidden="true"></span>
+    </summary>
+    <div class="xbody"><div class="stack-sm">
+            <div class="logic copper"><b>Key question</b><p>What matters enough for us to change?</p></div>
+            <div class="logic ink"><b>Reasoning logic</b><p>Possible decisions: action approved, further evidence required, risk accepted as exception, deferred, no action, out of scope. Not every gap becomes a remediation item.</p></div>
+            <div class="logic gate"><b>Grounding basis</b><p>Decision objects attached to locked findings. These become the only eligible inputs to the Implementation Model.</p></div>
+            <div class="logic block"><b>Reliability control</b><p>An accelerator is not selected before the diagnosis is stable.</p></div>
+            <div class="logic warn"><b>Illustrative thinking sample</b><p>Establish the truth first. Design the implementation second.</p></div>
+          </div></div>
+  </details></div>
+      </article>
+    </li></ol></div>
+  </section>
+  <section id="domains" class="sec">
+    <p class="eyebrow">Domain pack A–H</p>
+    <h2>Same 5+5 shape as FinOps. Different subject. Provider packs, not product forks.</h2>
+    <p class="lede">Eight batches. Each holds five capabilities paired against five anti-patterns. Three shared questions. Azure, AWS and GCP are fields on the criterion, not three catalogues. The workshop does not fork. The pack does. Counts may move — 80 is not sacred.</p>
+    <div class="sec-body"><div class="domains"><input class="dom-in" type="radio" name="lz-dom" id="dom-A" checked><input class="dom-in" type="radio" name="lz-dom" id="dom-B" ><input class="dom-in" type="radio" name="lz-dom" id="dom-C" ><input class="dom-in" type="radio" name="lz-dom" id="dom-D" ><input class="dom-in" type="radio" name="lz-dom" id="dom-E" ><input class="dom-in" type="radio" name="lz-dom" id="dom-F" ><input class="dom-in" type="radio" name="lz-dom" id="dom-G" ><input class="dom-in" type="radio" name="lz-dom" id="dom-H" ><div class="dom-tabs"><label for="dom-A">A · Tenant</label><label for="dom-B">B · Identity</label><label for="dom-C">C · Resource organization</label><label for="dom-D">D · Network topology</label><label for="dom-E">E · Security baseline</label><label for="dom-F">F · Management</label><label for="dom-G">G · Governance</label><label for="dom-H">H · Platform automation</label></div><article class="dom-panel card" id="panel-A">
+      <p class="micro teal">Design area A</p>
+      <h3 class="dom-name">Tenant, billing &amp; organization construct</h3>
+      <p>Find the real root of the estate — and everything that lives outside it.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>A1</b> · Authoritative organization root</span><em>pair AP-A1</em></li><li><span><b>A2</b> · Management-plane hygiene</span><em>pair AP-A2</em></li><li><span><b>A3</b> · Billing and contract alignment</span><em>pair AP-A3</em></li><li><span><b>A4</b> · Administrative boundary clarity</span><em>pair AP-A4</em></li><li><span><b>A5</b> · Root recovery and emergency access</span><em>pair AP-A5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-A1</b> · Shadow tenants and unmanaged orgs</li><li><b>AP-A2</b> · Workloads in the management plane</li><li><b>AP-A3</b> · Billing split from technical ownership</li><li><b>AP-A4</b> · Unbounded guest or partner access at root</li><li><b>AP-A5</b> · Unowned root credentials</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>Where is the authoritative cloud organization, and who owns it?</li><li>Are production workloads forbidden from the management/payer plane?</li><li>Does billing, contract and technical ownership describe the same estate?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-B">
+      <p class="micro teal">Design area B</p>
+      <h3 class="dom-name">Identity &amp; access</h3>
+      <p>How humans, workloads and emergencies actually get in.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>B1</b> · Federated workforce identity</span><em>pair AP-B1</em></li><li><span><b>B2</b> · Time-bound privileged access</span><em>pair AP-B2</em></li><li><span><b>B3</b> · Workload identity without long-lived keys</span><em>pair AP-B3</em></li><li><span><b>B4</b> · Least-privilege inheritance</span><em>pair AP-B4</em></li><li><span><b>B5</b> · Monitored break-glass</span><em>pair AP-B5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-B1</b> · Standing root-equivalent access</li><li><b>AP-B2</b> · Local cloud users as primary identity</li><li><b>AP-B3</b> · Long-lived keys as identity</li><li><b>AP-B4</b> · Unscoped Owner at root</li><li><b>AP-B5</b> · Unmonitored or missing break-glass</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>How does a human get access, and how is it taken away?</li><li>How is privileged access made eligible, time-bound and logged?</li><li>How do workloads authenticate without long-lived secrets?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-C">
+      <p class="micro teal">Design area C</p>
+      <h3 class="dom-name">Resource organization</h3>
+      <p>Does the hierarchy encode policy, or is it a filing cabinet?</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>C1</b> · Hierarchy that encodes policy</span><em>pair AP-C1</em></li><li><span><b>C2</b> · Platform versus application landing zones</span><em>pair AP-C2</em></li><li><span><b>C3</b> · Naming and tagging enforced</span><em>pair AP-C3</em></li><li><span><b>C4</b> · Governed subscription / account / project vending</span><em>pair AP-C4</em></li><li><span><b>C5</b> · Environment separation</span><em>pair AP-C5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-C1</b> · Flat subscription or account sprawl</li><li><b>AP-C2</b> · Applications in the platform landing zone</li><li><b>AP-C3</b> · Ad-hoc naming and tag theatre</li><li><b>AP-C4</b> · ClickOps birth of isolation units</li><li><b>AP-C5</b> · Mixed environments in one boundary</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>Does the hierarchy encode policy, or is it a filing cabinet?</li><li>Where does the platform landing zone end and an application landing zone begin?</li><li>How is a new subscription, account or project born?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-D">
+      <p class="micro teal">Design area D</p>
+      <h3 class="dom-name">Network topology &amp; connectivity</h3>
+      <p>Where traffic is forced, inspected, named — and where it leaks.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>D1</b> · Hub topology with inspection</span><em>pair AP-D1</em></li><li><span><b>D2</b> · Owned hybrid connectivity</span><em>pair AP-D2</em></li><li><span><b>D3</b> · Central DNS</span><em>pair AP-D3</em></li><li><span><b>D4</b> · Private-by-default</span><em>pair AP-D4</em></li><li><span><b>D5</b> · Segmentation by landing zone</span><em>pair AP-D5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-D1</b> · Per-application internet edge</li><li><b>AP-D2</b> · Flat global network</li><li><b>AP-D3</b> · Split-brain or absent private DNS</li><li><b>AP-D4</b> · Public as the default</li><li><b>AP-D5</b> · Unmanaged peering mesh</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>Where is the hub, and what is forced through it?</li><li>Who owns hybrid connectivity, DNS and inspection?</li><li>Is private-by-default a control, or a preference?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-E">
+      <p class="micro teal">Design area E</p>
+      <h3 class="dom-name">Security baseline</h3>
+      <p>What the platform prevents, detects, and still leaves to goodwill.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>E1</b> · Preventive security baseline</span><em>pair AP-E1</em></li><li><span><b>E2</b> · Central threat detection</span><em>pair AP-E2</em></li><li><span><b>E3</b> · Encryption and key management</span><em>pair AP-E3</em></li><li><span><b>E4</b> · Secrets management</span><em>pair AP-E4</em></li><li><span><b>E5</b> · Security operations placement</span><em>pair AP-E5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-E1</b> · Optional security</li><li><b>AP-E2</b> · Per-subscription SIEM islands</li><li><b>AP-E3</b> · Keys in code or unused CMK theatre</li><li><b>AP-E4</b> · Secrets in pipelines and wikis</li><li><b>AP-E5</b> · Security as an after-the-fact ticket</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>What is prevented by the platform, versus detected after the fact?</li><li>Where do logs, detections and keys live — and who operates them?</li><li>Are secrets and encryption a control, or a developer preference?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-F">
+      <p class="micro teal">Design area F</p>
+      <h3 class="dom-name">Management &amp; observability</h3>
+      <p>Whether the platform can see itself — and restore itself.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>F1</b> · Central activity and audit logs</span><em>pair AP-F1</em></li><li><span><b>F2</b> · Inventory as landing-zone truth</span><em>pair AP-F2</em></li><li><span><b>F3</b> · Baseline monitoring and alerting</span><em>pair AP-F3</em></li><li><span><b>F4</b> · Platform backup and restore</span><em>pair AP-F4</em></li><li><span><b>F5</b> · Update and agent baseline</span><em>pair AP-F5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-F1</b> · Logs left in the subscription</li><li><b>AP-F2</b> · No current inventory</li><li><b>AP-F3</b> · Application monitoring only</li><li><b>AP-F4</b> · No platform restore</li><li><b>AP-F5</b> · Snowflake agents and images</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>Where do activity, resource and diagnostic logs actually land?</li><li>Can the platform list every subscription, account or project this week?</li><li>If the platform burned down, what would restore it?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-G">
+      <p class="micro teal">Design area G</p>
+      <h3 class="dom-name">Governance &amp; policy</h3>
+      <p>What is denied, who is exempt, and what can be exported.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>G1</b> · Policy inheritance from the root</span><em>pair AP-G1</em></li><li><span><b>G2</b> · Deny for insecure defaults</span><em>pair AP-G2</em></li><li><span><b>G3</b> · Exemptions with owner and expiry</span><em>pair AP-G3</em></li><li><span><b>G4</b> · Cost and tag guardrails</span><em>pair AP-G4</em></li><li><span><b>G5</b> · Compliance evidence export</span><em>pair AP-G5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-G1</b> · Policy as documentation only</li><li><b>AP-G2</b> · Root-level allow-all</li><li><b>AP-G3</b> · Permanent exemptions</li><li><b>AP-G4</b> · No cost or region guardrail</li><li><b>AP-G5</b> · Screenshot compliance</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>What does the platform actually deny, versus what it merely audits?</li><li>How is an exemption born, lived, and killed?</li><li>Can compliance evidence be exported, or only screenshot?</li></ul>
+      </div>
+    </article><article class="dom-panel card" id="panel-H">
+      <p class="micro teal">Design area H</p>
+      <h3 class="dom-name">Platform automation &amp; DevOps</h3>
+      <p>Whether the foundation is born from code — or from a click.</p>
+      <div class="split">
+        <div><p class="micro muted">Stream A · Capabilities</p><ul class="rows"><li><span><b>H1</b> · Platform as code</span><em>pair AP-H1</em></li><li><span><b>H2</b> · Vending pipeline</span><em>pair AP-H2</em></li><li><span><b>H3</b> · Drift detection</span><em>pair AP-H3</em></li><li><span><b>H4</b> · Guardrailed self-service</span><em>pair AP-H4</em></li><li><span><b>H5</b> · Platform change management</span><em>pair AP-H5</em></li></ul></div>
+        <div><p class="micro muted">Stream B · Anti-patterns</p><ul class="rows"><li><b>AP-H1</b> · ClickOps platform</li><li><b>AP-H2</b> · Email-request vending</li><li><b>AP-H3</b> · Drift accepted</li><li><b>AP-H4</b> · Ticket-only, no self-service</li><li><b>AP-H5</b> · Undocumented hotfixes</li></ul></div>
+      </div>
+      <div class="workshop">
+        <p class="micro muted">Workshop themes — one script for every cloud</p>
+        <ul><li>Is the landing zone born from code, or from a portal?</li><li>How does drift get detected, and who is allowed to hotfix the foundation?</li><li>Can an application team request a landing zone without a six-week ticket?</li></ul>
+      </div>
+    </article></div><div class="table-wrap"><table>
+    <thead><tr><th>Layer</th><th>FinOps Engine</th><th>Landing Zone Engine</th></tr></thead>
+    <tbody><tr><th>Batches</th><td>A–F · 6 domains</td><td>A–H · 8 design areas</td></tr><tr><th>Criteria</th><td>30 + 30 · 180 questions</td><td>40 + 40 · 240 shared sub-criteria</td></tr><tr><th>Primary evidence</th><td>Documents, tables, screenshots</td><td>Control-plane inventory, then IaC, then workshop</td></tr><tr><th>Clouds</th><td>Blended estate is acceptable</td><td>Named per pack. Never a blended 3.2</td></tr><tr><th>Personas</th><td>FinOps Lead · CFO · Engineering Lead</td><td>CISO · Platform Owner · Application &amp; Security</td></tr><tr><th>Journey labels</th><td>Crawl · Walk · Run</td><td>Foundation · Pilot · Rollout · Operate</td></tr><tr><th>Interview role</th><td>Supporting source</td><td>48 questions as evidence leads, never scores</td></tr></tbody>
+  </table></div></div>
+  </section>
+  <section id="reuse" class="sec">
+    <p class="eyebrow">Codebase reuse</p>
+    <h2>Parameterize the kernel. Do not copy the repository.</h2>
+    <p class="lede">Inspected against the FinOps Engine tree: orchestrator, knowledge_base, types, prompts, source registry, structured-data analysis, output contracts. The closest existing abstraction is knowledge_base/index.ts — it is not yet the only domain surface. A–F still leaks into types, prompts, routing and UI.</p>
+    <div class="sec-body"><div class="reuse">
+      <input class="rk-in" type="radio" name="rk" id="rk-all" checked><input class="rk-in" type="radio" name="rk" id="rk-keep" ><input class="rk-in" type="radio" name="rk" id="rk-replace" ><input class="rk-in" type="radio" name="rk" id="rk-extend" >
+      <div class="filters"><label class="rk-lab" for="rk-all">All seams</label><label class="rk-lab" for="rk-keep">Keep</label><label class="rk-lab" for="rk-replace">Replace</label><label class="rk-lab" for="rk-extend">Extend</label></div>
+      <div class="grid3 reuse-grid"><article class="card reuse-card keep">
+      <p class="badge keep">keep</p>
+      <h3>Keep as kernel</h3>
+      <ul class="reuse-list"><li><p class="item-name">Governed packet dispatch</p><p>Hash-bound packets, PostgreSQL BYTEA, Redis fence, at-most-once after SEND_AUTHORIZED.</p></li><li><p class="item-name">Client-side parsing</p><p>PDF, HTML, CSV/TSV, XLSX, JSON. Originals never uploaded. Deterministic DLP first.</p></li><li><p class="item-name">Dual-stream forensic audit</p><p>Capability vs anti-pattern, 3 sub-criteria, independent evidence check, bounded rescan.</p></li><li><p class="item-name">Resolution-based scoring</p><p>ADR-002 pair math, unknown is not zero, Assessment Sufficiency vs Quality Gate.</p></li><li><p class="item-name">Tactic ID contract</p><p>Exact IDs, PRIMARY/SUPPORTING/RELATED, mandatory_when_activated, dispositions.</p></li><li><p class="item-name">Fact-check + sanitation + QG</p><p>GO / WARN / BLOCK is publication authority. Models cannot change the decision.</p></li><li><p class="item-name">Role routing</p><p>REASONER / WORKHORSE / QUALITY_CHECKER with fail-closed fallback.</p></li><li><p class="item-name">RunTrace &amp; checkpoints</p><p>Lineage, recovery, golden fixtures. Drift tests against Crawl / Walk / Run corpora.</p></li></ul>
+    </article><article class="card reuse-card replace">
+      <p class="badge replace">replace</p>
+      <h3>Replace as domain pack</h3>
+      <ul class="reuse-list"><li><p class="item-name">Knowledge base JSON</p><p>Criteria, anti-patterns, pair registry, keywords, personas, tactics, playbook, aliases, theme bindings.</p></li><li><p class="item-name">BATCH_TITLES A–F</p><p>Become A–H from taxonomy registry. Stop assuming six letters and five IDs in types.</p></li><li><p class="item-name">Prompts &amp; guardrails</p><p>Cloud Financial Forensic Auditor → Landing Zone Forensic Auditor. CAF is methodology, not proof.</p></li><li><p class="item-name">Personas</p><p>FinOps Lead / CFO / Engineering Lead → CISO / Platform Owner / Application &amp; Security.</p></li><li><p class="item-name">Methodology block</p><p>Crawl–Walk–Run FinOps journey → Foundation / Pilot / Rollout / Operate for the platform.</p></li><li><p class="item-name">Routing keywords</p><p>DOMAIN_TERMS currently FinOps (tagging, RI, token). Rebuild for hierarchy, PIM, hub, sinks, vending.</p></li><li><p class="item-name">A1 tagging analyzer</p><p>structuredDataAnalysisService is hardcoded to A1 / AP-A1. Do not fake a twin.</p></li><li><p class="item-name">UI copy &amp; reports</p><p>Heatmap A1–F5, session keys, FinOps labels, Master Data HTML. Same spine, new language.</p></li></ul>
+    </article><article class="card reuse-card extend">
+      <p class="badge extend">extend</p>
+      <h3>Extend the kernel</h3>
+      <ul class="reuse-list"><li><p class="item-name">Control-plane acquisition lane</p><p>Inventory JSON/CSV: hierarchy, policy assignments, IAM bindings, log sinks. Strongest evidence class.</p></li><li><p class="item-name">Evidence class on every unit</p><p>platform | document | workshop. Class 3 cannot award Embedded for a missing preventive control.</p></li><li><p class="item-name">Provider packs</p><p>Azure / AWS / GCP evidence contracts on the same intent ID. Out-of-scope pack is N/A, not zero.</p></li><li><p class="item-name">Step 0 scope object</p><p>Named clouds, tenants, design areas, live inventory yes/no. Loaded before scoring.</p></li><li><p class="item-name">Workshop attestations</p><p>48-question questionnaire becomes Class 3 SourceRecords with criterion refs.</p></li><li><p class="item-name">Named multi-cloud roll-up</p><p>Azure identity GO, AWS identity WARN — never a blended 3.2.</p></li><li><p class="item-name">Expert calibration checkpoint</p><p>Day 2 human lock before customer-facing Summary. Engine narrows; experts judge.</p></li><li><p class="item-name">Implementation Model pipeline</p><p>Second governed pipeline after locked findings. Accelerators cannot write the diagnosis.</p></li></ul>
+    </article></div>
+    </div><div class="table-wrap"><table>
+    <thead><tr><th>Hard coupling</th><th>What to change</th></tr></thead>
+    <tbody><tr><th>src/types.ts</th><td>DomainId = A–F, CapabilityId 1–5, PersonaId FinOps trio</td></tr><tr><th>src/knowledge_base/index.ts</th><td>BATCH_TITLES, FINOPS_* exports, 5-wide expectedDocumentKeys</td></tr><tr><th>src/orchestrator.ts</th><td>Array.from({ length: 5 }) for batch IDs</td></tr><tr><th>src/constants.ts</th><td>Crawl–Walk–Run, FinOps Strategic Architect, A–F diagnosis keys</td></tr><tr><th>src/prompts.ts</th><td>Cloud Financial Forensic Auditor, FinOps evidence categories, A4 image signatures</td></tr><tr><th>src/services/sourceRegistryService.ts</th><td>DOMAIN_TERMS A–F FinOps vocabulary</td></tr><tr><th>src/services/structuredDataAnalysisService.ts</th><td>Hardcoded A1 / AP-A1 tagging allocation</td></tr><tr><th>src/services/tacticGroundingService.ts</th><td>Regex [A-F][1-5]</td></tr><tr><th>src/services/maturityModelService.ts</th><td>Loops [&#39;A&#39;..&#39;F&#39;]</td></tr><tr><th>lib/outputContracts.js</th><td>finops_* contract IDs, hardcoded domain_diagnosis</td></tr><tr><th>src/App.tsx + ReportView.tsx</th><td>FinOps copy, A1–F5 heatmap, session keys</td></tr></tbody>
+  </table></div></div>
+  </section>
+  <section id="roadmap" class="sec">
+    <p class="eyebrow">Build sequence</p>
+    <h2>Freeze the pack. Parameterize IDs. Then add the inventory lane.</h2>
+    <p class="lede">Do not start with accelerators, a new UI, or the Implementation Model. Those are downstream of a loadable domain pack and honest scoring. P7 is a second pipeline, after locked findings.</p>
+    <div class="sec-body"><ol class="phases"><li class="card phase">
+      <p class="stat">P0</p>
+      <div>
+        <h3>Freeze the domain pack</h3>
+        <p class="italic">A versioned LZ knowledge pack the engine can load without FinOps literals.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Author lz_criteria.json, lz_antipatterns.json, lz_maturity_pair_registry.json from the A–H catalogue.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Author provider evidence contracts as data, not as a second questionnaire.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Author lz_preflight_keywords.json and DOMAIN_TERMS for A–H.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Author lz_personas.json (CISO, Platform Owner, Application &amp; Security).</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Mark the 80-criteria set as review-stable, not production-frozen — counts may move.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P1</p>
+      <div>
+        <h3>Parameterize the kernel</h3>
+        <p class="italic">BATCH_IDS, DomainId and 5-wide assumptions are driven by the pack.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Widen DomainId. Drive expected IDs from the taxonomy registry, not Array.from({length:5}).</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Generate domain_diagnosis keys from pack IDs in prompts and outputContracts.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Move tacticGrounding regex off [A-F][1-5].</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Rename finops_* contract IDs to assessment_* or keep versioned aliases.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Keep orchestrator loop, evidence-check, pair math, QG structure untouched in behaviour.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P2</p>
+      <div>
+        <h3>Control-plane acquisition lane</h3>
+        <p class="italic">Inventory exports become Class 1 SourceRecords.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Accept hierarchy, policy-assignment, IAM-binding, log-sink and vending JSON/CSV.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Deterministic analyzers for placement, inheritance, standing privilege, public endpoints — only where a frozen binding exists.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Do not invent placeholder analyzers. Unbound criteria stay NO_AUTHORITATIVE_ANALYZER_SEMANTICS.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Contradiction detector: declared Deny vs assigned Audit.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P3</p>
+      <div>
+        <h3>Workshop lane + evidence class</h3>
+        <p class="italic">The 48-question questionnaire is ingestible and ranked below inventory.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Import questionnaire JSON as Visual-or-text? No: attestation objects with criterion refs.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Stamp evidence_class on every quote. Verifier enforces class rank for preventive claims.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Facilitator themes (3 per batch) stay one script across clouds.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P4</p>
+      <div>
+        <h3>Scoring honesty for multi-cloud</h3>
+        <p class="italic">Named per-pack results. N/A is not Crawl.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Denominator = in-scope and applicable.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tested absence only after the pack’s absence query ran.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Silent domain &lt;10% density: collection guidance, no tactics.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Golden fixtures per provider pack before production scoring.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P5</p>
+      <div>
+        <h3>Prompts, reports, calibration</h3>
+        <p class="italic">Landing Zone language on the same report spine.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Replace SHARED_GUARDRAILS document-type signatures.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Foundation / Pilot / Rollout / Operate as methodology; keep Insufficient evidence.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Heatmap A–H. Master Data Summary as the Day 3 agenda.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Expert calibration checkpoint before customer-facing export.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P6</p>
+      <div>
+        <h3>LZ tactic playbook</h3>
+        <p class="italic">Permissioned response library after diagnosis.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Map PRIMARY tactics to AP-A1…AP-H5 where a mechanism is actually known.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Leave gaps visible — FinOps already has maturity criteria without PRIMARY tactics. Do not invent coverage.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>KB usage_boundaries: CAF never cited as customer current state.</li></ul>
+      </div>
+    </li><li class="card phase">
+      <p class="stat">P7</p>
+      <div>
+        <h3>Implementation Model (later, separate pipeline)</h3>
+        <p class="italic">Part II of the proposal — only after locked findings.</p>
+        <ul class="ticks"><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Input gate: validated Summary only.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Eligible findings: reject silent areas, accepted risks, out-of-scope items.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Pattern match → ownership proposal → technical options → sequence → Implementation QG.</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 6h7.6M6 8.2v5.2a4 4 0 0 0 4 4h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>L4 Service Portfolio may appear only after L1–L3. Never Service Option → search for a diagnosis.</li></ul>
+      </div>
+    </li></ol><div class="grid2"><article class="card callout teal">
+    <h3>Still unresolved — do not fake</h3>
+    <ul><li>Evidence-category enum for LZ (Inventory / Identity-binding / Policy-assignment / Network-path / Log-sink / IaC / Workshop) is not locked.</li><li>Golden fixtures per provider pack are required before production scoring.</li><li>80 is a review shape. A later freeze may drop a weak pair or add a native row. Native extras must not fork the eight batches.</li><li>Live collector access is a product decision. The Engine can start on exports. It must not pretend live read when Step 0 said no.</li><li>Implementation Model (Part II) is a separate governed pipeline. Building it before diagnosis lock would invert the authority model.</li></ul>
+  </article><article class="card callout copper">
+    <h3>First concrete artefact to produce</h3>
+    <p>A versioned <b>lz_domain_pack</b> directory that mirrors the FinOps JSON schemas: criteria, anti-patterns, pair registry, keywords, personas, validation rules, taxonomy registry. Provider evidence contracts as data on each criterion. No FinOps literals. No scoring code yet. Once that pack loads through a parameterized <b>BATCH_TITLES</b>, the kernel can run a dry Phase 1 on synthetic inventory fixtures.</p>
+    <p>Until DomainId is widened, every A–H criterion past F5 will fail the current type union and the five-wide orchestrator. That is the first engineering gate — not the playbook, not the report chrome.</p>
+  </article></div></div>
+  </section>
+</main>
+<footer class="foot">
+  Landing Zone Assessment Engine · architecture plan. FinOps materials used as
+  illustrative kernel, not as domain rules. Criteria catalogue is preliminary.
+  <span>Single-file HTML — open offline, attach to mail, or upload anywhere.</span>
+</footer>
+<script>
+(function () {
+  var ids = ["verdict","evaluation","truth","flow","domains","reuse","roadmap"];
+  var links = Array.prototype.slice.call(document.querySelectorAll(".toc a"));
+  function setActive(id) {
+    links.forEach(function (a) {
+      a.classList.toggle("is-active", a.getAttribute("href") === "#" + id);
+    });
+  }
+  var els = ids.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  if ("IntersectionObserver" in window && els.length) {
+    var obs = new IntersectionObserver(function (entries) {
+      var vis = entries.filter(function (e) { return e.isIntersecting; })
+        .sort(function (a, b) { return b.intersectionRatio - a.intersectionRatio; })[0];
+      if (vis && vis.target.id) setActive(vis.target.id);
+    }, { rootMargin: "-20% 0px -55% 0px", threshold: [0.15, 0.4] });
+    els.forEach(function (el) { obs.observe(el); });
+  }
+  var opened = [];
+  window.addEventListener("beforeprint", function () {
+    opened = [];
+    document.querySelectorAll("details").forEach(function (d) {
+      if (!d.open) { d.open = true; opened.push(d); }
+    });
+  });
+  window.addEventListener("afterprint", function () {
+    opened.forEach(function (d) { d.open = false; });
+    opened = [];
+  });
+})();
+</script>
+</body>
+</html>

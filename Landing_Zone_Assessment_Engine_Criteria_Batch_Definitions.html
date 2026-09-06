@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Landing Zone Assessment Engine — Criteria & Batch Definitions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:        #0E1B2C;
+    --ink-2:      #1F2D3F;
+    --ink-3:      #4A5668;
+    --paper:      #F7F5F0;
+    --paper-2:    #ECE8DF;
+    --rule:       #C9C2B5;
+    --rule-soft:  #E1DCD0;
+
+    --accent:     #B5472D;   /* forensic accent — burnt sienna */
+    --accent-2:   #2D5F4E;   /* maturity green */
+    --accent-3:   #8C6D2F;   /* anti-pattern ochre */
+
+    --good:       #2D5F4E;
+    --warn:       #B5472D;
+
+    --serif:      'Fraunces', Georgia, serif;
+    --sans:       'Inter', -apple-system, system-ui, sans-serif;
+    --mono:       'JetBrains Mono', 'Courier New', monospace;
+
+    --max:        1180px;
+    --gutter:     clamp(20px, 4vw, 56px);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Subtle paper texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(14, 27, 44, 0.025) 1px, transparent 0);
+    background-size: 24px 24px;
+    z-index: 0;
+  }
+
+  main { position: relative; z-index: 1; }
+
+  /* ─── Layout ─── */
+  .container {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+
+  section { padding: 80px 0; border-bottom: 1px solid var(--rule-soft); }
+  section:last-of-type { border-bottom: none; }
+
+  /* ─── Header / Hero ─── */
+  .hero {
+    padding: 100px 0 80px;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(38px, 5.5vw, 68px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 32px;
+    max-width: 900px;
+    font-variation-settings: "opsz" 144;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(18px, 1.8vw, 22px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 760px;
+    font-variation-settings: "opsz" 36;
+  }
+
+  .lede strong {
+    color: var(--ink);
+    font-weight: 500;
+    background: linear-gradient(transparent 60%, rgba(181, 71, 45, 0.18) 60%);
+    padding: 0 2px;
+  }
+
+  /* ─── Section headings ─── */
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .section-tag .num {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(28px, 3.6vw, 44px);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 24px;
+    max-width: 880px;
+    font-variation-settings: "opsz" 96;
+  }
+
+  h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(20px, 2vw, 26px);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    font-variation-settings: "opsz" 36;
+  }
+
+  h4 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    margin: 0 0 10px;
+  }
+
+  p { margin: 0 0 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; color: var(--ink); }
+  em { font-style: italic; }
+
+  /* ─── Pipeline diagram (Phase 0–3 flow) ─── */
+  .pipeline {
+    margin-top: 48px;
+    display: grid;
+    gap: 28px;
+  }
+
+  .stage {
+    background: #FDFCF8;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 28px 32px;
+    position: relative;
+  }
+  .stage[data-phase="0"] { border-left-color: var(--ink-3); }
+  .stage[data-phase="1"] { border-left-color: var(--accent); }
+  .stage[data-phase="2"] { border-left-color: var(--ink); }
+  .stage[data-phase="3"] { border-left-color: var(--accent-2); }
+  .stage[data-phase="output"] { border-left-color: var(--accent-3); background: var(--paper-2); }
+
+  .stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .stage-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .stage-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .stage-body {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-2);
+  }
+
+  /* Connector arrow between stages */
+  .connector {
+    text-align: center;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .connector::before, .connector::after {
+    content: '';
+    width: 60px;
+    height: 1px;
+    background: var(--rule);
+  }
+  .connector svg { color: var(--accent); }
+
+  /* Phase 1 inner batches */
+  .batch-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .batch-chip {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 12px 10px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .batch-chip strong {
+    display: block;
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .batch-chip span {
+    display: block;
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--ink);
+    margin-top: 4px;
+  }
+
+  /* ─── Why-Order callouts ─── */
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 36px;
+  }
+  .why-card {
+    border-top: 2px solid var(--ink);
+    padding-top: 18px;
+  }
+  .why-card .why-num {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 10px;
+    font-variation-settings: "opsz" 96;
+  }
+  .why-card h4 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18px;
+    text-transform: none;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin-bottom: 8px;
+    font-variation-settings: "opsz" 36;
+  }
+  .why-card p {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+
+  /* ─── Personas ─── */
+  .persona {
+    border-top: 1px solid var(--rule);
+    padding: 36px 0;
+  }
+  .persona:first-child { border-top: none; padding-top: 16px; }
+
+  .persona-head {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+
+  .persona-num {
+    font-family: var(--serif);
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+    font-variation-settings: "opsz" 144;
+  }
+  .persona-title {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .persona-phase {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .persona-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .persona-meta {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .persona-meta dt {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .persona-meta dd {
+    margin: 0 0 16px;
+    color: var(--ink-2);
+  }
+  .persona-meta dd:last-child { margin-bottom: 0; }
+
+  .persona-rules {
+    background: #FDFCF8;
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+  }
+  .persona-rules h4 {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .persona-rules ul {
+    margin: 0;
+    padding-left: 18px;
+    list-style: none;
+  }
+  .persona-rules li {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin-bottom: 10px;
+    font-style: italic;
+    position: relative;
+    padding-left: 12px;
+  }
+  .persona-rules li::before {
+    content: '"';
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--accent);
+    position: absolute;
+    left: -8px;
+    top: -4px;
+  }
+  .persona-rules li:last-child { margin-bottom: 0; }
+
+  /* ─── Code blocks ─── */
+  pre, .codeblock {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 24px 28px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 24px 0;
+    border-left: 3px solid var(--accent);
+  }
+  pre code { font-family: inherit; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 2px solid var(--ink);
+    background: transparent;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* ─── Dual-stream block ─── */
+  .streams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .stream-card {
+    border: 1px solid var(--rule);
+    padding: 24px 28px;
+    background: #FDFCF8;
+  }
+  .stream-card.maturity { border-top: 4px solid var(--accent-2); }
+  .stream-card.antipattern { border-top: 4px solid var(--accent); }
+
+  .stream-card h4 {
+    color: inherit;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .stream-card.maturity h4 { color: var(--accent-2); }
+  .stream-card.antipattern h4 { color: var(--accent); }
+
+  .stream-card .stream-name {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 4px 0 16px;
+    color: var(--ink);
+  }
+
+  .combined-readings {
+    margin-top: 28px;
+    background: var(--paper-2);
+    padding: 24px 28px;
+  }
+  .combined-readings h4 {
+    margin-bottom: 12px;
+  }
+  .combined-readings ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .combined-readings li {
+    font-size: 14px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: baseline;
+  }
+  .combined-readings li:last-child { border-bottom: none; }
+  .combined-readings .reading-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .combined-readings .reading-result {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--accent);
+    font-size: 15px;
+  }
+
+  /* ─── Batch criteria ─── */
+  .batch-section {
+    border-top: 2px solid var(--ink);
+    padding-top: 36px;
+    margin-top: 60px;
+  }
+  .batch-section:first-of-type { margin-top: 32px; }
+
+  .batch-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .batch-letter {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--accent);
+    font-variation-settings: "opsz" 144;
+  }
+  .batch-name {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .batch-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .criteria-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    margin-top: 28px;
+    border: 1px solid var(--rule);
+  }
+  .criteria-col {
+    padding: 24px 28px;
+  }
+  .criteria-col.maturity {
+    background: #FDFCF8;
+    border-right: 1px solid var(--rule);
+  }
+  .criteria-col.antipattern {
+    background: var(--paper-2);
+  }
+  .col-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .criteria-col.maturity .col-label { color: var(--accent-2); }
+  .criteria-col.antipattern .col-label { color: var(--accent); }
+
+  .criterion {
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px dashed var(--rule-soft);
+  }
+  .criterion:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .criterion-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+  }
+  .criterion-name {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 4px 0 8px;
+    color: var(--ink);
+  }
+  .criterion-desc {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .criterion-subs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: subitem;
+  }
+  .criterion-subs li {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    padding: 4px 0 4px 28px;
+    position: relative;
+    counter-increment: subitem;
+  }
+  .criterion-subs li::before {
+    content: counter(subitem);
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--ink-3);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+
+  /* ─── Evidence scale ─── */
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .scale-card {
+    border: 1px solid var(--rule);
+    padding: 20px 22px;
+    background: #FDFCF8;
+    border-top: 4px solid var(--ink-3);
+  }
+  .scale-card[data-score="0"] { border-top-color: var(--ink-3); }
+  .scale-card[data-score="1"] { border-top-color: var(--accent-3); }
+  .scale-card[data-score="2"] { border-top-color: #6B8E5A; }
+  .scale-card[data-score="3"] { border-top-color: var(--accent-2); }
+
+  .scale-card .score {
+    font-family: var(--serif);
+    font-size: 48px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144;
+  }
+  .scale-card .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 8px 0 4px;
+  }
+  .scale-card .level {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--accent);
+  }
+  .scale-card .standard {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+
+  /* ─── Tier callouts (input docs) ─── */
+  .tier {
+    border-left: 3px solid var(--rule);
+    padding: 4px 0 4px 24px;
+    margin-bottom: 28px;
+  }
+  .tier.t1 { border-left-color: var(--accent); }
+  .tier.t2 { border-left-color: var(--accent-3); }
+  .tier.t3 { border-left-color: var(--ink-3); }
+
+  .tier h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+  }
+  .tier.t1 h4 { color: var(--accent); }
+  .tier.t2 h4 { color: var(--accent-3); }
+  .tier.t3 h4 { color: var(--ink-3); }
+
+  .tier ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+  }
+  .tier li {
+    font-size: 14px;
+    padding: 4px 0;
+    color: var(--ink-2);
+    position: relative;
+    padding-left: 18px;
+  }
+  .tier li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* ─── Pull-quote / instruction box ─── */
+  .pullquote {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.45;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink);
+    border-top: 2px solid var(--accent);
+    border-bottom: 1px solid var(--rule);
+    padding: 28px 0;
+    margin: 32px 0;
+    max-width: 760px;
+    font-variation-settings: "opsz" 60;
+  }
+  .pullquote::before {
+    content: '"';
+    font-size: 56px;
+    color: var(--accent);
+    line-height: 0;
+    vertical-align: -16px;
+    margin-right: 4px;
+  }
+
+  /* ─── Phase 2 metrics list ─── */
+  .metrics-list {
+    margin-top: 24px;
+    display: grid;
+    gap: 16px;
+  }
+  .metric-item {
+    background: #FDFCF8;
+    border: 1px solid var(--rule);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .metric-name {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .metric-name span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-3);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+  .metric-formula {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    display: inline-block;
+    line-height: 1.5;
+  }
+  .metric-interp {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    margin-top: 6px;
+  }
+
+  /* ─── Trustworthiness checklist ─── */
+  .checklist {
+    margin-top: 24px;
+    counter-reset: check;
+    list-style: none;
+    padding: 0;
+  }
+  .checklist li {
+    counter-increment: check;
+    padding: 16px 0 16px 56px;
+    border-bottom: 1px solid var(--rule-soft);
+    position: relative;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .checklist li::before {
+    content: counter(check, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .checklist li::after {
+    content: '';
+    position: absolute;
+    left: 36px;
+    top: 22px;
+    width: 10px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .checklist li:last-child { border-bottom: none; }
+
+  /* ─── Footer ─── */
+  footer {
+    padding: 60px 0 80px;
+    background: var(--paper-2);
+    border-top: 1px solid var(--rule);
+  }
+  footer .container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    align-items: end;
+  }
+  .footer-note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    max-width: 640px;
+  }
+  .footer-mark {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: right;
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .why-grid,
+    .streams,
+    .scale-grid,
+    .persona-grid,
+    .criteria-pair { grid-template-columns: 1fr; }
+    .criteria-col.maturity { border-right: none; border-bottom: 1px solid var(--rule); }
+    .batch-grid { grid-template-columns: repeat(2, 1fr); }
+    .metric-item { grid-template-columns: 1fr; gap: 12px; }
+    .persona-head { grid-template-columns: 60px 1fr; }
+    .persona-phase { grid-column: 2; }
+    footer .container { grid-template-columns: 1fr; }
+    .footer-mark { text-align: left; }
+  }
+
+  /* ─── Print ─── */
+  @media print {
+    body { background: white; font-size: 11pt; }
+    body::before { display: none; }
+    section { page-break-inside: avoid; padding: 30px 0; }
+    .hero { padding: 40px 0; }
+    .stage, .stream-card, .scale-card, .metric-item, .criteria-pair {
+      page-break-inside: avoid;
+    }
+    pre, .codeblock { background: #f5f5f5; color: black; border-left: 3px solid #888; }
+    a { color: inherit; text-decoration: none; }
+  }
+
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 36px;
+  }
+  .toc a {
+    display: block;
+    border: 1px solid var(--rule);
+    background: #FDFCF8;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .toc a:hover { border-color: var(--accent); }
+  .toc .l {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .toc .n {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.35;
+  }
+  .pack-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .pack-card {
+    border: 1px solid var(--rule);
+    background: #FDFCF8;
+    padding: 20px 22px;
+    border-top: 4px solid var(--ink);
+  }
+  .pack-card .k {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .pack-card h4 {
+    font-family: var(--serif);
+    font-size: 18px;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .pack-card p { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+  .themes {
+    margin-top: 18px;
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 20px;
+  }
+  .themes h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .themes ol {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .themes li { margin: 4px 0; }
+  .prov {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 6px 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--rule-soft);
+  }
+  .prov dt {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-top: 2px;
+  }
+  .prov dd {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .kind-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .kind {
+    background: #FDFCF8;
+    border: 1px solid var(--rule);
+    padding: 20px 22px;
+  }
+  .kind h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .kind p { font-size: 14px; color: var(--ink-2); }
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-top: 36px;
+  }
+  .stat {
+    border-top: 2px solid var(--ink);
+    padding-top: 12px;
+  }
+  .stat b {
+    display: block;
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .stat span {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  @media (max-width: 900px) {
+    .toc, .pack-grid, .kind-row, .stat-row { grid-template-columns: 1fr 1fr; }
+    .prov { grid-template-columns: 52px 1fr; }
+  }
+
+</style>
+</head>
+<body>
+
+<main>
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Vivicta · Engine Architecture · Internal · Preliminary</div>
+    <h1>Landing Zone Assessment Engine — <em>Criteria & Batch Definitions</em></h1>
+    <p class="lede">
+      One product. Eight design-area batches. Each batch holds five capabilities paired against five anti-patterns.
+      Each criterion carries three shared sub-criteria — the questions the auditor and the workshop must pass.
+      Azure, AWS and Google Cloud do <strong>not</strong> get three separate catalogues.
+      They get <strong>provider packs inside the Engine</strong>: the same intent ID, the same pair, different control-plane evidence.
+    </p>
+    <div class="stat-row">
+      <div class="stat"><b>8</b><span>Design-area batches</span></div>
+      <div class="stat"><b>80</b><span>Canonical criteria</span></div>
+      <div class="stat"><b>240</b><span>Shared sub-criteria</span></div>
+      <div class="stat"><b>3</b><span>Provider packs</span></div>
+      <div class="stat"><b>1</b><span>Product</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">01</span><span>How the Engine divides work</span></div>
+    <h2>Canonical intent is the index. Provider criteria are what get scored.</h2>
+    <p style="max-width:760px;color:var(--ink-2);">
+      The Engine cannot separate Azure from AWS from GCP unless those checks live in the domain pack.
+      The workshop does not fork. The pack does.
+    </p>
+    <div class="pack-grid">
+      <div class="pack-card">
+        <div class="k">Layer 1</div>
+        <h4>Design area</h4>
+        <p>Batches A–H. Same taxonomy on every cloud. Same radar, same quality gate, same report spine.</p>
+      </div>
+      <div class="pack-card">
+        <div class="k">Layer 2</div>
+        <h4>Intent + pair</h4>
+        <p>Capability B2 pairs with anti-pattern AP-B2. Shared ID. Shared 3 questions. Shared scoring math.</p>
+      </div>
+      <div class="pack-card">
+        <div class="k">Layer 3</div>
+        <h4>Workshop themes</h4>
+        <p>Three facilitator questions per batch. One script. Interviews explain; they do not replace inventory.</p>
+      </div>
+      <div class="pack-card">
+        <div class="k">Layer 4 · Engine content</div>
+        <h4>Provider packs</h4>
+        <p>Azure / AWS / GCP evidence contracts, object names, tested-absence queries. This is what Phase 1 scores.</p>
+      </div>
+    </div>
+    <div class="kind-row">
+      <div class="kind">
+        <h4>Mapped</h4>
+        <p>Same intent, different objects. Most rows in this catalogue. Example: time-bound privilege → PIM / Identity Center / PAM.</p>
+      </div>
+      <div class="kind">
+        <h4>Native</h4>
+        <p>Exists on one cloud. Keep it. Do not invent a fake twin. Mark the others <em>not applicable</em>, not zero.</p>
+      </div>
+      <div class="kind">
+        <h4>Not applicable</h4>
+        <p>Cloud out of Step 0 scope, or no equivalent object. Silent. Unknown is not Crawl.</p>
+      </div>
+    </div>
+    <p class="pullquote">If a provider check is not in the pack, the Engine cannot assess it. Silence is data. It is not a 0.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">02</span><span>Record shape</span></div>
+    <h2>What is actually stored in the Engine</h2>
+    <p style="max-width:760px;color:var(--ink-2);">
+      One criterion record. Provider is a field, not a product fork. Step 0 loads only the packs in scope.
+    </p>
+<pre><code>{
+  "id": "B2",
+  "intentId": "privileged-access-timebound",
+  "designArea": "identity",
+  "stream": "capability",
+  "pair": "AP-B2",
+  "statement": "Privileged access is eligible, time-bound and logged.",
+  "subcriteria": [
+    "Are privileged roles eligible rather than permanently assigned to humans?",
+    "Is activation time-bound, approved or justified, and written to an audit log?",
+    "Is standing owner-equivalent access on humans treated as an exception with an expiry?"
+  ],
+  "providers": {
+    "azure": {
+      "kind": "mapped",
+      "evidence": ["pim-policy", "role-assignment", "activation-log"]
+    },
+    "aws": {
+      "kind": "mapped",
+      "evidence": ["identity-center-permission-set", "iam-user-admin", "cloudtrail"]
+    },
+    "gcp": {
+      "kind": "mapped",
+      "evidence": ["iam-conditions", "pam", "org-iam"]
+    }
+  }
+}</code></pre>
+    <p style="max-width:760px;color:var(--ink-2);">
+      Runtime: if Step 0 scopes Azure + AWS, the GCP object is not evaluated and is not scored as zero.
+      Multi-cloud roll-up stays named: “Azure identity GO, AWS identity WARN” — never a blended 3.2.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">03</span><span>Batch definitions</span></div>
+    <h2>The 80-criteria Landing Zone knowledge base</h2>
+    <p style="max-width:760px;color:var(--ink-2);">
+      Eight batches. Each batch holds 5 capabilities (Stream A) paired against 5 anti-patterns (Stream B).
+      Each criterion carries 3 shared sub-criteria and an Azure / AWS / GCP evidence contract.
+      This is a preliminary catalogue — IDs are stable enough to review, not frozen for production scoring.
+    </p>
+    <div class="toc"><a href="#batch-A"><span class="l">A</span><span class="n">Tenant, billing &amp; organization construct</span></a><a href="#batch-B"><span class="l">B</span><span class="n">Identity &amp; access</span></a><a href="#batch-C"><span class="l">C</span><span class="n">Resource organization</span></a><a href="#batch-D"><span class="l">D</span><span class="n">Network topology &amp; connectivity</span></a><a href="#batch-E"><span class="l">E</span><span class="n">Security baseline</span></a><a href="#batch-F"><span class="l">F</span><span class="n">Management &amp; observability</span></a><a href="#batch-G"><span class="l">G</span><span class="n">Governance &amp; policy</span></a><a href="#batch-H"><span class="l">H</span><span class="n">Platform automation &amp; DevOps</span></a></div>
+    
+    <div class="batch-section" id="batch-A">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">A</div>
+          <div>
+            <div class="batch-name">Tenant, billing &amp; organization construct</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>Where is the authoritative cloud organization, and who owns it?</li><li>Are production workloads forbidden from the management/payer plane?</li><li>Does billing, contract and technical ownership describe the same estate?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">A1 · authoritative-org-root · pair AP-A1</div>
+              <div class="criterion-name">Authoritative organization root</div>
+              <div class="criterion-desc">A single declared tenant, organization or management account is the landing-zone root. Production resources do not live in unmanaged side-tenants. The root is inventoryable.</div>
+              <ol class="criterion-subs"><li>Is there a single declared tenant, organization or management account that is the landing-zone root?</li><li>Can that root be exported as a hierarchy (management groups, OUs or folders) with a named owner?</li><li>Are production workloads forbidden from existing outside that root?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Entra tenant ID, Tenant Root Group, MCA/EA billing account attached to the tenant.</dd>
+                <dt>AWS</dt><dd>Organizations management account, Root, ALL_FEATURES enabled; no extra orgs holding prod accounts.</dd>
+                <dt>GCP</dt><dd>Organization resource + Cloud Identity; billing account linked to the org, not to a lone project.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">A2 · management-plane-hygiene · pair AP-A2</div>
+              <div class="criterion-name">Management-plane hygiene</div>
+              <div class="criterion-desc">The management, payer or bootstrap plane runs only organization services. Application workloads, data and developer sandboxes are not hosted there.</div>
+              <ol class="criterion-subs"><li>Is the management, payer or bootstrap account free of application workloads?</li><li>Are only organization-level services (identity, logging, policy, connectivity) deployed there?</li><li>Is access to that plane separately controlled and reviewed?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No app resource groups in Management / Identity / Connectivity platform subscriptions beyond platform services.</dd>
+                <dt>AWS</dt><dd>Organizations management account has no application VPCs, data stores or IAM users for app teams.</dd>
+                <dt>GCP</dt><dd>No application folders or projects under the bootstrap/seed project; org-level services only.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">A3 · billing-contract-alignment · pair AP-A3</div>
+              <div class="criterion-name">Billing and contract alignment</div>
+              <div class="criterion-desc">Commercial construct (EA/MCA, payer, billing account) matches the technical organization. Cost, invoice and account ownership can be named.</div>
+              <ol class="criterion-subs"><li>Is the billing account, payer or enrollment mapped to the same organization as the technical hierarchy?</li><li>Can every in-scope subscription, account or project be attributed to a billing owner?</li><li>Are orphaned billing scopes (unused enrollments, extra payers) identified and closed or explicitly out of scope?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>MCA/EA billing account, billing profiles, invoice sections vs management group tree.</dd>
+                <dt>AWS</dt><dd>Consolidated billing, payer account, linked accounts; AWS Organizations vs Billing Conductor if used.</dd>
+                <dt>GCP</dt><dd>Cloud Billing account, org-level billing export, projects billed outside the org.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">A4 · administrative-boundary · pair AP-A4</div>
+              <div class="criterion-name">Administrative boundary clarity</div>
+              <div class="criterion-desc">Partner, guest, sandbox and merged-company tenants are named. The assessment scope is a declared set of roots, not &#x27;whatever we found&#x27;.</div>
+              <ol class="criterion-subs"><li>Are partner, guest, sandbox and acquisition tenants explicitly in-scope or out-of-scope?</li><li>Is there an inventory of extra directories, organizations or billing accounts?</li><li>Does Step 0 lock the in-scope roots before scoring begins?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Extra Entra tenants, B2B guest tenants, Azure DevOps orgs, unused EA enrollments.</dd>
+                <dt>AWS</dt><dd>Standalone accounts outside the org, extra Organizations, AWS Gov/China partitions if present.</dd>
+                <dt>GCP</dt><dd>Projects with no parent org, extra Google Workspace domains, unmanaged GCP folders.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">A5 · root-recovery · pair AP-A5</div>
+              <div class="criterion-name">Root recovery and emergency access</div>
+              <div class="criterion-desc">Loss of the cloud-root identity does not mean loss of the estate. Emergency access is designed, stored, tested and monitored — not a password in a ticket.</div>
+              <ol class="criterion-subs"><li>Is there a documented emergency-access path to the tenant, management account or org super-admin?</li><li>Is that path stored offline or in a vault, with dual control, and tested on a cadence?</li><li>Are root/emergency authentications logged and alerted?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Break-glass Entra cloud-only accounts, PIM for Global Admin, emergency access package.</dd>
+                <dt>AWS</dt><dd>Root MFA, hardware key, no root access keys; Organizations delegated admin; Account Recovery.</dd>
+                <dt>GCP</dt><dd>Super-admin dual control, recovery email/phone, organization-admin not bound to one human.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-A1 · shadow-tenants · pair A1</div>
+              <div class="criterion-name">Shadow tenants and unmanaged orgs</div>
+              <div class="criterion-desc">Production lives in extra directories, organizations or personal accounts that the platform team cannot inventory or govern.</div>
+              <ol class="criterion-subs"><li>Do production workloads exist in tenants, organizations or accounts outside the declared root?</li><li>Is there no maintained inventory of extra directories or billing relationships?</li><li>Are mergers, partners or &#x27;temporary&#x27; clouds still running production without a landing-zone owner?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Second Entra tenant with subscriptions; MSDN / personal tenants used for prod.</dd>
+                <dt>AWS</dt><dd>Member accounts not in the org; root-less standalone prod accounts.</dd>
+                <dt>GCP</dt><dd>No-organization projects; billing on a user account.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-A2 · workloads-in-management-plane · pair A2</div>
+              <div class="criterion-name">Workloads in the management plane</div>
+              <div class="criterion-desc">Applications, data lakes or developer sandboxes sit in the management, payer or tenant-root subscription. A landing-zone change now risks the company.</div>
+              <ol class="criterion-subs"><li>Are application resources deployed in the management, payer or bootstrap account?</li><li>Would a landing-zone rebuild require migrating production out of that plane first?</li><li>Do app teams have standing contributor rights on the management plane?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>App resource groups in the Management or Tenant Root subscription.</dd>
+                <dt>AWS</dt><dd>Application VPCs, S3 data or RDS in the Organizations management account.</dd>
+                <dt>GCP</dt><dd>App GKE or data projects under the seed/bootstrap project.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-A3 · billing-split-from-tech · pair A3</div>
+              <div class="criterion-name">Billing split from technical ownership</div>
+              <div class="criterion-desc">Finance pays a bill that platform cannot map. Technical owners cannot name the contract. Scope debates replace assessment.</div>
+              <ol class="criterion-subs"><li>Can platform and finance not agree which subscriptions, accounts or projects are in-scope?</li><li>Are invoices received for clouds that have no landing-zone owner?</li><li>Is cost allocation blocked because billing structure does not match the hierarchy?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>EA enrollment not matching management groups; Azure Plan vs tenant mismatch.</dd>
+                <dt>AWS</dt><dd>Payer account in a different org; linked accounts billed but not in Organizations.</dd>
+                <dt>GCP</dt><dd>Billing account owned by a user; projects billed outside the org.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-A4 · unbounded-guest-root · pair A4</div>
+              <div class="criterion-name">Unbounded guest or partner access at root</div>
+              <div class="criterion-desc">External identities hold owner-equivalent rights at tenant, organization or management-account level with no expiry.</div>
+              <ol class="criterion-subs"><li>Do guest, partner or vendor identities hold owner-equivalent roles at the root?</li><li>Is that access standing (no expiry, no dual control)?</li><li>Is there no review of external admin at the organization plane?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Guest Global Admin or Owner at Tenant Root Group.</dd>
+                <dt>AWS</dt><dd>External IAM or assumed roles with AdministratorAccess on the management account.</dd>
+                <dt>GCP</dt><dd>External users with roles/resourcemanager.organizationAdmin.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-A5 · unowned-root-credentials · pair A5</div>
+              <div class="criterion-name">Unowned root credentials</div>
+              <div class="criterion-desc">Root, super-admin or Global Admin credentials are shared, unlogged, or known only to a departed person.</div>
+              <ol class="criterion-subs"><li>Are root or super-admin credentials shared, stored in email, or unused-and-unknown?</li><li>Is there no MFA or hardware key on the cloud root?</li><li>Would the estate be unrecoverable if one person left?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Shared Global Admin password; no break-glass; no PIM.</dd>
+                <dt>AWS</dt><dd>Root access keys exist; root MFA unset; root used as a daily login.</dd>
+                <dt>GCP</dt><dd>Single super-admin; recovery options stale; no 2-step verification.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-B">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">B</div>
+          <div>
+            <div class="batch-name">Identity &amp; access</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>How does a human get access, and how is it taken away?</li><li>How is privileged access made eligible, time-bound and logged?</li><li>How do workloads authenticate without long-lived secrets?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">B1 · federated-workforce-identity · pair AP-B1</div>
+              <div class="criterion-name">Federated workforce identity</div>
+              <div class="criterion-desc">Workforce access uses the corporate identity provider. Cloud-local users are not the primary human identity. Joiners, movers and leavers follow the IdP.</div>
+              <ol class="criterion-subs"><li>Is workforce sign-in federated from the corporate identity provider to every in-scope cloud?</li><li>Are cloud-local human users the exception, inventoried, and expiry-bound?</li><li>Does leaver processing in the IdP actually remove cloud access?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Entra ID / AD FS federation; cloud-only users listed and justified.</dd>
+                <dt>AWS</dt><dd>IAM Identity Center (SSO) to the IdP; IAM users for humans are exceptions.</dd>
+                <dt>GCP</dt><dd>Cloud Identity / Workforce Identity Federation; no standing Google user as org admin for staff.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">B2 · privileged-access-timebound · pair AP-B2</div>
+              <div class="criterion-name">Time-bound privileged access</div>
+              <div class="criterion-desc">Privileged roles are eligible, activated, time-bound and logged. Standing Global Admin, AdministratorAccess or organizationAdmin for humans is not the operating model.</div>
+              <ol class="criterion-subs"><li>Are privileged roles eligible rather than permanently assigned to humans?</li><li>Is activation time-bound, approved or justified, and written to an audit log?</li><li>Is standing owner-equivalent access on humans treated as an exception with an expiry?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Entra PIM eligible roles, activation logs, Access Reviews.</dd>
+                <dt>AWS</dt><dd>Identity Center permission sets, session duration, CloudTrail; no standing AdministratorAccess on humans.</dd>
+                <dt>GCP</dt><dd>PAM / IAM Conditions / time-bound grants; no standing roles/owner on users at org root.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">B3 · workload-identity · pair AP-B3</div>
+              <div class="criterion-name">Workload identity without long-lived keys</div>
+              <div class="criterion-desc">Compute, pipelines and services authenticate with federated or managed identities. Long-lived access keys and downloaded JSON keys are not the default.</div>
+              <ol class="criterion-subs"><li>Do platform and application workloads use managed or federated identities rather than stored keys?</li><li>Are remaining long-lived keys inventoried, aged, and on a removal path?</li><li>Do CI/CD platforms federate into the cloud rather than store cloud secrets?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Managed identities, workload identity federation (GitHub/ADO), no client secrets in pipelines.</dd>
+                <dt>AWS</dt><dd>IRSA / instance profiles / IAM Roles Anywhere; IAM user access keys for workloads absent or aged.</dd>
+                <dt>GCP</dt><dd>Attached service accounts, Workload Identity Federation; no downloaded JSON keys for automation.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">B4 · least-privilege-inheritance · pair AP-B4</div>
+              <div class="criterion-name">Least-privilege inheritance</div>
+              <div class="criterion-desc">Role assignment follows the hierarchy. Owner-equivalent at tenant, org or management-group root is rare, named, and not used for daily work.</div>
+              <ol class="criterion-subs"><li>Are role assignments scoped to the landing zone or workload, not the organization root, by default?</li><li>Is Owner / AdministratorAccess / roles/owner at root limited to a break-glass set?</li><li>Can the platform show who has owner-equivalent rights, where, and why?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>MG/subscription/RG RBAC; Owner at Tenant Root Group listed; custom roles over Owner.</dd>
+                <dt>AWS</dt><dd>SCPs + Identity Center permission sets by OU; IAM policies not attached at org root for humans.</dd>
+                <dt>GCP</dt><dd>Folder/project IAM; organization-level roles/owner and editor listed and justified.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">B5 · break-glass-monitored · pair AP-B5</div>
+              <div class="criterion-name">Monitored break-glass</div>
+              <div class="criterion-desc">Emergency access exists, is dual-controlled, is unused in daily operations, and fires a detection when used.</div>
+              <ol class="criterion-subs"><li>Do named break-glass identities exist, with dual control, outside normal federation failure modes?</li><li>Are they excluded from daily use by policy and culture?</li><li>Does use generate a high-severity alert within minutes?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Cloud-only break-glass accounts, excluded from PIM but alerted via Entra / Sentinel.</dd>
+                <dt>AWS</dt><dd>Break-glass IAM role or root procedure; CloudTrail + GuardDuty / EventBridge alert on use.</dd>
+                <dt>GCP</dt><dd>Break-glass super-admin or PAM emergency grant; Cloud Audit Logs alert.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-B1 · standing-root-equivalent · pair B1</div>
+              <div class="criterion-name">Standing root-equivalent access</div>
+              <div class="criterion-desc">Humans hold permanent Global Admin, AdministratorAccess or organizationAdmin. Privilege is a lifestyle, not an event.</div>
+              <ol class="criterion-subs"><li>Do humans hold standing owner-equivalent roles at tenant, org or account root?</li><li>Is there no activation, time-bound or approval step?</li><li>Is that population larger than a named break-glass set?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Permanent Global Admin or Owner at Tenant Root Group.</dd>
+                <dt>AWS</dt><dd>IAM users or SSO groups with AdministratorAccess on the management account, standing.</dd>
+                <dt>GCP</dt><dd>Users with roles/owner or organizationAdmin at org, standing.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-B2 · local-cloud-users · pair B2</div>
+              <div class="criterion-name">Local cloud users as primary identity</div>
+              <div class="criterion-desc">People log in with cloud-native users disconnected from the corporate IdP. Leavers keep access. Joiners get a second identity to babysit.</div>
+              <ol class="criterion-subs"><li>Are cloud-local human users the normal way to access the estate?</li><li>Does leaver processing in the corporate IdP leave cloud access intact?</li><li>Are shared logins (team@, admin@) in use?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Cloud-only Entra users for staff; shared admin mailboxes.</dd>
+                <dt>AWS</dt><dd>IAM users with passwords/keys as the daily path; unused Identity Center.</dd>
+                <dt>GCP</dt><dd>Consumer Gmail or unmanaged Google users on org IAM.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-B3 · long-lived-keys-as-identity · pair B3</div>
+              <div class="criterion-name">Long-lived keys as identity</div>
+              <div class="criterion-desc">Access keys, client secrets and downloaded service-account keys are how automation and people authenticate. Rotation is a wish.</div>
+              <ol class="criterion-subs"><li>Are long-lived access keys or JSON service-account keys the default for workloads or humans?</li><li>Are keys older than policy (or unaged) still valid?</li><li>Do pipelines store cloud credentials in variables rather than federate?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>SP client secrets in ADO/GitHub; unused managed identity.</dd>
+                <dt>AWS</dt><dd>IAM user access keys for CI and humans; keys never rotated.</dd>
+                <dt>GCP</dt><dd>Downloaded SA JSON keys in repos or Secret Manager used as identity.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-B4 · unscoped-owner-at-root · pair B4</div>
+              <div class="criterion-name">Unscoped Owner at root</div>
+              <div class="criterion-desc">Application teams receive Owner, Editor or AdministratorAccess at the organization or management-group root &#x27;so they can work&#x27;. Guardrails cannot hold.</div>
+              <ol class="criterion-subs"><li>Do application teams hold owner-equivalent rights at the organization or management-group root?</li><li>Can they disable policy, networking or logging as a side effect of that grant?</li><li>Is there no alternative scoped role for daily delivery?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>App groups assigned Owner at Tenant Root or intermediate MG.</dd>
+                <dt>AWS</dt><dd>Dev SSO group with AdministratorAccess on * or on the root OU.</dd>
+                <dt>GCP</dt><dd>App groups with roles/editor or owner on the organization.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-B5 · unmonitored-break-glass · pair B5</div>
+              <div class="criterion-name">Unmonitored or missing break-glass</div>
+              <div class="criterion-desc">Either emergency access does not exist, or it exists and nobody would notice if it were used — or abused.</div>
+              <ol class="criterion-subs"><li>Is there no designed emergency-access path?</li><li>Is emergency access used as a daily convenience account?</li><li>Would use of emergency access produce no alert?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No break-glass; or Global Admin shared and unalerted.</dd>
+                <dt>AWS</dt><dd>Root used as a shared login; no CloudTrail alarm on root.</dd>
+                <dt>GCP</dt><dd>Super-admin used daily; no audit-log alert.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-C">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">C</div>
+          <div>
+            <div class="batch-name">Resource organization</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>Does the hierarchy encode policy, or is it a filing cabinet?</li><li>Where does the platform landing zone end and an application landing zone begin?</li><li>How is a new subscription, account or project born?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">C1 · hierarchy-encodes-policy · pair AP-C1</div>
+              <div class="criterion-name">Hierarchy that encodes policy</div>
+              <div class="criterion-desc">Management groups, OUs or folders are the policy inheritance spine. Placement of a workload decides its guardrails, not a wiki page.</div>
+              <ol class="criterion-subs"><li>Does every in-scope subscription, account or project sit under a designed hierarchy node?</li><li>Is policy inherited from those nodes rather than applied one-by-one as a hobby?</li><li>Can the platform explain what moving a workload to another node would change?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Management group tree from Tenant Root; Azure Policy assignments at MG.</dd>
+                <dt>AWS</dt><dd>OU tree; SCPs attached to OUs, not only to individual accounts.</dd>
+                <dt>GCP</dt><dd>Folder tree; Organization Policy on org/folders, not only on projects.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">C2 · platform-vs-app-lz · pair AP-C2</div>
+              <div class="criterion-name">Platform versus application landing zones</div>
+              <div class="criterion-desc">Identity, connectivity, management and security sit in platform landing zones. Applications sit in application landing zones that consume those services.</div>
+              <ol class="criterion-subs"><li>Are platform services (identity, hub network, logging, security) separated from application workloads?</li><li>Do application landing zones consume shared services rather than rebuild them?</li><li>Is ownership of platform vs application landing zones named?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>CAF platform MGs/subscriptions (Identity, Connectivity, Management) vs Corp/Online app MGs.</dd>
+                <dt>AWS</dt><dd>Log Archive, Audit, Network, Identity accounts vs workload OUs (Control Tower / custom).</dd>
+                <dt>GCP</dt><dd>Bootstrap, logging, networking, security folders vs application folders.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">C3 · naming-tagging-enforced · pair AP-C3</div>
+              <div class="criterion-name">Naming and tagging enforced</div>
+              <div class="criterion-desc">A naming and tagging standard exists, is machine-enforced at vending time, and untagged or illegally named resources are visible as exceptions.</div>
+              <ol class="criterion-subs"><li>Is there a documented naming and tagging standard for subscriptions, accounts, projects and resources?</li><li>Is it enforced at create-time (policy, SCP or vending pipeline), not only in a slide?</li><li>Are violations tracked and remediated rather than accepted as noise?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Policy required-tags; naming via Bicep/AVM or subscription vending.</dd>
+                <dt>AWS</dt><dd>SCP / Config / Tag Policies; Control Tower or AFT account naming.</dd>
+                <dt>GCP</dt><dd>Org policy, labels, project-id convention in the project factory.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">C4 · governed-vending · pair AP-C4</div>
+              <div class="criterion-name">Governed subscription / account / project vending</div>
+              <div class="criterion-desc">New isolation units are created by a pipeline or service catalog, with identity, network, policy and logging attached at birth — not by a portal click and a hope.</div>
+              <ol class="criterion-subs"><li>Are new subscriptions, accounts or projects created through a vending path rather than ad-hoc portal clicks?</li><li>Does the vended unit land in the correct hierarchy node with baseline policy, identity and logging?</li><li>Can the platform show the last N vended units and their owners?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Subscription vending (Azure LZ accelerator, ALZ, service catalog).</dd>
+                <dt>AWS</dt><dd>Account Factory / AFT / custom Organizations pipeline.</dd>
+                <dt>GCP</dt><dd>Project factory (Terraform), Seed + CI; no ad-hoc console projects.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">C5 · environment-separation · pair AP-C5</div>
+              <div class="criterion-name">Environment separation</div>
+              <div class="criterion-desc">Production is a different landing-zone node from non-production. Blast radius, identity and data paths respect that line.</div>
+              <ol class="criterion-subs"><li>Are production and non-production in distinct hierarchy nodes or landing zones?</li><li>Can non-production identities not administer production by default?</li><li>Is data-path isolation (network, identity, key) designed, not accidental?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Corp-prod vs Corp-nonprod MGs; separate subscriptions; no shared Owner group.</dd>
+                <dt>AWS</dt><dd>Prod vs SDLC OUs; SCPs differ; no shared admin permission set.</dd>
+                <dt>GCP</dt><dd>Prod vs nonprod folders; VPC-SC / IAM differ by folder.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-C1 · flat-sprawl · pair C1</div>
+              <div class="criterion-name">Flat subscription or account sprawl</div>
+              <div class="criterion-desc">Hundreds of subscriptions, accounts or projects hang off the root. Policy cannot inherit. Nobody can draw the map.</div>
+              <ol class="criterion-subs"><li>Do most isolation units sit directly under the tenant, org root or a single catch-all node?</li><li>Is the hierarchy unused as a policy spine?</li><li>Can the platform not produce a current map of nodes and owners?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>All subscriptions under Tenant Root Group.</dd>
+                <dt>AWS</dt><dd>All accounts in Root; empty OU design.</dd>
+                <dt>GCP</dt><dd>All projects directly under the organization.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-C2 · apps-in-platform · pair C2</div>
+              <div class="criterion-name">Applications in the platform landing zone</div>
+              <div class="criterion-desc">Business systems share the connectivity, identity or management subscription. Platform change freezes the business; business change risks the platform.</div>
+              <ol class="criterion-subs"><li>Do application workloads share platform subscriptions, accounts or projects?</li><li>Would a platform rebuild collide with application data?</li><li>Are application teams granted rights on platform landing zones to &#x27;get things done&#x27;?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>App resource groups in Connectivity or Management subscriptions.</dd>
+                <dt>AWS</dt><dd>Workload VPCs in the Network or Audit account.</dd>
+                <dt>GCP</dt><dd>App GKE in the shared-vpc host or logging project.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-C3 · adhoc-naming · pair C3</div>
+              <div class="criterion-name">Ad-hoc naming and tag theatre</div>
+              <div class="criterion-desc">Names are local jokes. Tags exist in a PDF. Create-time enforcement is absent. Search, cost and incident response guess.</div>
+              <ol class="criterion-subs"><li>Do names and tags differ by team with no enforced standard?</li><li>Is the tagging standard documentation-only?</li><li>Are untagged resources treated as acceptable?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No required-tag policy; subscription names like &#x27;test2-final&#x27;.</dd>
+                <dt>AWS</dt><dd>No tag policies; account emails as the only identifier.</dd>
+                <dt>GCP</dt><dd>No label convention; project IDs are random or personal.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-C4 · clickops-birth · pair C4</div>
+              <div class="criterion-name">ClickOps birth of isolation units</div>
+              <div class="criterion-desc">Subscriptions, accounts or projects are created in the portal, emailed into existence, or copied from a neighbour. Baseline is optional.</div>
+              <ol class="criterion-subs"><li>Is the normal create path a portal click or a ticket to a human who clicks?</li><li>Do new units appear without policy, logging or network baseline?</li><li>Is there no record of who requested the unit and why?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Portal-created subscriptions not in the vending app.</dd>
+                <dt>AWS</dt><dd>Organizations &#x27;Add account&#x27; by hand; no AFT/Control Tower.</dd>
+                <dt>GCP</dt><dd>Console &#x27;create project&#x27; by developers.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-C5 · mixed-environments · pair C5</div>
+              <div class="criterion-name">Mixed environments in one boundary</div>
+              <div class="criterion-desc">Production, test and playground share a subscription, account or folder. A playground identity can reach production data.</div>
+              <ol class="criterion-subs"><li>Do production and non-production share the same isolation unit?</li><li>Can non-production identities reach production data or keys?</li><li>Is &#x27;we use resource groups / VPCs instead&#x27; used to avoid a landing-zone line?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Prod and dev resource groups in one subscription with shared Owner.</dd>
+                <dt>AWS</dt><dd>Prod and sandbox in one account; one admin role.</dd>
+                <dt>GCP</dt><dd>Prod and playground in one project or shared folder IAM.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-D">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">D</div>
+          <div>
+            <div class="batch-name">Network topology &amp; connectivity</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>Where is the hub, and what is forced through it?</li><li>Who owns hybrid connectivity, DNS and inspection?</li><li>Is private-by-default a control, or a preference?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">D1 · hub-with-inspection · pair AP-D1</div>
+              <div class="criterion-name">Hub topology with inspection</div>
+              <div class="criterion-desc">A designed hub (hub-spoke, Virtual WAN, Transit Gateway, Shared VPC) exists. Spoke-to-spoke and egress paths are intentional. Inspection is a placement, not a hope.</div>
+              <ol class="criterion-subs"><li>Is there a designed hub that spokes must use for shared and egress traffic?</li><li>Are inspection points (firewall, IDS, web proxy) placed on those forced paths?</li><li>Is spoke-to-spoke traffic an explicit pattern rather than a mesh accident?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Hub-spoke or vWAN; Azure Firewall / NVA; spoke peering without use-remote-gateway exceptions unlisted.</dd>
+                <dt>AWS</dt><dd>Transit Gateway / Cloud WAN; inspection VPC; no VPC-peering spaghetti as the primary pattern.</dd>
+                <dt>GCP</dt><dd>Shared VPC + hub; Cloud Firewall / NGFW; no project-level public default.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">D2 · hybrid-connectivity-owned · pair AP-D2</div>
+              <div class="criterion-name">Owned hybrid connectivity</div>
+              <div class="criterion-desc">ExpressRoute, Direct Connect, Interconnect, VPN and SD-WAN land in the platform, not in an application subscription. Ownership, redundancy and failover are named.</div>
+              <ol class="criterion-subs"><li>Do hybrid circuits terminate in a platform connectivity landing zone?</li><li>Are redundancy, failover and who-to-call documented and tested?</li><li>Can application teams not create competing hybrid paths as a side door?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>ExpressRoute / VPN Gateway in Connectivity subscription; no app-level ER circuits.</dd>
+                <dt>AWS</dt><dd>DX Gateway / VPN on the network account; TGW attachments governed.</dd>
+                <dt>GCP</dt><dd>Dedicated/Partner Interconnect on the host project; no per-app interconnects.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">D3 · central-dns · pair AP-D3</div>
+              <div class="criterion-name">Central DNS</div>
+              <div class="criterion-desc">Private DNS is a platform service. Resolution of on-premises, PaaS private endpoints and landing-zone names is consistent. Split-brain is a tracked exception.</div>
+              <ol class="criterion-subs"><li>Is private DNS administered as a platform service rather than per application?</li><li>Do private endpoints and hybrid names resolve consistently in every landing zone?</li><li>Are rogue DNS forwarders inventoried?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Private DNS zones in Connectivity; Azure Policy for private-endpoint DNS; inbound/outbound resolvers.</dd>
+                <dt>AWS</dt><dd>Route 53 private hosted zones + Resolver rules in the network account.</dd>
+                <dt>GCP</dt><dd>Cloud DNS private zones on the host project; inbound/outbound forwarding.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">D4 · private-by-default · pair AP-D4</div>
+              <div class="criterion-name">Private-by-default</div>
+              <div class="criterion-desc">Public endpoints are denied or exception-gated. PaaS public access is off unless an expiry-bound exemption exists.</div>
+              <ol class="criterion-subs"><li>Is public network access denied by policy for relevant services unless exempted?</li><li>Are remaining public endpoints inventoried with owner and expiry?</li><li>Is internet egress a controlled hub path rather than every NIC for itself?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Policy deny public IP / public blob / public Key Vault; Firewall / NAT at hub.</dd>
+                <dt>AWS</dt><dd>SCP deny public S3/SG 0.0.0.0/0; centralized egress via TGW + firewall.</dd>
+                <dt>GCP</dt><dd>Org policy constrainPublicIp / disable public buckets; Cloud NAT at hub.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">D5 · lz-segmentation · pair AP-D5</div>
+              <div class="criterion-name">Segmentation by landing zone</div>
+              <div class="criterion-desc">Application landing zones are network segments, not names. Identity and network together define who can talk to whom.</div>
+              <ol class="criterion-subs"><li>Does each application landing zone have a defined network segment and peering model?</li><li>Are east-west rules explicit (allow-lists), not &#x27;all spokes can talk&#x27;?</li><li>Is production segmented from non-production on the wire, not only in a naming standard?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Spoke VNets per LZ; NSG/Azure Firewall policies; no prod-nonprod peering by default.</dd>
+                <dt>AWS</dt><dd>Account+VPC per LZ; SG/NACL + TGW route tables isolate prod.</dd>
+                <dt>GCP</dt><dd>Service projects + VPC-SC perimeters; Shared VPC subnet isolation.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-D1 · per-app-internet-edge · pair D1</div>
+              <div class="criterion-name">Per-application internet edge</div>
+              <div class="criterion-desc">Every team brings its own public IP, firewall flavour and VPN. The platform cannot see, inspect or retire paths.</div>
+              <ol class="criterion-subs"><li>Do application teams create their own public IPs, firewalls or VPNs as the normal path?</li><li>Is egress inspection optional per team?</li><li>Is there no inventory of internet edges?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Public IPs on app VMs; app-level Azure Firewalls; no hub.</dd>
+                <dt>AWS</dt><dd>IGW on every VPC; no TGW; SG 0.0.0.0/0 common.</dd>
+                <dt>GCP</dt><dd>Public IPs on GCE; per-project Cloud NAT/VPN.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-D2 · flat-global-network · pair D2</div>
+              <div class="criterion-name">Flat global network</div>
+              <div class="criterion-desc">Everything can route to everything. Segmentation is a slide. A compromised sandbox reaches production.</div>
+              <ol class="criterion-subs"><li>Can every spoke route to every other spoke by default?</li><li>Is production reachable from non-production on the network?</li><li>Are NSG/SG/firewall rules effectively allow-any?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Full-mesh VNet peering; AllowVnetInbound NSGs.</dd>
+                <dt>AWS</dt><dd>TGW default route table associates all; 0.0.0.0/0 SG.</dd>
+                <dt>GCP</dt><dd>One big Shared VPC with default-allow and no VPC-SC.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-D3 · split-brain-dns · pair D3</div>
+              <div class="criterion-name">Split-brain or absent private DNS</div>
+              <div class="criterion-desc">Each team runs DNS. Private endpoints do not resolve. Hybrid names work &#x27;on my laptop&#x27;. Incident response cannot find things.</div>
+              <ol class="criterion-subs"><li>Is private DNS missing, or different in every landing zone?</li><li>Do private endpoints fail to resolve without tribal knowledge?</li><li>Are hosts files and tribal resolvers in production use?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No central Private DNS; privatelink zones missing.</dd>
+                <dt>AWS</dt><dd>No Resolver rules; each VPC has its own private zone or none.</dd>
+                <dt>GCP</dt><dd>No Cloud DNS private zone; 169.254.169.254 tribal hacks.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-D4 · public-as-default · pair D4</div>
+              <div class="criterion-name">Public as the default</div>
+              <div class="criterion-desc">Storage, Kubernetes API, databases and jump hosts are public unless someone remembers to tick a box. Policy does not deny it.</div>
+              <ol class="criterion-subs"><li>Are public endpoints allowed by default on data, control-plane or jump services?</li><li>Is there no deny policy for public access?</li><li>Is the public inventory unknown?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Storage public blobs; public AKS API; no deny policy.</dd>
+                <dt>AWS</dt><dd>Public S3, public RDS, 22/3389 from 0.0.0.0/0.</dd>
+                <dt>GCP</dt><dd>Public buckets, public GKE masters, 0.0.0.0/0 firewall.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-D5 · unmanaged-peering-mesh · pair D5</div>
+              <div class="criterion-name">Unmanaged peering mesh</div>
+              <div class="criterion-desc">Peerings, attachments and interconnects accumulate. Nobody can draw the current topology. A delete is an outage lottery.</div>
+              <ol class="criterion-subs"><li>Is the current network topology not drawable from inventory?</li><li>Do peerings and attachments exist without an owner or change record?</li><li>Would removing a &#x27;temporary&#x27; path have unknown blast radius?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>VNet peerings with no CMDB; undocumented ER authorizations.</dd>
+                <dt>AWS</dt><dd>VPC peering + TGW attachments unlabelled; unused DX VIFs.</dd>
+                <dt>GCP</dt><dd>VPC peering spaghetti; leftover interconnect VLANs.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-E">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">E</div>
+          <div>
+            <div class="batch-name">Security baseline</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>What is prevented by the platform, versus detected after the fact?</li><li>Where do logs, detections and keys live — and who operates them?</li><li>Are secrets and encryption a control, or a developer preference?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">E1 · preventive-baseline · pair AP-E1</div>
+              <div class="criterion-name">Preventive security baseline</div>
+              <div class="criterion-desc">A defined security baseline is enforced at the landing zone (policy, SCP, org policy), not offered as a starter template that teams may ignore.</div>
+              <ol class="criterion-subs"><li>Is a security baseline assigned to every in-scope landing zone at birth?</li><li>Are high-severity misconfigurations denied rather than only reported?</li><li>Is the baseline versioned and owned by security + platform together?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Policy security initiative (MCSB) assigned at MG with deny/deployIfNotExists.</dd>
+                <dt>AWS</dt><dd>SCPs + Control Tower / Config conformance pack; Security Hub standards.</dd>
+                <dt>GCP</dt><dd>Organization Policy constraints + SCC Premium posture; essential org policies.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">E2 · central-threat-detection · pair AP-E2</div>
+              <div class="criterion-name">Central threat detection</div>
+              <div class="criterion-desc">Cloud-native detections (Defender, GuardDuty, SCC) are on at organization scope. Findings land in a SOC path, not in a per-subscription inbox nobody reads.</div>
+              <ol class="criterion-subs"><li>Are native threat-detection services enabled at organization or tenant scope?</li><li>Do findings route to a named SOC or detection owner with an SLA?</li><li>Are silent subscriptions, accounts or projects (detection off) inventoried as exceptions?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Defender for Cloud / Defender XDR at tenant; Sentinel or equivalent connected.</dd>
+                <dt>AWS</dt><dd>GuardDuty org auto-enable, Security Hub, Detective; delegated admin in Audit account.</dd>
+                <dt>GCP</dt><dd>Security Command Center at org; Event Threat Detection; findings exported.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">E3 · encryption-key-management · pair AP-E3</div>
+              <div class="criterion-name">Encryption and key management</div>
+              <div class="criterion-desc">Data is encrypted with platform-managed or customer-managed keys that the landing zone actually uses. Keys are not in code, and CMK is not a slide.</div>
+              <ol class="criterion-subs"><li>Is encryption at rest required by policy for data stores in scope?</li><li>If CMK is claimed, are keys in a platform key landing zone with rotation and access logs?</li><li>Are plaintext secrets or unencrypted disks treated as findings, not style?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>SSE required; Key Vault in platform; CMK where claimed; no keys in ARM parameters.</dd>
+                <dt>AWS</dt><dd>S3/EBS/RDS encryption required by SCP/Config; KMS in security account; no plaintext SSM.</dd>
+                <dt>GCP</dt><dd>CMEK/CSE as claimed; Cloud KMS in security folder; no unencrypted persistent disks as default.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">E4 · secrets-management · pair AP-E4</div>
+              <div class="criterion-name">Secrets management</div>
+              <div class="criterion-desc">Secrets live in a vault service, are rotated, and are not the identity. Pipeline variables and wikis are not the secret store.</div>
+              <ol class="criterion-subs"><li>Is there a mandated secret store for platform and application secrets?</li><li>Are secrets rotated, access-logged, and free of long-lived cloud keys used as identity?</li><li>Do code, wikis and CI variables still hold production secrets?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Key Vault / App Config; no secrets in ADO lib groups as the primary store.</dd>
+                <dt>AWS</dt><dd>Secrets Manager / SSM Parameter (secure); no secrets in CodeCommit or plain SSM.</dd>
+                <dt>GCP</dt><dd>Secret Manager; no secrets in Cloud Build substitutions or repos.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">E5 · security-ops-placement · pair AP-E5</div>
+              <div class="criterion-name">Security operations placement</div>
+              <div class="criterion-desc">Security tooling has a landing-zone home (audit/security subscription) and a RACI with the SOC. Security is not &#x27;a marketplace product in each app team&#x27;.</div>
+              <ol class="criterion-subs"><li>Is there a platform security landing zone that hosts org-level security services?</li><li>Is the SOC / CSIRT relationship named, including who triages cloud findings?</li><li>Are overlapping security tools inventoried rather than silently duplicated?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Security/Management subscription; Defender, Sentinel, Key Vault HSM as designed.</dd>
+                <dt>AWS</dt><dd>Audit + Security Tooling accounts (Control Tower); delegated admins set.</dd>
+                <dt>GCP</dt><dd>Security folder: SCC, KMS, Secret Manager; Essential Contacts for security.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-E1 · optional-security · pair E1</div>
+              <div class="criterion-name">Optional security</div>
+              <div class="criterion-desc">The baseline is a PDF. Teams may enable Defender, GuardDuty or SCC &#x27;when they are ready&#x27;. Most are not ready.</div>
+              <ol class="criterion-subs"><li>Is the security baseline advisory rather than assigned?</li><li>Can a landing zone be vended with threat detection off?</li><li>Is &#x27;we&#x27;ll add security later&#x27; visible in the last N vended units?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>MCSB assigned as Audit only; Defender off on most subscriptions.</dd>
+                <dt>AWS</dt><dd>GuardDuty not org-enabled; no SCPs for encryption.</dd>
+                <dt>GCP</dt><dd>SCC Standard or off; org policies unset.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-E2 · siem-islands · pair E2</div>
+              <div class="criterion-name">Per-subscription SIEM islands</div>
+              <div class="criterion-desc">Each team has a log workspace, a GuardDuty detector, or a SCC project. Nobody can hunt across the estate. Retention is a guess.</div>
+              <ol class="criterion-subs"><li>Are detections and security logs fragmented per landing zone with no org view?</li><li>Is there no delegated security administrator at organization scope?</li><li>Would a SOC hunt require asking every team for access?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Per-sub Log Analytics; Defender not connected to a central Sentinel.</dd>
+                <dt>AWS</dt><dd>GuardDuty per-account without org; no delegated admin.</dd>
+                <dt>GCP</dt><dd>SCC at project level only; no org-level findings.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-E3 · keys-in-code · pair E3</div>
+              <div class="criterion-name">Keys in code or unused CMK theatre</div>
+              <div class="criterion-desc">CMK is claimed in architecture decks while disks use default keys and API keys sit in Git. Encryption is a brand.</div>
+              <ol class="criterion-subs"><li>Are customer-managed keys claimed but not actually in use on data stores?</li><li>Do repositories or pipelines contain live cloud keys?</li><li>Is there no key-access logging or rotation?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Key Vault empty of CMK; secrets in Git; disks platform-default despite CMK policy on slides.</dd>
+                <dt>AWS</dt><dd>KMS keys unused; AKIA keys in GitHub; S3 default encryption off.</dd>
+                <dt>GCP</dt><dd>CMEK unused; JSON keys in Cloud Source; PD encryption default only.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-E4 · secrets-in-pipelines · pair E4</div>
+              <div class="criterion-name">Secrets in pipelines and wikis</div>
+              <div class="criterion-desc">The secret store is Azure DevOps library, GitHub Actions secrets used as long-lived cloud keys, Confluence, or a shared spreadsheet.</div>
+              <ol class="criterion-subs"><li>Are production secrets stored in CI variable groups, wikis or chat?</li><li>Are those values long-lived cloud credentials rather than federated identity?</li><li>Is rotation manual and overdue?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Client secrets in ADO variable groups; Key Vault unused.</dd>
+                <dt>AWS</dt><dd>IAM keys in Actions secrets; Secrets Manager unused.</dd>
+                <dt>GCP</dt><dd>SA JSON in Cloud Build; Secret Manager unused.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-E5 · security-as-ticket · pair E5</div>
+              <div class="criterion-name">Security as an after-the-fact ticket</div>
+              <div class="criterion-desc">Workloads go live, then a security questionnaire is filed. Findings have no landing-zone owner. Platform and SOC point at each other.</div>
+              <ol class="criterion-subs"><li>Does security review start after the workload is in production?</li><li>Are cloud findings unowned between platform and SOC?</li><li>Is there no security landing zone to host org controls?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No Security MG; Defender emails to a DL nobody triages.</dd>
+                <dt>AWS</dt><dd>No Audit account; Security Hub findings ignored.</dd>
+                <dt>GCP</dt><dd>No security folder; SCC email notifications off.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-F">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">F</div>
+          <div>
+            <div class="batch-name">Management &amp; observability</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>Where do activity, resource and diagnostic logs actually land?</li><li>Can the platform list every subscription, account or project this week?</li><li>If the platform burned down, what would restore it?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">F1 · central-activity-logs · pair AP-F1</div>
+              <div class="criterion-name">Central activity and audit logs</div>
+              <div class="criterion-desc">Organization activity (Entra, CloudTrail, Cloud Audit Logs) is exported to a platform log landing zone with retention and immutability appropriate to the risk.</div>
+              <ol class="criterion-subs"><li>Are tenant, organization or account activity logs exported centrally, not left in each landing zone?</li><li>Is retention and immutability defined and met?</li><li>Can security and platform query those logs without asking application teams?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Activity Log + Entra diagnostic settings to central Log Analytics / Storage; MG-level.</dd>
+                <dt>AWS</dt><dd>Org CloudTrail to Log Archive account; integrity validation; no trail gaps.</dd>
+                <dt>GCP</dt><dd>Org-level Cloud Audit Logs sinks to a logging project; no sink exclusions that drop admin activity.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">F2 · inventory-truth · pair AP-F2</div>
+              <div class="criterion-name">Inventory as landing-zone truth</div>
+              <div class="criterion-desc">The platform can list isolation units, policy assignments and network paths from APIs this week. Spreadsheets are a cache, not the system of record.</div>
+              <ol class="criterion-subs"><li>Can the platform export the current hierarchy, policy assignments and identity bindings on demand?</li><li>Is that export used as assessment evidence rather than a slide from last year?</li><li>Are unknown isolation units a finding, not a surprise in the workshop?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Resource Graph, Management Group API, Policy insights, Entra PIM export.</dd>
+                <dt>AWS</dt><dd>Organizations, Config aggregator, IAM Access Analyzer, Resource Explorer.</dd>
+                <dt>GCP</dt><dd>Cloud Asset Inventory, Resource Manager, Policy Analyzer, SCC assets.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">F3 · baseline-monitoring · pair AP-F3</div>
+              <div class="criterion-name">Baseline monitoring and alerting</div>
+              <div class="criterion-desc">Platform health (identity, network, policy, logging pipeline) has monitors. Application APM is welcome; it is not a substitute for platform observability.</div>
+              <ol class="criterion-subs"><li>Are there monitors on the logging pipeline, hybrid connectivity, policy compliance and identity health?</li><li>Do those alerts reach a platform on-call, not only an application team?</li><li>Is &#x27;we have Azure Monitor / CloudWatch / Cloud Monitoring&#x27; evidenced for the platform plane, not only for one app?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Monitor / Service Health / Policy compliance alerts on platform subscriptions.</dd>
+                <dt>AWS</dt><dd>CloudWatch on org trail, TGW, Config; Control Tower lifecycle events.</dd>
+                <dt>GCP</dt><dd>Cloud Monitoring on sinks, Interconnect, org policies; Essential Contacts.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">F4 · platform-backup · pair AP-F4</div>
+              <div class="criterion-name">Platform backup and restore</div>
+              <div class="criterion-desc">The landing zone itself — identity config, DNS, policy, IaC state, key material — has a restore story. Application backup does not restore the foundation.</div>
+              <ol class="criterion-subs"><li>Is there a restore path for platform configuration (IaC state, DNS, policy, identity)?</li><li>Are key-vault / KMS and secret restores tested?</li><li>Has a platform restore been rehearsed, not only documented?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>IaC repos + state; Key Vault backup; Recovery Services for platform where relevant.</dd>
+                <dt>AWS</dt><dd>AFT/Control Tower backup, Route 53, KMS CMKs, org trail bucket versioning.</dd>
+                <dt>GCP</dt><dd>Terraform state backup, Cloud DNS export, KMS, org-policy export.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">F5 · update-agent-baseline · pair AP-F5</div>
+              <div class="criterion-name">Update and agent baseline</div>
+              <div class="criterion-desc">Guest OS, agents, and policy deployments that the platform owns have an update path. Snowflake images are exceptions with owners.</div>
+              <ol class="criterion-subs"><li>Is there a platform-owned update path for OS, agents or policy guest configuration in scope?</li><li>Are unmanaged agents and golden-image drift visible?</li><li>Is &#x27;we use Kubernetes so this does not apply&#x27; evidenced, not assumed, where relevant?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Update Manager / Automanage / Arc; policy guest configuration.</dd>
+                <dt>AWS</dt><dd>Systems Manager patch, State Manager; no unmanaged instances outside SSM.</dd>
+                <dt>GCP</dt><dd>VM Manager / OS Config; no unmanaged GCE fleets if GCE is in scope.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-F1 · logs-left-in-subscription · pair F1</div>
+              <div class="criterion-name">Logs left in the subscription</div>
+              <div class="criterion-desc">Activity logs stay in the producing account, expire at default, and disappear. Forensics starts with &#x27;we no longer have that&#x27;.</div>
+              <ol class="criterion-subs"><li>Are organization activity logs not exported from the producing landing zone?</li><li>Is default retention the de-facto policy?</li><li>Would an incident older than a few weeks be unreconstructable?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No diagnostic settings at MG; 90-day Activity Log only.</dd>
+                <dt>AWS</dt><dd>No org CloudTrail; per-account trails off or 7-day.</dd>
+                <dt>GCP</dt><dd>No org sink; default 30-day audit logs.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-F2 · no-inventory · pair F2</div>
+              <div class="criterion-name">No current inventory</div>
+              <div class="criterion-desc">The estate map is a draw.io from a previous consultant. New accounts appear in the invoice first.</div>
+              <ol class="criterion-subs"><li>Is there no API-fresh inventory of isolation units?</li><li>Do invoices or workshops discover accounts the platform did not know?</li><li>Is policy assignment state unknown?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No Resource Graph practice; MG tree in a slide.</dd>
+                <dt>AWS</dt><dd>No Config aggregator; Organizations console rarely opened.</dd>
+                <dt>GCP</dt><dd>No Asset Inventory; project list from memory.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-F3 · app-monitoring-only · pair F3</div>
+              <div class="criterion-name">Application monitoring only</div>
+              <div class="criterion-desc">APM is excellent. The logging pipeline, ExpressRoute, org trail and policy engine have no owner and no alert.</div>
+              <ol class="criterion-subs"><li>Are platform-plane services unmonitored while applications are?</li><li>Would a failed log export be noticed only in an audit?</li><li>Is there no platform on-call?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>App Insights everywhere; no alert on diagnostic-setting deletion.</dd>
+                <dt>AWS</dt><dd>CW on Lambdas; org trail delivery failures unalerted.</dd>
+                <dt>GCP</dt><dd>App SRE golden signals; sink failures silent.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-F4 · no-platform-restore · pair F4</div>
+              <div class="criterion-name">No platform restore</div>
+              <div class="criterion-desc">Application backup is mature. The landing zone IaC state, DNS and keys have one copy on one laptop.</div>
+              <ol class="criterion-subs"><li>Is platform configuration unrestorable except by tribal knowledge?</li><li>Is Terraform/Bicep/Pulumi state on a laptop or an unversioned storage account?</li><li>Have restores never been rehearsed?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Local ARM templates; Key Vault purge protection off.</dd>
+                <dt>AWS</dt><dd>Local Terraform state; org trail bucket without versioning.</dd>
+                <dt>GCP</dt><dd>State in a personal GCS bucket; no KMS backup story.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-F5 · snowflake-agents · pair F5</div>
+              <div class="criterion-name">Snowflake agents and images</div>
+              <div class="criterion-desc">Every team brings an agent, an image, and an exception. The platform cannot patch, observe or retire them.</div>
+              <ol class="criterion-subs"><li>Are guest agents and images unmanaged exceptions as the default?</li><li>Can the platform not tell what is running on compute it hosts?</li><li>Is drift from the golden image invisible?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No Azure Arc/Update Manager coverage; custom images untracked.</dd>
+                <dt>AWS</dt><dd>SSM agent missing; unmanaged AMIs.</dd>
+                <dt>GCP</dt><dd>OS Config off; mystery GCE images.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-G">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">G</div>
+          <div>
+            <div class="batch-name">Governance &amp; policy</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>What does the platform actually deny, versus what it merely audits?</li><li>How is an exemption born, lived, and killed?</li><li>Can compliance evidence be exported, or only screenshot?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">G1 · policy-inheritance · pair AP-G1</div>
+              <div class="criterion-name">Policy inheritance from the root</div>
+              <div class="criterion-desc">Guardrails are assigned at hierarchy nodes and inherited. Per-subscription policy as a cottage industry is the exception, not the system.</div>
+              <ol class="criterion-subs"><li>Are core guardrails assigned at management group, OU or folder — not only on individual isolation units?</li><li>Can the platform show effective policy on a given landing zone?</li><li>Are conflicting assignments visible and owned?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Policy at MG with initiative sets; Policy Insights effective assignments.</dd>
+                <dt>AWS</dt><dd>SCPs on OUs; RCP/declarative policies if used; Access Analyzer.</dd>
+                <dt>GCP</dt><dd>Organization Policy on org/folders; hierarchy evaluation.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">G2 · deny-insecure-defaults · pair AP-G2</div>
+              <div class="criterion-name">Deny for insecure defaults</div>
+              <div class="criterion-desc">A small, named set of high-blast-radius actions is denied (public data, disable logging, leave the org, user-access-admin). Audit-only is not a deny.</div>
+              <ol class="criterion-subs"><li>Is there a named deny set for high-blast-radius misconfigurations?</li><li>Are those denies in force on production landing zones, not only in a sandbox?</li><li>Is audit-only clearly labelled as detection, not prevention?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Deny/modify policies for public IP, public storage, allowed locations, required diagnostics.</dd>
+                <dt>AWS</dt><dd>SCP deny s3:PutBucketPublic, leave-org, root user, disable CloudTrail/Config.</dd>
+                <dt>GCP</dt><dd>constraints/compute.vmExternalIpAccess, storage.publicAccessPrevention, iam.disableServiceAccountKeyCreation.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">G3 · exemption-with-expiry · pair AP-G3</div>
+              <div class="criterion-name">Exemptions with owner and expiry</div>
+              <div class="criterion-desc">Every exemption has a named owner, a reason, an expiry and a review. Permanent &#x27;exclude this MG&#x27; is itself a finding.</div>
+              <ol class="criterion-subs"><li>Are policy exemptions recorded with owner, reason and expiry?</li><li>Is there a review cadence that actually retires them?</li><li>Are root-level exclusions treated as landing-zone risk, not housekeeping?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Policy exemption resources with expiresOn; waiver process.</dd>
+                <dt>AWS</dt><dd>SCP OU exclusions documented; Control Tower detective/preventive skip list with tickets.</dd>
+                <dt>GCP</dt><dd>Org-policy custom constraints / allow lists with owners; no silent restoreDefault.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">G4 · cost-tag-guardrails · pair AP-G4</div>
+              <div class="criterion-name">Cost and tag guardrails</div>
+              <div class="criterion-desc">The landing zone enforces the commercial minimum: required tags, allowed regions, maybe budgets. FinOps is a consumer of this; it is not a substitute for it.</div>
+              <ol class="criterion-subs"><li>Are required tags or labels enforced at vending or by policy?</li><li>Are allowed regions constrained?</li><li>Are budgets or cost-anomaly signals attached to landing zones with owners?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>required-tags policy; allowed locations; Management Group budgets / Cost Management.</dd>
+                <dt>AWS</dt><dd>Tag policies; allowed-region SCP; Budgets on accounts.</dd>
+                <dt>GCP</dt><dd>labels + org policy resource locations; budgets on billing accounts/folders.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">G5 · compliance-export · pair AP-G5</div>
+              <div class="criterion-name">Compliance evidence export</div>
+              <div class="criterion-desc">Compliance is a query (policy compliance, Config, SCC posture), not a screenshot of a dashboard from last quarter.</div>
+              <ol class="criterion-subs"><li>Can the platform export current compliance against the assigned baseline?</li><li>Is that export used as assessment evidence?</li><li>Are non-compliant resources owned, not only counted?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Azure Policy compliance + Resource Graph; Defender regulatory standards if in scope.</dd>
+                <dt>AWS</dt><dd>Config conformance, Security Hub standards, Audit Manager if in scope.</dd>
+                <dt>GCP</dt><dd>SCC posture / Compliance reports; Policy Analyzer.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-G1 · policy-as-pdf · pair G1</div>
+              <div class="criterion-name">Policy as documentation only</div>
+              <div class="criterion-desc">There is a beautiful standard. Nothing in the control plane assigns it. Workshops recite it. The API does not.</div>
+              <ol class="criterion-subs"><li>Is the guardrail set documented but not assigned in the control plane?</li><li>Do new landing zones boot without the baseline?</li><li>Is &#x27;we plan to enable policy next quarter&#x27; the current state?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>CAF deck, no Policy assignments at MG.</dd>
+                <dt>AWS</dt><dd>Well-Architected whitepaper, empty SCPs (FullAWSAccess only).</dd>
+                <dt>GCP</dt><dd>Security whitepaper, org policies at default.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-G2 · root-allow-all · pair G2</div>
+              <div class="criterion-name">Root-level allow-all</div>
+              <div class="criterion-desc">The only org-level policy is FullAWSAccess, an empty initiative, or restoreDefault. Prevention lives in goodwill.</div>
+              <ol class="criterion-subs"><li>Is the effective organization policy equivalent to allow-all?</li><li>Can any landing zone disable logging, attach public IPs, or leave the org?</li><li>Are denies present only in a lab?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No deny assignments; Audit-only everywhere.</dd>
+                <dt>AWS</dt><dd>FullAWSAccess on Root; no additional SCPs.</dd>
+                <dt>GCP</dt><dd>All org policies at default / inherit.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-G3 · permanent-exemptions · pair G3</div>
+              <div class="criterion-name">Permanent exemptions</div>
+              <div class="criterion-desc">Whole management groups, OUs or folders are excluded &#x27;for now&#x27;. Now is three years old. The excluded node holds production.</div>
+              <ol class="criterion-subs"><li>Are hierarchy nodes excluded from policy with no expiry?</li><li>Does the excluded node contain production?</li><li>Is the exemption undocumented or owned by a departed person?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>MG excluded from MCSB; expiresOn null.</dd>
+                <dt>AWS</dt><dd>OU without SCPs; Control Tower ungoverned OU with prod accounts.</dd>
+                <dt>GCP</dt><dd>Folder with restored defaults; production projects inside.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-G4 · no-cost-policy · pair G4</div>
+              <div class="criterion-name">No cost or region guardrail</div>
+              <div class="criterion-desc">Any region, no tags, no budgets. The landing zone will happily host a GPU farm in an unapproved geography.</div>
+              <ol class="criterion-subs"><li>Can resources be created in any region without policy friction?</li><li>Are tags optional?</li><li>Do landing zones have no budget owner?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No allowed-locations; no required-tags; no MG budgets.</dd>
+                <dt>AWS</dt><dd>No region SCP; no tag policies; no Budgets.</dd>
+                <dt>GCP</dt><dd>No resourceLocations constraint; no labels; no budgets.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-G5 · screenshot-compliance · pair G5</div>
+              <div class="criterion-name">Screenshot compliance</div>
+              <div class="criterion-desc">Evidence of control is a PDF of a dashboard, a workshop assertion, or a vendor questionnaire. The control plane was not queried.</div>
+              <ol class="criterion-subs"><li>Is compliance evidenced only by slides, questionnaires or screenshots?</li><li>Was the control plane not queried for this assessment?</li><li>Do findings say &#x27;we believe we are compliant&#x27; without an export?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No Policy Insights export; CAF checklist ticked in a workshop.</dd>
+                <dt>AWS</dt><dd>No Config aggregator export; WAFR notes as evidence.</dd>
+                <dt>GCP</dt><dd>No SCC posture export; workshop scores as evidence.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+    <div class="batch-section" id="batch-H">
+      <div class="batch-header">
+        <div style="display:flex;align-items:baseline;gap:24px;">
+          <div class="batch-letter">H</div>
+          <div>
+            <div class="batch-name">Platform automation &amp; DevOps</div>
+            <div class="batch-meta">5 capabilities · 5 anti-patterns · 30 shared sub-criteria · 3 provider packs</div>
+          </div>
+        </div>
+      </div>
+      <div class="themes">
+        <h4>Workshop themes — one script for every cloud</h4>
+        <ol><li>Is the landing zone born from code, or from a portal?</li><li>How does drift get detected, and who is allowed to hotfix the foundation?</li><li>Can an application team request a landing zone without a six-week ticket?</li></ol>
+      </div>
+      <div class="criteria-pair">
+        <div class="criteria-col maturity">
+          <div class="col-label">Stream A · Capabilities</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">H1 · platform-as-code · pair AP-H1</div>
+              <div class="criterion-name">Platform as code</div>
+              <div class="criterion-desc">Hierarchy, policy, identity grants, hub network and logging sinks are in versioned IaC with review. The portal is for break-glass, not for the weekly change.</div>
+              <ol class="criterion-subs"><li>Are the platform landing zones defined in versioned IaC (Terraform, Bicep, CDK, Pulumi, Config Connector)?</li><li>Do reviews and promotions follow a pipeline, not a shared admin login?</li><li>Is portal change of platform resources treated as drift?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Bicep/Terraform ALZ; policy-as-code; GitHub/ADO with PR.</dd>
+                <dt>AWS</dt><dd>Control Tower + AFT / Landing Zone Accelerator / custom Terraform; no console-first org changes.</dd>
+                <dt>GCP</dt><dd>Terraform foundation (project factory, org policy); Config Connector if used.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">H2 · vending-pipeline · pair AP-H2</div>
+              <div class="criterion-name">Vending pipeline</div>
+              <div class="criterion-desc">A request becomes a landing zone with identity, network, policy and logging already on. Human time is approval, not clicking 40 blades.</div>
+              <ol class="criterion-subs"><li>Is there a pipeline or catalog item that vends a subscription, account or project into the right node?</li><li>Does the vended unit boot with the baseline attached?</li><li>Is the request-to-ready time measured?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Subscription vending workflow / ALZ accelerator / service catalog.</dd>
+                <dt>AWS</dt><dd>Account Factory / AFT / Service Catalog.</dd>
+                <dt>GCP</dt><dd>Project factory pipeline + IAM + Shared VPC attachment.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">H3 · drift-detection · pair AP-H3</div>
+              <div class="criterion-name">Drift detection</div>
+              <div class="criterion-desc">The platform notices when reality leaves the code. Drift is a ticket with an owner, not a shrug.</div>
+              <ol class="criterion-subs"><li>Is there a drift signal on platform IaC or on policy/config?</li><li>Does drift create a reviewable event rather than a silent overwrite?</li><li>Are recurring ClickOps offenders visible?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>What-if / drift on Terraform; Azure Policy compliance; Activity Log on MG policy deletes.</dd>
+                <dt>AWS</dt><dd>CloudFormation drift / Terraform drift; Config; Control Tower drift.</dd>
+                <dt>GCP</dt><dd>Terraform plan in CI against org; SCC/CAI diffs; org-policy change logs.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">H4 · self-service-guardrailed · pair AP-H4</div>
+              <div class="criterion-name">Guardrailed self-service</div>
+              <div class="criterion-desc">Application teams can get a landing zone or a spoke without a platform engineer performing the ritual. Guardrails do the saying-no.</div>
+              <ol class="criterion-subs"><li>Can an application team request a compliant landing zone without a platform engineer clicking it into existence?</li><li>Are denied requests explained by policy, not by personality?</li><li>Is self-service actually used, or is it a demo?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Service catalog / ARM template spec / vending app in use.</dd>
+                <dt>AWS</dt><dd>Service Catalog / AFT requests from app teams.</dd>
+                <dt>GCP</dt><dd>Project factory self-service with org-policy guardrails.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">H5 · platform-change-management · pair AP-H5</div>
+              <div class="criterion-name">Platform change management</div>
+              <div class="criterion-desc">Changes to identity, hub, policy and logging have a path, a reviewer, and a way to stop a bad change. Hotfixes are logged as such.</div>
+              <ol class="criterion-subs"><li>Is there a defined change path for the platform landing zones?</li><li>Are emergency hotfixes recorded and followed by code catch-up?</li><li>Can a bad policy assignment be rolled back from code, not from memory?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>PR + pipeline on ALZ; break-glass portal with Activity Log and catch-up PR.</dd>
+                <dt>AWS</dt><dd>AFT/LZA pipeline; SCP change review; break-glass with CloudTrail.</dd>
+                <dt>GCP</dt><dd>Foundation pipeline; org-policy change review; break-glass with audit logs.</dd>
+              </dl>
+            </div>
+    
+        </div>
+        <div class="criteria-col antipattern">
+          <div class="col-label">Stream B · Anti-patterns</div>
+          
+            <div class="criterion">
+              <div class="criterion-id">AP-H1 · clickops-platform · pair H1</div>
+              <div class="criterion-name">ClickOps platform</div>
+              <div class="criterion-desc">The landing zone exists in the portal. Code, if any, is an export from last year. The next change will be another click.</div>
+              <ol class="criterion-subs"><li>Is the platform primarily configured in the console?</li><li>Is IaC absent, stale, or generated after the fact?</li><li>Would a rebuild from code fail?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Portal-built MG tree and Policy; ARM exports as &#x27;IaC&#x27;.</dd>
+                <dt>AWS</dt><dd>Console Organizations + IAM; no AFT/LZA.</dd>
+                <dt>GCP</dt><dd>Console folders and org policies; Terraform unused.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-H2 · email-vending · pair H2</div>
+              <div class="criterion-name">Email-request vending</div>
+              <div class="criterion-desc">A landing zone is an email to a named person who has Owner at root. Cycle time is weeks. Quality is mood.</div>
+              <ol class="criterion-subs"><li>Is the create path an email, chat or ticket that ends in a human clicking the portal?</li><li>Is cycle time unmeasured or measured in weeks?</li><li>Do vended units differ depending on who was on shift?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Email to platform; portal subscription create.</dd>
+                <dt>AWS</dt><dd>Ticket to cloud team; Organizations &#x27;Add account&#x27;.</dd>
+                <dt>GCP</dt><dd>Slack to GCP admin; console project.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-H3 · drift-accepted · pair H3</div>
+              <div class="criterion-name">Drift accepted</div>
+              <div class="criterion-desc">Code and cloud parted ways. Apply would be destructive, so nobody applies. The repository is literature.</div>
+              <ol class="criterion-subs"><li>Would an IaC apply be unsafe because reality has moved?</li><li>Is there no drift detection, or is drift ignored?</li><li>Is the repository no longer the system of record?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Terraform state years old; Policy changed in portal.</dd>
+                <dt>AWS</dt><dd>AFT unused after initial accounts; SCPs edited live.</dd>
+                <dt>GCP</dt><dd>Foundation repo frozen; org policies edited in console.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-H4 · ticket-only-self-service · pair H4</div>
+              <div class="criterion-name">Ticket-only, no self-service</div>
+              <div class="criterion-desc">Every spoke, DNS record and exception is a platform-engineer hour. The landing zone does not scale because the platform team is the bottleneck.</div>
+              <ol class="criterion-subs"><li>Must every landing-zone request go through a platform engineer performing the work?</li><li>Is there a catalog item that nobody uses?</li><li>Is onboarding time dominated by platform wait?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>No vending app; ALZ used once.</dd>
+                <dt>AWS</dt><dd>No Account Factory access for app teams.</dd>
+                <dt>GCP</dt><dd>No project factory; admin creates every project.</dd>
+              </dl>
+            </div>
+    
+            <div class="criterion">
+              <div class="criterion-id">AP-H5 · undocumented-hotfixes · pair H5</div>
+              <div class="criterion-name">Undocumented hotfixes</div>
+              <div class="criterion-desc">Production was saved at 2 a.m. in the portal. The code was not updated. The next apply will undo the save — or nobody will ever apply again.</div>
+              <ol class="criterion-subs"><li>Are production platform hotfixes done in the portal without a follow-up change in code?</li><li>Is there no break-glass record?</li><li>Would the next pipeline run surprise production?</li></ol>
+              <dl class="prov">
+                <dt>Azure</dt><dd>Policy exception in portal; no PR.</dd>
+                <dt>AWS</dt><dd>Live SCP edit during incident; AFT unaware.</dd>
+                <dt>GCP</dt><dd>Org policy restoreDefault during outage; repo stale.</dd>
+              </dl>
+            </div>
+    
+        </div>
+      </div>
+    </div>
+    
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">04</span><span>Scoring against packs</span></div>
+    <h2>How Phase 2 stays honest when clouds differ</h2>
+    <div class="metrics-list">
+      <div class="metric-item">
+        <div class="metric-name">Denominator<span>in-scope, applicable</span></div>
+        <div><div class="metric-interp">Maturity depth and anti-pattern burden divide by criteria that are in Step 0 scope <em>and</em> not marked not-applicable. Out-of-scope GCP is not a silent 0.</div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-name">Tested absence<span>anti-patterns only</span></div>
+        <div><div class="metric-interp">An anti-pattern scores as clear only when the provider pack’s absence test ran (for example: no standing Global Admin assignments; no IAM user access keys on humans). Not looking is not clearance.</div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-name">Control plane first<span>evidence class</span></div>
+        <div><div class="metric-interp">Provider evidence objects are inventory, policy assignment, identity binding, log sink, IaC export. Workshop testimony can explain them. It cannot replace them for a GO on that criterion.</div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-name">Pair registry<span>capability ↔ anti-pattern</span></div>
+        <div><div class="metric-interp">A capability at 3 with its paired anti-pattern confirmed present is a contradiction. Phase 2 flags it. Phase 3 may not narrate excellence over a live anti-pattern.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">05</span><span>What this proposal is not yet</span></div>
+    <h2>Preliminary — freeze after review</h2>
+    <ol class="checklist">
+      <li><strong>Sub-criteria are the 3 questions</strong> — shared. Provider rows are evidence contracts, not a second questionnaire.</li>
+      <li><strong>Native-only extras</strong> (Azure Policy exemption objects, AWS RCP, GCP VPC-SC as a first-class criterion) can be added later as native rows. They should not fork the eight batches.</li>
+      <li><strong>Evidence category taxonomy</strong> for landing zone (Inventory / Identity-binding / Policy-assignment / Network-path / Log-sink / IaC / Workshop) still needs a locked enum.</li>
+      <li><strong>Golden fixtures</strong> per provider pack (Crawl / Walk / Run plus document-type and inventory-type) are required before scoring is production.</li>
+      <li><strong>Counts may move</strong> — 5+5 per batch matches the FinOps Engine shape for review. A later freeze might drop a weak pair or split a native row. Do not treat 80 as sacred.</li>
+    </ol>
+    <p class="pullquote">Reuse the kernel: packets, pairs, gates, unknown-is-not-zero. Replace the domain pack. Describe every provider check in the Engine, or do not score it.</p>
+  </div>
+</section>
+</main>
+<footer>
+  <div class="container">
+    <p class="footer-note">
+      Preliminary criteria catalogue for the Landing Zone Assessment Engine.
+      Eight design-area batches, dual capability / anti-pattern streams, three shared sub-criteria per criterion,
+      and provider evidence contracts for Azure, AWS and Google Cloud.
+      Workshop themes stay one script. Scoring stays pack-scoped.
+    </p>
+    <div class="footer-mark">Vivicta &nbsp;·&nbsp; Engine Architecture &nbsp;·&nbsp; Preliminary · 31.8.2026</div>
+  </div>
+</footer>
+
+</body>
+</html>

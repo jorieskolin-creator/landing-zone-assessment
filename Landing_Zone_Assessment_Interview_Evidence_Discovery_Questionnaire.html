@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Landing Zone Assessment — Interview & Evidence Discovery Questionnaire</title>
+<style>
+:root{
+  --ink:#132132;
+  --ink2:#405166;
+  --muted:#6c7a8b;
+  --line:#dce3e8;
+  --soft:#f5f8fa;
+  --soft2:#eef3f6;
+  --blue:#145a7d;
+  --blue2:#0c7794;
+  --green:#36705a;
+  --orange:#a45d34;
+  --shadow:0 10px 30px rgba(26,48,66,.07);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:#fff;color:var(--ink);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+button,input,textarea{font:inherit}
+.page{max-width:1240px;margin:0 auto;padding:0 34px 80px}
+.hero{
+  padding:76px 0 42px;border-bottom:1px solid var(--line);
+}
+.kicker{
+  display:flex;align-items:center;gap:10px;color:var(--blue);
+  font-size:12px;font-weight:750;letter-spacing:.15em;text-transform:uppercase;margin-bottom:20px;
+}
+.kicker:before{content:"";width:34px;height:2px;background:var(--blue2);border-radius:2px}
+h1{
+  font-size:clamp(36px,5vw,64px);line-height:1.02;letter-spacing:-.045em;
+  max-width:980px;margin:0 0 22px;font-weight:780;
+}
+.lede{
+  max-width:880px;font-size:18px;color:var(--ink2);margin:0 0 28px;
+}
+.hero-grid{
+  display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:30px;
+}
+.info-card{
+  background:var(--soft);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;
+}
+.info-card strong{display:block;margin-bottom:7px}
+.flow{font-weight:700;color:var(--blue);line-height:1.75}
+.meta{
+  margin:32px 0 22px;padding:26px;border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);background:#fff;
+}
+.meta h2,.notes h2{margin:0 0 5px;font-size:23px;letter-spacing:-.02em}
+.section-help{color:var(--muted);font-size:14px;margin:0 0 20px}
+.meta-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:14px}
+.field label{display:block;font-size:11px;font-weight:760;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+.field input,.field textarea{
+  width:100%;border:1px solid #cfd9df;background:#fff;border-radius:11px;
+  padding:12px 13px;color:var(--ink);outline:none;transition:.15s ease;
+}
+.field input:focus,.field textarea:focus,.answer:focus,.evidence:focus{border-color:var(--blue2);box-shadow:0 0 0 3px rgba(12,119,148,.09)}
+.participants{margin-top:14px}
+.participants textarea{min-height:74px;resize:vertical}
+
+.toolbar-wrap{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);border-bottom:1px solid rgba(220,227,232,.8);margin:0 -34px;padding:10px 34px}
+.toolbar{max-width:1172px;margin:0 auto;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.btn{
+  border:1px solid #cbd6dc;background:#fff;color:var(--ink);border-radius:999px;
+  padding:9px 14px;font-size:13px;font-weight:680;cursor:pointer;transition:.15s ease;
+}
+.btn:hover{border-color:var(--blue2);color:var(--blue)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.danger{margin-left:auto;color:#96503d}
+.save-state{font-size:12px;color:var(--muted);margin-left:4px}
+.progress{
+  margin:30px 0 10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center
+}
+.progress-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:750;margin-right:5px}
+.pill{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:6px 10px;font-size:12px;color:var(--ink2)}
+.pill.done{background:#edf6f2;border-color:#bfd8cc;color:#265944}
+
+.domains{margin-top:20px;display:grid;gap:18px}
+.domain{
+  border:1px solid var(--line);border-radius:22px;background:#fff;overflow:hidden;box-shadow:0 7px 22px rgba(26,48,66,.045)
+}
+.domain summary{
+  list-style:none;cursor:pointer;padding:24px 26px;display:grid;
+  grid-template-columns:62px 1fr auto;gap:18px;align-items:center;
+}
+.domain summary::-webkit-details-marker{display:none}
+.domain-letter{
+  width:52px;height:52px;border-radius:15px;background:var(--ink);color:#fff;
+  display:grid;place-items:center;font-size:24px;font-weight:800;
+}
+.domain-title{font-size:23px;font-weight:760;letter-spacing:-.025em}
+.domain-subtitle{font-size:14px;color:var(--muted);margin-top:3px}
+.chev{font-size:22px;color:var(--muted);transform:rotate(0);transition:.18s}
+.domain[open] .chev{transform:rotate(180deg)}
+.domain-intro{padding:0 26px 22px 106px;color:var(--ink2);font-size:14px;border-bottom:1px solid var(--line)}
+.question-list{padding:8px 26px 26px}
+.question{
+  position:relative;padding:25px 0;border-bottom:1px solid var(--line)
+}
+.question:last-child{border-bottom:0}
+.q-top{display:flex;gap:15px;align-items:flex-start}
+.q-id{
+  min-width:51px;color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.04em;padding-top:4px
+}
+.q-text{font-size:18px;line-height:1.45;font-weight:720;letter-spacing:-.012em;max-width:900px}
+.refs{font-size:11px;color:#8794a1;margin:8px 0 0 66px}
+.guidance{
+  margin:14px 0 14px 66px;display:grid;grid-template-columns:1fr 1fr;gap:10px
+}
+.hint,.sample{
+  border-radius:12px;padding:12px 14px;font-size:13px;color:var(--ink2);background:var(--soft);
+  border:1px solid #e2e8ec
+}
+.hint strong,.sample strong{color:var(--ink);font-size:11px;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px}
+.sample{background:#fbfaf7}
+.answer-wrap{margin-left:66px;display:grid;gap:10px}
+.answer,.evidence{
+  width:100%;min-height:116px;resize:none;overflow:hidden;border:1px solid #cfd9df;border-radius:13px;
+  padding:14px 15px;background:#fff;color:var(--ink);outline:none;line-height:1.55;transition:.15s ease
+}
+.evidence{min-height:58px;background:#fbfcfd}
+.answer::placeholder,.evidence::placeholder{color:#9ca7b0}
+.answer-label{
+  font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:-3px
+}
+.notes{
+  margin-top:28px;border:1px solid var(--line);border-radius:var(--radius);padding:26px;background:var(--soft)
+}
+.notes textarea{
+  width:100%;min-height:240px;resize:none;overflow:hidden;border:1px solid #ccd7dd;border-radius:14px;background:#fff;padding:15px;
+  outline:none;line-height:1.6
+}
+.footer-note{margin:28px 0 0;color:var(--muted);font-size:12px;text-align:center}
+
+@media(max-width:850px){
+  .page{padding:0 18px 60px}.toolbar-wrap{margin:0 -18px;padding:9px 18px}
+  .hero{padding-top:52px}.hero-grid{grid-template-columns:1fr}.meta-grid{grid-template-columns:1fr 1fr}
+  .domain summary{grid-template-columns:52px 1fr auto;padding:20px 18px}.domain-intro{padding:0 18px 18px}
+  .question-list{padding:4px 18px 20px}.refs,.guidance,.answer-wrap{margin-left:0}.guidance{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+  .meta-grid{grid-template-columns:1fr}.q-top{display:block}.q-id{margin-bottom:5px}.btn.danger{margin-left:0}
+}
+@media print{
+  @page{size:A4;margin:13mm}
+  body{background:#fff;font-size:10.5pt}
+  .page{max-width:none;padding:0}
+  .hero{padding:0 0 18px}.hero h1{font-size:28pt}.lede{font-size:11.5pt}
+  .hero-grid{grid-template-columns:1fr 1fr}
+  .toolbar-wrap,.progress,.chev,.btn{display:none!important}
+  .meta{box-shadow:none;margin:16px 0}
+  .domain{box-shadow:none;border-radius:8px;break-inside:avoid;margin:0 0 12px}
+  .domain summary{padding:15px 16px;grid-template-columns:42px 1fr}
+  .domain-letter{width:38px;height:38px;border-radius:9px;font-size:18px}
+  .domain-title{font-size:16pt}.domain-intro{padding:0 16px 13px 16px}
+  .question-list{padding:0 16px 8px}
+  .question{break-inside:avoid;padding:14px 0}
+  .q-text{font-size:11pt}.refs{font-size:7.5pt}
+  .guidance{grid-template-columns:1fr 1fr;margin-top:7px;margin-bottom:8px}
+  .hint,.sample{font-size:8.5pt;padding:8px}
+  .answer,.evidence,.notes textarea{border-color:#aeb9c0;min-height:54px;font-size:9.5pt}
+  .answer:placeholder-shown,.evidence:placeholder-shown{min-height:36px}
+  .notes{break-inside:avoid;background:#fff}
+}
+
+.hero-grid.three{grid-template-columns:1fr 1fr 1fr}
+.discipline{border-left:3px solid var(--orange)}
+@media(max-width:850px){.hero-grid.three{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+    <div class="kicker">Landing Zone Engine · Assessment preparation</div>
+    <h1>Interview & Evidence Discovery Questionnaire</h1>
+    <p class="lede">
+      A structured workshop aid for capturing customer knowledge before evidence is analyzed by the Landing Zone Engine.
+      The questions support dialogue, reveal tacit practices, and identify inventory, documents and owners worth collecting.
+      Interview answers are discovery inputs — not landing-zone scores. The control plane remains the system of record.
+    </p>
+    <div class="hero-grid three">
+      <div class="info-card">
+        <strong>How to use this questionnaire</strong>
+        Ask the open question, use the hints only when useful, capture what the participant actually describes,
+        and request a recent example. When an artifact, export or live inventory can corroborate the statement, record it under
+        <em>Evidence / artifact lead</em>.
+      </div>
+      <div class="info-card">
+        <strong>Evidence path</strong>
+        <div class="flow">Interview observation → Evidence lead → Evidence acquisition → Landing Zone Engine verification</div>
+      </div>
+      <div class="info-card discipline">
+        <strong>Workshop does not replace inventory</strong>
+        A confident answer without a control-plane lead is still unverified. Prefer hierarchy exports, role assignments, policy, logs and IaC over recollection.
+      </div>
+    </div>
+  </section>
+
+    <section class="meta">
+    <h2>Workshop details</h2>
+    <p class="section-help">Session information is included in saved data and in the printable/PDF version. Cloud, tenant and live-inventory fields lock the playing field from Step 0.</p>
+    <div class="meta-grid">
+      <div class="field"><label>Customer / Organization</label><input id="customer" data-meta placeholder="Organization name"></div>
+      <div class="field"><label>Date</label><input id="date" data-meta type="date"></div>
+      <div class="field"><label>Start time</label><input id="startTime" data-meta type="time"></div>
+      <div class="field"><label>End time</label><input id="endTime" data-meta type="time"></div>
+    </div>
+    <div class="meta-grid" style="margin-top:14px;grid-template-columns:1fr 1fr 1fr 1fr">
+      <div class="field"><label>Facilitator</label><input id="facilitator" data-meta placeholder="Name"></div>
+      <div class="field"><label>Workshop / Assessment reference</label><input id="reference" data-meta placeholder="Optional reference"></div>
+      <div class="field"><label>Cloud(s) in scope</label><input id="clouds" data-meta placeholder="Azure / AWS / GCP"></div>
+      <div class="field"><label>Live inventory</label><input id="inventory" data-meta placeholder="Yes / No / Partial"></div>
+    </div>
+    <div class="meta-grid" style="margin-top:14px;grid-template-columns:1fr 1fr">
+      <div class="field"><label>Tenant / org / management account</label><input id="tenant" data-meta placeholder="Named root in scope"></div>
+      <div class="field"><label>Design areas in scope</label><input id="areas" data-meta placeholder="A–H, or named subset"></div>
+    </div>
+    <div class="field participants"><label>Participants</label><textarea id="participants" data-meta placeholder="Names, roles and teams. One participant per line if useful."></textarea></div>
+  </section>
+</div>
+
+<div class="toolbar-wrap">
+  <div class="toolbar">
+    <button class="btn primary" id="saveBtn">Save locally</button>
+    <button class="btn" id="exportBtn">Export session</button>
+    <button class="btn" id="importBtn">Import session</button>
+    <button class="btn" id="expandBtn">Expand all</button>
+    <button class="btn" id="printBtn">Print / Save PDF</button>
+    <span class="save-state" id="saveState">Autosave enabled</span>
+    <button class="btn danger" id="clearBtn">Clear</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<div class="page">
+  <div class="progress" id="progress"></div>
+  <main class="domains" id="domains"></main>
+
+  <section class="notes">
+    <h2>NOTES</h2>
+    <p class="section-help">Use this area for cross-area observations, contradictions between testimony and inventory, missing participants, evidence requests, or anything that should not be forced into one answer.</p>
+    <textarea id="globalNotes" data-meta placeholder="General workshop notes..."></textarea>
+  </section>
+  <div class="footer-note">Landing Zone Assessment — Interview & Evidence Discovery Questionnaire · Supporting input to the Landing Zone Engine. Interview answers are not scores.</div>
+</div>
+
+<script>
+const domains = [{"id": "A", "name": "Tenant, billing & organization construct", "subtitle": "Find the real root of the estate — and everything that lives outside it.", "purpose": "Explore where the authoritative cloud organization is, who owns it, what still sits outside it, and whether billing, contract and technical ownership describe the same estate. Interview answers here are leads for inventory, not a substitute for it.", "questions": [{"id": "A-Q1", "refs": "A1 · A4 · AP-A1", "q": "If I asked you to point at the landing-zone root today — tenant, organization or management account — what would you point at, and who owns it?", "hint": "Explore named owners, extra directories, partner or acquisition clouds, and whether production exists outside the declared root. Distinguish the commercial payer from the technical organization.", "sample": "Useful evidence leads: tenant/org ID, hierarchy export, billing-account mapping, named platform owner."}, {"id": "A-Q2", "refs": "A4 · AP-A1 · AP-A3", "q": "What cloud estates, billing relationships or directories exist that are not on that map?", "hint": "Explore leftover EA enrollments, personal tenants, standalone accounts, no-organization projects, sandbox clouds that grew up, and merged-company remnants.", "sample": "Probe: “If finance forwarded last month’s invoices, would any of them surprise the platform team?”"}, {"id": "A-Q3", "refs": "A2 · AP-A2", "q": "What actually runs in the management, payer or bootstrap plane?", "hint": "Explore application workloads, data, developer sandboxes, and who has standing rights there. The management plane should host organization services, not business systems.", "sample": "Ask them to list the last three resources created in that account — and who created them."}, {"id": "A-Q4", "refs": "A3 · AP-A3", "q": "How do billing, contract and technical ownership line up — and where do they disagree?", "hint": "Explore invoice owners vs landing-zone owners, orphaned subscriptions, and cost allocation blocked by structure rather than tagging.", "sample": "Useful evidence leads: billing export, enrollment/payer view, subscription-to-MG or account-to-OU map."}, {"id": "A-Q5", "refs": "A5 · AP-A5 · AP-A4", "q": "If the person who can recover the cloud root left tomorrow, what would still work?", "hint": "Explore break-glass, dual control, MFA on root/super-admin, where credentials live, and whether use would be noticed. Shared Global Admin or unused root keys are in scope.", "sample": "Probe: “When was emergency access last tested — and who would see the log?”"}, {"id": "A-Q6", "refs": "A1 · F2 · AP-F2", "q": "How do you know, this week, that you have a complete list of subscriptions, accounts or projects?", "hint": "Explore API inventory vs spreadsheet vs workshop memory. New isolation units that first appear on an invoice are a finding.", "sample": "Useful evidence leads: Resource Graph / Organizations / Asset Inventory export dated this week."}]}, {"id": "B", "name": "Identity & access", "subtitle": "How humans, workloads and emergencies actually get in.", "purpose": "Explore joiner-mover-leaver, privileged access, workload identity and break-glass as they operate — not as the IdP standard describes them. Look for standing owner-equivalent access and long-lived keys.", "questions": [{"id": "B-Q1", "refs": "B1 · AP-B2", "q": "How does a person get access to the cloud, and how is that access taken away?", "hint": "Explore federation vs cloud-local users, shared logins, leaver processing, and whether IdP offboarding actually removes cloud rights.", "sample": "Ask for the last leaver: what was revoked, by whom, and how would you prove it?"}, {"id": "B-Q2", "refs": "B2 · AP-B1 · AP-B4", "q": "How is privileged access granted, time-bounded, reviewed — and who still has it standing?", "hint": "Explore PIM / Identity Center / PAM, approval, session length, Access Reviews, and standing Global Admin, AdministratorAccess or organizationAdmin on humans.", "sample": "Useful evidence leads: eligible-role export, standing-assignment list, activation log, access review."}, {"id": "B-Q3", "refs": "B3 · AP-B3", "q": "How do workloads, pipelines and automation authenticate — without a person in the loop?", "hint": "Explore managed identities, workload federation, IRSA, attached service accounts vs stored client secrets, IAM user keys and downloaded JSON keys.", "sample": "Probe: “What would we find if we searched the CI variables for a cloud key?”"}, {"id": "B-Q4", "refs": "B4 · AP-B4 · AP-B1", "q": "Who has owner-equivalent rights at tenant, organization or management-group root, and why?", "hint": "Explore app teams granted Owner ‘so they can work’, custom roles vs built-in Owner, and whether those grants can disable policy, logging or networking.", "sample": "Useful evidence leads: role-assignment export at root / MG / org, SSO permission-set list."}, {"id": "B-Q5", "refs": "B5 · AP-B5 · A5", "q": "What is the break-glass path, who knows it, and would you know if it was used?", "hint": "Explore dual control, exclusion from daily use, alerting, and whether emergency access is the unofficial admin account.", "sample": "Probe: “Show me the alert that fires when break-glass signs in.”"}, {"id": "B-Q6", "refs": "AP-B2 · AP-B3 · B1", "q": "Where do local cloud users, shared mailboxes or long-lived keys still exist — and why have they survived?", "hint": "Explore exceptions with owners and expiry vs tribal convenience. Capture the story; then ask what inventory would confirm it.", "sample": "Ask for one ‘temporary’ key or user that is more than a year old."}]}, {"id": "C", "name": "Resource organization", "subtitle": "Does the hierarchy encode policy, or is it a filing cabinet?", "purpose": "Explore how isolation units are born, named, placed and separated. The hierarchy should decide guardrails. If it does not, the interview will surface a map that the control plane will contradict.", "questions": [{"id": "C-Q1", "refs": "C1 · AP-C1", "q": "Walk me through the hierarchy. What does placing a workload in a given node actually change?", "hint": "Explore management groups / OUs / folders as a policy spine vs a naming scheme. If moving a workload changes nothing, the hierarchy is a filing cabinet.", "sample": "Useful evidence leads: hierarchy export, policy assignments per node, a recent move request."}, {"id": "C-Q2", "refs": "C2 · AP-C2", "q": "Where does the platform landing zone end and an application landing zone begin?", "hint": "Explore identity, connectivity, logging, security vs application workloads. Listen for apps hosted in connectivity or management subscriptions.", "sample": "Probe: “If we rebuilt the hub, which business systems would we have to migrate first?”"}, {"id": "C-Q3", "refs": "C4 · AP-C4 · H2", "q": "How is a new subscription, account or project born — from request to ready?", "hint": "Explore vending pipeline vs email-to-a-named-person vs portal click. Capture cycle time, who clicks, and what baseline is attached at birth.", "sample": "Ask for the last three isolation units created and whether they landed in the right node with policy and logging on."}, {"id": "C-Q4", "refs": "C3 · AP-C3 · G4", "q": "How are naming and tags supposed to work — and what happens when they do not?", "hint": "Explore documented standard vs create-time enforcement, untagged spend, and whether violations are noise or a ticket.", "sample": "Probe: “Deploy something without the required tags. What stops you?”"}, {"id": "C-Q5", "refs": "C5 · AP-C5", "q": "How are production and non-production kept apart — on paper, in IAM, and on the wire?", "hint": "Explore shared subscriptions with ‘prod’ resource groups, shared admin roles, and playground identities that can reach production data.", "sample": "Useful evidence leads: prod vs nonprod node, role assignments, peering / Shared VPC rules."}, {"id": "C-Q6", "refs": "AP-C4 · AP-H1 · H3", "q": "What happens when someone creates a subscription, account or project in the portal outside the pattern?", "hint": "Explore detection, follow-up, whether it is possible at all, and whether ClickOps is unofficially accepted.", "sample": "Ask for a recent snowflake and whether it is still running."}]}, {"id": "D", "name": "Network topology & connectivity", "subtitle": "Where traffic is forced, inspected, named — and where it leaks.", "purpose": "Explore the hub, hybrid circuits, DNS, public endpoints and segmentation as they actually operate. Diagrams are a lead. Forced paths and inventories are evidence.", "questions": [{"id": "D-Q1", "refs": "D1 · AP-D1 · AP-D2", "q": "Where is the hub, and what is actually forced through it?", "hint": "Explore hub-spoke / vWAN / TGW / Shared VPC, inspection placement, spoke-to-spoke defaults, and teams with their own internet edge.", "sample": "Useful evidence leads: hub resource IDs, peering/attachment list, firewall policy, public-IP inventory."}, {"id": "D-Q2", "refs": "D2 · AP-D5", "q": "Who owns hybrid connectivity, and can an application team create a side door?", "hint": "Explore ExpressRoute / Direct Connect / Interconnect / VPN landing in the platform vs in an app subscription. Redundancy and who-to-call belong here.", "sample": "Probe: “Show me every circuit and VPN. Which of them did platform not approve?”"}, {"id": "D-Q3", "refs": "D3 · AP-D3", "q": "How does a private name resolve in a new landing zone — including on-premises and private endpoints?", "hint": "Explore central Private DNS / Route 53 Resolver / Cloud DNS vs per-team zones, hosts files, and ‘it works on my laptop’.", "sample": "Ask them to resolve a private-endpoint name from a spoke that was vended last quarter."}, {"id": "D-Q4", "refs": "D4 · AP-D4 · G2", "q": "When is a public endpoint allowed, who approves it, and how does it die?", "hint": "Explore deny policies vs honour system, public storage / K8s API / jump hosts, exception expiry, and whether a current public inventory exists.", "sample": "Useful evidence leads: deny policy, public-IP/resource graph, exemption with owner and date."}, {"id": "D-Q5", "refs": "D5 · AP-D2 · C5", "q": "Can a non-production identity reach production on the network today?", "hint": "Explore default spoke mesh, AllowVnetInbound, TGW default route tables, one big Shared VPC. Segmentation by naming is not segmentation.", "sample": "Probe: “If a sandbox is compromised, what can it route to?”"}, {"id": "D-Q6", "refs": "AP-D5 · F2", "q": "If we deleted the network slide deck, could you redraw the topology from inventory this week?", "hint": "Explore whether peerings, attachments and interconnects have owners, and whether ‘temporary’ paths are still in production.", "sample": "Useful evidence leads: peering/attachment export, undocumented ER authorizations, leftover VIFs."}]}, {"id": "E", "name": "Security baseline", "subtitle": "What the platform prevents, detects, and still leaves to goodwill.", "purpose": "Explore preventive baseline, detections, keys, secrets and where security operations actually live. Distinguish controls assigned in the control plane from controls that exist in a PDF.", "questions": [{"id": "E-Q1", "refs": "E1 · AP-E1 · G2", "q": "What does the landing zone actually stop a team from doing — not merely report after the fact?", "hint": "Explore deny vs audit-only, MCSB / SCPs / org policies, and whether a new landing zone can boot with the baseline off.", "sample": "Probe: “Create a public storage account in production. What happens?”"}, {"id": "E-Q2", "refs": "E2 · AP-E2", "q": "Where do threat detections land, and who triages them with an SLA?", "hint": "Explore Defender / GuardDuty / SCC at organization scope vs per-subscription islands, delegated admin, and findings nobody reads.", "sample": "Useful evidence leads: org auto-enable, delegated security account, a finding ticket from last month."}, {"id": "E-Q3", "refs": "E3 · E4 · AP-E3 · AP-E4", "q": "Where do keys and secrets actually live — vault, pipeline, wiki, or git?", "hint": "Explore CMK claimed vs used, rotation, access logs, client secrets in CI, downloaded service-account keys, and secrets as identity.", "sample": "Ask for one production secret’s home and its last rotation date."}, {"id": "E-Q4", "refs": "E5 · AP-E5", "q": "Where does security tooling live, and how do platform and SOC share a finding?", "hint": "Explore a security landing zone vs marketplace products per team, RACI, and overlapping tools.", "sample": "Probe: “A high-severity cloud finding arrives at 02:00. Who owns it?”"}, {"id": "E-Q5", "refs": "AP-E5 · AP-E1", "q": "When does security review happen relative to a workload going live?", "hint": "Explore questionnaires after production, findings without a landing-zone owner, and ‘we’ll add Defender later’.", "sample": "Ask for the last three go-lives and whether the baseline was already on."}, {"id": "E-Q6", "refs": "G5 · E1 · F2", "q": "If an auditor asked for this week’s security posture of the landing zone, what would you export — not screenshot?", "hint": "Explore Policy Insights / Config / SCC posture exports vs a dashboard PDF from last quarter.", "sample": "Useful evidence leads: compliance export dated this week, with owners on non-compliant resources."}]}, {"id": "F", "name": "Management & observability", "subtitle": "Whether the platform can see itself — and restore itself.", "purpose": "Explore activity logs, inventory, platform monitoring, backup of the foundation, and agent/image baseline. Application APM is not platform observability.", "questions": [{"id": "F-Q1", "refs": "F1 · AP-F1", "q": "Where do tenant, organization or account activity logs actually land, and for how long?", "hint": "Explore org CloudTrail / MG diagnostic settings / org audit sinks vs logs left in the producing account at default retention.", "sample": "Probe: “Could we reconstruct an admin action from 120 days ago without asking an app team?”"}, {"id": "F-Q2", "refs": "F2 · AP-F2 · A1", "q": "When did you last export the live hierarchy, policy assignments and identity bindings?", "hint": "Explore API-fresh inventory vs last year’s draw.io. Unknown isolation units discovered in a workshop are a finding.", "sample": "Useful evidence leads: Resource Graph / Config aggregator / Asset Inventory taken for this assessment."}, {"id": "F-Q3", "refs": "F3 · AP-F3", "q": "What is monitored on the platform plane — logging pipeline, hybrid path, policy engine — not on the applications?", "hint": "Explore whether a failed log export, dead ExpressRoute or deleted diagnostic setting would page anyone.", "sample": "Ask who is on-call for the landing zone itself."}, {"id": "F-Q4", "refs": "F4 · AP-F4 · H1", "q": "If the landing zone burned down, what restores identity, DNS, policy, IaC state and keys?", "hint": "Explore application backup (often mature) vs platform restore (often a laptop). Ask whether a restore has been rehearsed.", "sample": "Useful evidence leads: state-backend location, Key Vault / KMS backup, last restore test date."}, {"id": "F-Q5", "refs": "F5 · AP-F5", "q": "How does the platform know what is running on the compute it hosts, and how is it updated?", "hint": "Explore Update Manager / SSM / OS Config coverage, unmanaged images, and ‘we use Kubernetes so this does not apply’ as a claim to evidence.", "sample": "Ask for agent coverage % and one fleet that is deliberately unmanaged."}, {"id": "F-Q6", "refs": "AP-F1 · AP-F2 · AP-F3", "q": "When was the last surprise — a missing account, a silent log gap, a platform alert that never fired?", "hint": "This question is for tacit knowledge. Capture the story, then name the evidence that would have caught it.", "sample": "Follow with: “What would we collect so the Engine can test whether that gap is still open?”"}]}, {"id": "G", "name": "Governance & policy", "subtitle": "What is denied, who is exempt, and what can be exported.", "purpose": "Explore inheritance, deny vs audit, exemptions, cost/region guardrails and compliance evidence. Formal standards that the API does not assign are documentation, not a landing zone.", "questions": [{"id": "G-Q1", "refs": "G1 · G2 · AP-G1 · AP-G2", "q": "Which guardrails are assigned at the hierarchy — and which still live only in a standard or a deck?", "hint": "Explore MG/OU/folder assignments vs per-subscription cottage industry vs FullAWSAccess / empty initiatives / default org policies.", "sample": "Useful evidence leads: effective policy on one production landing zone, assignment export."}, {"id": "G-Q2", "refs": "G2 · E1 · D4", "q": "Name the small set of things the platform will not allow in production.", "hint": "Public data, disable logging, leave the org, user-access-admin, any region, no tags. If the list is empty, prevention is goodwill.", "sample": "Probe: “Which of those denies are in force on production, not only in a lab?”"}, {"id": "G-Q3", "refs": "G3 · AP-G3", "q": "How is an exemption born, who owns it, and how does it die?", "hint": "Explore expiresOn, review cadence, whole MGs/OUs excluded ‘for now’, and exemptions owned by a departed person.", "sample": "Ask for the oldest production exemption and its expiry date."}, {"id": "G-Q4", "refs": "G4 · AP-G4 · C3", "q": "Can a team put a GPU farm in an unapproved region, untagged, with no budget owner?", "hint": "Explore required tags, allowed locations, budgets. Cost reporting consumes these guardrails; it does not replace them.", "sample": "Useful evidence leads: allowed-locations policy, required-tag policy, MG/account budgets."}, {"id": "G-Q5", "refs": "G5 · AP-G5", "q": "When you say the landing zone is compliant, what did you query — and when?", "hint": "Explore Policy Insights / Config / SCC vs screenshots, questionnaires and workshop scores used as evidence.", "sample": "Probe: “Show me non-compliant resources with owners, not a green tile.”"}, {"id": "G-Q6", "refs": "AP-G3 · AP-G1 · H5", "q": "Who can turn a deny into an allow at 2 a.m., and does the code catch up afterwards?", "hint": "Explore portal exemptions during incidents, undocumented hotfixes, and whether the next pipeline run would surprise production.", "sample": "Ask for the last emergency policy change and the follow-up PR."}]}, {"id": "H", "name": "Platform automation & DevOps", "subtitle": "Whether the foundation is born from code — or from a click.", "purpose": "Explore IaC, vending, drift, self-service and platform change management. A repository that cannot rebuild the landing zone is literature.", "questions": [{"id": "H-Q1", "refs": "H1 · AP-H1", "q": "If we rebuilt the platform landing zones from the repository tomorrow, what would we get — and what would we miss?", "hint": "Explore Terraform / Bicep / CDK / AFT / ALZ as system of record vs portal-first with exports after the fact.", "sample": "Useful evidence leads: repo URL, last apply, plan vs reality, state-backend location."}, {"id": "H-Q2", "refs": "H2 · H4 · AP-H2 · AP-H4 · C4", "q": "Walk through requesting a new landing zone or spoke. Who does the work, and how long does it take?", "hint": "Explore catalog/pipeline vs email-request vs ticket-only. Self-service that nobody uses is still ticket-only.", "sample": "Ask for request-to-ready time for the last five units, and whether the baseline was on at birth."}, {"id": "H-Q3", "refs": "H3 · AP-H3", "q": "How do you know when the cloud has left the code — and what happens then?", "hint": "Explore drift detection, ignored drift, ‘apply would be destructive’, and recurring ClickOps offenders.", "sample": "Probe: “When was the last drift signal, and did anyone act?”"}, {"id": "H-Q4", "refs": "H4 · AP-H4", "q": "What can an application team get without a platform engineer performing the ritual?", "hint": "Explore guardrailed self-service vs personality-based saying-no. Onboarding time dominated by platform wait is in scope.", "sample": "Ask an application owner (if present) what they last waited on."}, {"id": "H-Q5", "refs": "H5 · AP-H5 · G3", "q": "Tell me about the last production hotfix to identity, hub, policy or logging.", "hint": "Explore portal vs pipeline, break-glass record, whether code caught up, and whether the next apply is now unsafe.", "sample": "Useful evidence leads: Activity Log / CloudTrail of the change, follow-up PR, or the absence of both."}, {"id": "H-Q6", "refs": "H1 · C4 · AP-H1", "q": "Which parts of the landing zone are still tribal knowledge — the steps that exist only in someone’s head?", "hint": "This question is for silent knowledge. DNS, exemption ritual, vending exceptions, the ‘real’ network path. Capture names; then convert to evidence leads.", "sample": "Follow with: “If that person is away for a month, what breaks — and what would we collect to make it visible to the Engine?”"}]}];
+const STORAGE_KEY = "lz-interview-evidence-questionnaire-v1";
+const root = document.getElementById("domains");
+const progress = document.getElementById("progress");
+
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
+
+function render(){
+  root.innerHTML = domains.map((d,di)=>`
+    <details class="domain" data-domain="${esc(d.id)}" ${di===0 ? "open":""}>
+      <summary>
+        <div class="domain-letter">${esc(d.id)}</div>
+        <div>
+          <div class="domain-title">${esc(d.id)} — ${esc(d.name)}</div>
+          <div class="domain-subtitle">${esc(d.subtitle)}</div>
+        </div>
+        <div class="chev">⌄</div>
+      </summary>
+      <div class="domain-intro"><strong>Purpose:</strong> ${esc(d.purpose)}</div>
+      <div class="question-list">
+        ${d.questions.map(q=>`
+          <article class="question" data-qid="${esc(q.id)}">
+            <div class="q-top">
+              <div class="q-id">${esc(q.id)}</div>
+              <div class="q-text">${esc(q.q)}</div>
+            </div>
+            <div class="refs">Criteria references: ${esc(q.refs)}</div>
+            <div class="guidance">
+              <div class="hint"><strong>Interviewer hints</strong>${esc(q.hint)}</div>
+              <div class="sample"><strong>Probe / sample</strong>${esc(q.sample)}</div>
+            </div>
+            <div class="answer-wrap">
+              <div class="answer-label">Answer / interview observation</div>
+              <textarea class="answer" data-answer="${esc(q.id)}" placeholder="Capture the participant’s explanation, examples, exceptions and context..."></textarea>
+              <div class="answer-label">Evidence / artifact lead <span style="font-weight:500;text-transform:none;letter-spacing:0">(optional — prefer control-plane export)</span></div>
+              <textarea class="evidence" data-evidence="${esc(q.id)}" placeholder="Inventory export, policy assignment, role list, log sink, IaC repo, document, owner or other source to collect / verify..."></textarea>
+            </div>
+          </article>`).join("")}
+      </div>
+    </details>`).join("");
+  bindAutosize();
+  updateProgress();
+}
+
+function autosize(el){
+  el.style.height="auto";
+  el.style.height=Math.max(el.classList.contains("evidence")?58:el.id==="globalNotes"?240:el.hasAttribute("data-meta")?74:116, el.scrollHeight+2)+"px";
+}
+function bindAutosize(){
+  document.querySelectorAll("textarea").forEach(t=>{
+    autosize(t);
+    t.addEventListener("input",()=>autosize(t));
+  });
+}
+
+function collect(){
+  const meta={};
+  document.querySelectorAll("[data-meta]").forEach(el=>meta[el.id]=el.value);
+  const answers={};
+  document.querySelectorAll("[data-answer]").forEach(el=>{
+    const id=el.dataset.answer;
+    const ev=document.querySelector(`[data-evidence="${CSS.escape(id)}"]`);
+    answers[id]={answer:el.value,evidence:ev?ev.value:""};
+  });
+  return {version:1,saved_at:new Date().toISOString(),meta,answers};
+}
+
+let saveTimer;
+function save(show=true){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(collect()));
+  const state=document.getElementById("saveState");
+  if(show){
+    state.textContent="Saved locally · "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  } else {
+    state.textContent="Autosaved · "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  }
+  updateProgress();
+}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>save(false),350);
+}
+
+function restore(data){
+  if(!data)return;
+  if(data.meta){
+    Object.entries(data.meta).forEach(([id,val])=>{
+      const el=document.getElementById(id); if(el) el.value=val??"";
+    });
+  }
+  if(data.answers){
+    Object.entries(data.answers).forEach(([id,obj])=>{
+      const a=document.querySelector(`[data-answer="${CSS.escape(id)}"]`);
+      const e=document.querySelector(`[data-evidence="${CSS.escape(id)}"]`);
+      if(a)a.value=obj?.answer??"";
+      if(e)e.value=obj?.evidence??"";
+    });
+  }
+  bindAutosize(); updateProgress();
+}
+function loadLocal(){
+  try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)restore(JSON.parse(raw));}catch(e){}
+}
+function updateProgress(){
+  progress.innerHTML='<span class="progress-label">Answered</span>'+domains.map(d=>{
+    const done=d.questions.filter(q=>{
+      const el=document.querySelector(`[data-answer="${CSS.escape(q.id)}"]`);
+      return el && el.value.trim().length>0;
+    }).length;
+    const cls=done===d.questions.length?"pill done":"pill";
+    return `<span class="${cls}">${d.id} ${done}/${d.questions.length}</span>`;
+  }).join("");
+}
+function fileName(){
+  const customer=(document.getElementById("customer").value||"Customer").trim().replace(/[^a-z0-9-_]+/gi,"_");
+  const date=document.getElementById("date").value||new Date().toISOString().slice(0,10);
+  return `Landing_Zone_Interview_Evidence_${customer}_${date}.json`;
+}
+
+render();
+loadLocal();
+
+document.addEventListener("input",e=>{
+  if(e.target.matches("input,textarea")){scheduleSave();updateProgress();}
+});
+
+document.getElementById("saveBtn").addEventListener("click",()=>save(true));
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  save(true);
+  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fileName();a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+});
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const data=JSON.parse(await f.text()); restore(data); save(true);
+  }catch(err){alert("The selected file could not be imported as a questionnaire session.");}
+  e.target.value="";
+});
+let expanded=false;
+document.getElementById("expandBtn").addEventListener("click",()=>{
+  expanded=!expanded;
+  document.querySelectorAll(".domain").forEach(d=>d.open=expanded);
+  document.getElementById("expandBtn").textContent=expanded?"Collapse all":"Expand all";
+});
+document.getElementById("printBtn").addEventListener("click",()=>{
+  document.querySelectorAll(".domain").forEach(d=>d.open=true);
+  save(false);
+  window.print();
+});
+document.getElementById("clearBtn").addEventListener("click",()=>{
+  if(!confirm("Clear all workshop details, answers, evidence leads and notes from this browser?"))return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.querySelectorAll("input,textarea").forEach(el=>el.value="");
+  bindAutosize();updateProgress();document.getElementById("saveState").textContent="Cleared";
+});
+window.addEventListener("beforeprint",()=>document.querySelectorAll(".domain").forEach(d=>d.open=true));
+</script>
+</body>
+</html>
