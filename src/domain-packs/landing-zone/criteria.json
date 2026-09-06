@@ -1,0 +1,649 @@
+{
+  "version": "1.0.0",
+  "domain": "Landing Zone Assessment",
+  "stream": "capability",
+  "description": "40 frozen Landing Zone capabilities across design areas A–H. Each criterion has three sub-criteria.",
+  "source": "Landing_Zone_Assessment_Engine_Criteria_Batch_Definitions.html",
+  "criteria": [
+    {
+      "id": "A1",
+      "intent_id": "authoritative-org-root",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "capability",
+      "pair": "AP-A1",
+      "title": "Authoritative organization root",
+      "description": "A single declared tenant, organization or management account is the landing-zone root. Production resources do not live in unmanaged side-tenants. The root is inventoryable.",
+      "sub_criteria": [
+        "Is there a single declared tenant, organization or management account that is the landing-zone root?",
+        "Can that root be exported as a hierarchy (management groups, OUs or folders) with a named owner?",
+        "Are production workloads forbidden from existing outside that root?"
+      ]
+    },
+    {
+      "id": "A2",
+      "intent_id": "management-plane-hygiene",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "capability",
+      "pair": "AP-A2",
+      "title": "Management-plane hygiene",
+      "description": "The management, payer or bootstrap plane runs only organization services. Application workloads, data and developer sandboxes are not hosted there.",
+      "sub_criteria": [
+        "Is the management, payer or bootstrap account free of application workloads?",
+        "Are only organization-level services (identity, logging, policy, connectivity) deployed there?",
+        "Is access to that plane separately controlled and reviewed?"
+      ]
+    },
+    {
+      "id": "A3",
+      "intent_id": "billing-contract-alignment",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "capability",
+      "pair": "AP-A3",
+      "title": "Billing and contract alignment",
+      "description": "Commercial construct (EA/MCA, payer, billing account) matches the technical organization. Cost, invoice and account ownership can be named.",
+      "sub_criteria": [
+        "Is the billing account, payer or enrollment mapped to the same organization as the technical hierarchy?",
+        "Can every in-scope subscription, account or project be attributed to a billing owner?",
+        "Are orphaned billing scopes (unused enrollments, extra payers) identified and closed or explicitly out of scope?"
+      ]
+    },
+    {
+      "id": "A4",
+      "intent_id": "administrative-boundary",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "capability",
+      "pair": "AP-A4",
+      "title": "Administrative boundary clarity",
+      "description": "Partner, guest, sandbox and merged-company tenants are named. The assessment scope is a declared set of roots, not 'whatever we found'.",
+      "sub_criteria": [
+        "Are partner, guest, sandbox and acquisition tenants explicitly in-scope or out-of-scope?",
+        "Is there an inventory of extra directories, organizations or billing accounts?",
+        "Does Step 0 lock the in-scope roots before scoring begins?"
+      ]
+    },
+    {
+      "id": "A5",
+      "intent_id": "root-recovery",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "capability",
+      "pair": "AP-A5",
+      "title": "Root recovery and emergency access",
+      "description": "Loss of the cloud-root identity does not mean loss of the estate. Emergency access is designed, stored, tested and monitored — not a password in a ticket.",
+      "sub_criteria": [
+        "Is there a documented emergency-access path to the tenant, management account or org super-admin?",
+        "Is that path stored offline or in a vault, with dual control, and tested on a cadence?",
+        "Are root/emergency authentications logged and alerted?"
+      ]
+    },
+    {
+      "id": "B1",
+      "intent_id": "federated-workforce-identity",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "capability",
+      "pair": "AP-B1",
+      "title": "Federated workforce identity",
+      "description": "Workforce access uses the corporate identity provider. Cloud-local users are not the primary human identity. Joiners, movers and leavers follow the IdP.",
+      "sub_criteria": [
+        "Is workforce sign-in federated from the corporate identity provider to every in-scope cloud?",
+        "Are cloud-local human users the exception, inventoried, and expiry-bound?",
+        "Does leaver processing in the IdP actually remove cloud access?"
+      ]
+    },
+    {
+      "id": "B2",
+      "intent_id": "privileged-access-timebound",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "capability",
+      "pair": "AP-B2",
+      "title": "Time-bound privileged access",
+      "description": "Privileged roles are eligible, activated, time-bound and logged. Standing Global Admin, AdministratorAccess or organizationAdmin for humans is not the operating model.",
+      "sub_criteria": [
+        "Are privileged roles eligible rather than permanently assigned to humans?",
+        "Is activation time-bound, approved or justified, and written to an audit log?",
+        "Is standing owner-equivalent access on humans treated as an exception with an expiry?"
+      ]
+    },
+    {
+      "id": "B3",
+      "intent_id": "workload-identity",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "capability",
+      "pair": "AP-B3",
+      "title": "Workload identity without long-lived keys",
+      "description": "Compute, pipelines and services authenticate with federated or managed identities. Long-lived access keys and downloaded JSON keys are not the default.",
+      "sub_criteria": [
+        "Do platform and application workloads use managed or federated identities rather than stored keys?",
+        "Are remaining long-lived keys inventoried, aged, and on a removal path?",
+        "Do CI/CD platforms federate into the cloud rather than store cloud secrets?"
+      ]
+    },
+    {
+      "id": "B4",
+      "intent_id": "least-privilege-inheritance",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "capability",
+      "pair": "AP-B4",
+      "title": "Least-privilege inheritance",
+      "description": "Role assignment follows the hierarchy. Owner-equivalent at tenant, org or management-group root is rare, named, and not used for daily work.",
+      "sub_criteria": [
+        "Are role assignments scoped to the landing zone or workload, not the organization root, by default?",
+        "Is Owner / AdministratorAccess / roles/owner at root limited to a break-glass set?",
+        "Can the platform show who has owner-equivalent rights, where, and why?"
+      ]
+    },
+    {
+      "id": "B5",
+      "intent_id": "break-glass-monitored",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "capability",
+      "pair": "AP-B5",
+      "title": "Monitored break-glass",
+      "description": "Emergency access exists, is dual-controlled, is unused in daily operations, and fires a detection when used.",
+      "sub_criteria": [
+        "Do named break-glass identities exist, with dual control, outside normal federation failure modes?",
+        "Are they excluded from daily use by policy and culture?",
+        "Does use generate a high-severity alert within minutes?"
+      ]
+    },
+    {
+      "id": "C1",
+      "intent_id": "hierarchy-encodes-policy",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "capability",
+      "pair": "AP-C1",
+      "title": "Hierarchy that encodes policy",
+      "description": "Management groups, OUs or folders are the policy inheritance spine. Placement of a workload decides its guardrails, not a wiki page.",
+      "sub_criteria": [
+        "Does every in-scope subscription, account or project sit under a designed hierarchy node?",
+        "Is policy inherited from those nodes rather than applied one-by-one as a hobby?",
+        "Can the platform explain what moving a workload to another node would change?"
+      ]
+    },
+    {
+      "id": "C2",
+      "intent_id": "platform-vs-app-lz",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "capability",
+      "pair": "AP-C2",
+      "title": "Platform versus application landing zones",
+      "description": "Identity, connectivity, management and security sit in platform landing zones. Applications sit in application landing zones that consume those services.",
+      "sub_criteria": [
+        "Are platform services (identity, hub network, logging, security) separated from application workloads?",
+        "Do application landing zones consume shared services rather than rebuild them?",
+        "Is ownership of platform vs application landing zones named?"
+      ]
+    },
+    {
+      "id": "C3",
+      "intent_id": "naming-tagging-enforced",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "capability",
+      "pair": "AP-C3",
+      "title": "Naming and tagging enforced",
+      "description": "A naming and tagging standard exists, is machine-enforced at vending time, and untagged or illegally named resources are visible as exceptions.",
+      "sub_criteria": [
+        "Is there a documented naming and tagging standard for subscriptions, accounts, projects and resources?",
+        "Is it enforced at create-time (policy, SCP or vending pipeline), not only in a slide?",
+        "Are violations tracked and remediated rather than accepted as noise?"
+      ]
+    },
+    {
+      "id": "C4",
+      "intent_id": "governed-vending",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "capability",
+      "pair": "AP-C4",
+      "title": "Governed subscription / account / project vending",
+      "description": "New isolation units are created by a pipeline or service catalog, with identity, network, policy and logging attached at birth — not by a portal click and a hope.",
+      "sub_criteria": [
+        "Are new subscriptions, accounts or projects created through a vending path rather than ad-hoc portal clicks?",
+        "Does the vended unit land in the correct hierarchy node with baseline policy, identity and logging?",
+        "Can the platform show the last N vended units and their owners?"
+      ]
+    },
+    {
+      "id": "C5",
+      "intent_id": "environment-separation",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "capability",
+      "pair": "AP-C5",
+      "title": "Environment separation",
+      "description": "Production is a different landing-zone node from non-production. Blast radius, identity and data paths respect that line.",
+      "sub_criteria": [
+        "Are production and non-production in distinct hierarchy nodes or landing zones?",
+        "Can non-production identities not administer production by default?",
+        "Is data-path isolation (network, identity, key) designed, not accidental?"
+      ]
+    },
+    {
+      "id": "D1",
+      "intent_id": "hub-with-inspection",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "capability",
+      "pair": "AP-D1",
+      "title": "Hub topology with inspection",
+      "description": "A designed hub (hub-spoke, Virtual WAN, Transit Gateway, Shared VPC) exists. Spoke-to-spoke and egress paths are intentional. Inspection is a placement, not a hope.",
+      "sub_criteria": [
+        "Is there a designed hub that spokes must use for shared and egress traffic?",
+        "Are inspection points (firewall, IDS, web proxy) placed on those forced paths?",
+        "Is spoke-to-spoke traffic an explicit pattern rather than a mesh accident?"
+      ]
+    },
+    {
+      "id": "D2",
+      "intent_id": "hybrid-connectivity-owned",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "capability",
+      "pair": "AP-D2",
+      "title": "Owned hybrid connectivity",
+      "description": "ExpressRoute, Direct Connect, Interconnect, VPN and SD-WAN land in the platform, not in an application subscription. Ownership, redundancy and failover are named.",
+      "sub_criteria": [
+        "Do hybrid circuits terminate in a platform connectivity landing zone?",
+        "Are redundancy, failover and who-to-call documented and tested?",
+        "Can application teams not create competing hybrid paths as a side door?"
+      ]
+    },
+    {
+      "id": "D3",
+      "intent_id": "central-dns",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "capability",
+      "pair": "AP-D3",
+      "title": "Central DNS",
+      "description": "Private DNS is a platform service. Resolution of on-premises, PaaS private endpoints and landing-zone names is consistent. Split-brain is a tracked exception.",
+      "sub_criteria": [
+        "Is private DNS administered as a platform service rather than per application?",
+        "Do private endpoints and hybrid names resolve consistently in every landing zone?",
+        "Are rogue DNS forwarders inventoried?"
+      ]
+    },
+    {
+      "id": "D4",
+      "intent_id": "private-by-default",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "capability",
+      "pair": "AP-D4",
+      "title": "Private-by-default",
+      "description": "Public endpoints are denied or exception-gated. PaaS public access is off unless an expiry-bound exemption exists.",
+      "sub_criteria": [
+        "Is public network access denied by policy for relevant services unless exempted?",
+        "Are remaining public endpoints inventoried with owner and expiry?",
+        "Is internet egress a controlled hub path rather than every NIC for itself?"
+      ]
+    },
+    {
+      "id": "D5",
+      "intent_id": "lz-segmentation",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "capability",
+      "pair": "AP-D5",
+      "title": "Segmentation by landing zone",
+      "description": "Application landing zones are network segments, not names. Identity and network together define who can talk to whom.",
+      "sub_criteria": [
+        "Does each application landing zone have a defined network segment and peering model?",
+        "Are east-west rules explicit (allow-lists), not 'all spokes can talk'?",
+        "Is production segmented from non-production on the wire, not only in a naming standard?"
+      ]
+    },
+    {
+      "id": "E1",
+      "intent_id": "preventive-baseline",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "capability",
+      "pair": "AP-E1",
+      "title": "Preventive security baseline",
+      "description": "A defined security baseline is enforced at the landing zone (policy, SCP, org policy), not offered as a starter template that teams may ignore.",
+      "sub_criteria": [
+        "Is a security baseline assigned to every in-scope landing zone at birth?",
+        "Are high-severity misconfigurations denied rather than only reported?",
+        "Is the baseline versioned and owned by security + platform together?"
+      ]
+    },
+    {
+      "id": "E2",
+      "intent_id": "central-threat-detection",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "capability",
+      "pair": "AP-E2",
+      "title": "Central threat detection",
+      "description": "Cloud-native detections (Defender, GuardDuty, SCC) are on at organization scope. Findings land in a SOC path, not in a per-subscription inbox nobody reads.",
+      "sub_criteria": [
+        "Are native threat-detection services enabled at organization or tenant scope?",
+        "Do findings route to a named SOC or detection owner with an SLA?",
+        "Are silent subscriptions, accounts or projects (detection off) inventoried as exceptions?"
+      ]
+    },
+    {
+      "id": "E3",
+      "intent_id": "encryption-key-management",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "capability",
+      "pair": "AP-E3",
+      "title": "Encryption and key management",
+      "description": "Data is encrypted with platform-managed or customer-managed keys that the landing zone actually uses. Keys are not in code, and CMK is not a slide.",
+      "sub_criteria": [
+        "Is encryption at rest required by policy for data stores in scope?",
+        "If CMK is claimed, are keys in a platform key landing zone with rotation and access logs?",
+        "Are plaintext secrets or unencrypted disks treated as findings, not style?"
+      ]
+    },
+    {
+      "id": "E4",
+      "intent_id": "secrets-management",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "capability",
+      "pair": "AP-E4",
+      "title": "Secrets management",
+      "description": "Secrets live in a vault service, are rotated, and are not the identity. Pipeline variables and wikis are not the secret store.",
+      "sub_criteria": [
+        "Is there a mandated secret store for platform and application secrets?",
+        "Are secrets rotated, access-logged, and free of long-lived cloud keys used as identity?",
+        "Do code, wikis and CI variables still hold production secrets?"
+      ]
+    },
+    {
+      "id": "E5",
+      "intent_id": "security-ops-placement",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "capability",
+      "pair": "AP-E5",
+      "title": "Security operations placement",
+      "description": "Security tooling has a landing-zone home (audit/security subscription) and a RACI with the SOC. Security is not 'a marketplace product in each app team'.",
+      "sub_criteria": [
+        "Is there a platform security landing zone that hosts org-level security services?",
+        "Is the SOC / CSIRT relationship named, including who triages cloud findings?",
+        "Are overlapping security tools inventoried rather than silently duplicated?"
+      ]
+    },
+    {
+      "id": "F1",
+      "intent_id": "central-activity-logs",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "capability",
+      "pair": "AP-F1",
+      "title": "Central activity and audit logs",
+      "description": "Organization activity (Entra, CloudTrail, Cloud Audit Logs) is exported to a platform log landing zone with retention and immutability appropriate to the risk.",
+      "sub_criteria": [
+        "Are tenant, organization or account activity logs exported centrally, not left in each landing zone?",
+        "Is retention and immutability defined and met?",
+        "Can security and platform query those logs without asking application teams?"
+      ]
+    },
+    {
+      "id": "F2",
+      "intent_id": "inventory-truth",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "capability",
+      "pair": "AP-F2",
+      "title": "Inventory as landing-zone truth",
+      "description": "The platform can list isolation units, policy assignments and network paths from APIs this week. Spreadsheets are a cache, not the system of record.",
+      "sub_criteria": [
+        "Can the platform export the current hierarchy, policy assignments and identity bindings on demand?",
+        "Is that export used as assessment evidence rather than a slide from last year?",
+        "Are unknown isolation units a finding, not a surprise in the workshop?"
+      ]
+    },
+    {
+      "id": "F3",
+      "intent_id": "baseline-monitoring",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "capability",
+      "pair": "AP-F3",
+      "title": "Baseline monitoring and alerting",
+      "description": "Platform health (identity, network, policy, logging pipeline) has monitors. Application APM is welcome; it is not a substitute for platform observability.",
+      "sub_criteria": [
+        "Are there monitors on the logging pipeline, hybrid connectivity, policy compliance and identity health?",
+        "Do those alerts reach a platform on-call, not only an application team?",
+        "Is 'we have Azure Monitor / CloudWatch / Cloud Monitoring' evidenced for the platform plane, not only for one app?"
+      ]
+    },
+    {
+      "id": "F4",
+      "intent_id": "platform-backup",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "capability",
+      "pair": "AP-F4",
+      "title": "Platform backup and restore",
+      "description": "The landing zone itself — identity config, DNS, policy, IaC state, key material — has a restore story. Application backup does not restore the foundation.",
+      "sub_criteria": [
+        "Is there a restore path for platform configuration (IaC state, DNS, policy, identity)?",
+        "Are key-vault / KMS and secret restores tested?",
+        "Has a platform restore been rehearsed, not only documented?"
+      ]
+    },
+    {
+      "id": "F5",
+      "intent_id": "update-agent-baseline",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "capability",
+      "pair": "AP-F5",
+      "title": "Update and agent baseline",
+      "description": "Guest OS, agents, and policy deployments that the platform owns have an update path. Snowflake images are exceptions with owners.",
+      "sub_criteria": [
+        "Is there a platform-owned update path for OS, agents or policy guest configuration in scope?",
+        "Are unmanaged agents and golden-image drift visible?",
+        "Is 'we use Kubernetes so this does not apply' evidenced, not assumed, where relevant?"
+      ]
+    },
+    {
+      "id": "G1",
+      "intent_id": "policy-inheritance",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "capability",
+      "pair": "AP-G1",
+      "title": "Policy inheritance from the root",
+      "description": "Guardrails are assigned at hierarchy nodes and inherited. Per-subscription policy as a cottage industry is the exception, not the system.",
+      "sub_criteria": [
+        "Are core guardrails assigned at management group, OU or folder — not only on individual isolation units?",
+        "Can the platform show effective policy on a given landing zone?",
+        "Are conflicting assignments visible and owned?"
+      ]
+    },
+    {
+      "id": "G2",
+      "intent_id": "deny-insecure-defaults",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "capability",
+      "pair": "AP-G2",
+      "title": "Deny for insecure defaults",
+      "description": "A small, named set of high-blast-radius actions is denied (public data, disable logging, leave the org, user-access-admin). Audit-only is not a deny.",
+      "sub_criteria": [
+        "Is there a named deny set for high-blast-radius misconfigurations?",
+        "Are those denies in force on production landing zones, not only in a sandbox?",
+        "Is audit-only clearly labelled as detection, not prevention?"
+      ]
+    },
+    {
+      "id": "G3",
+      "intent_id": "exemption-with-expiry",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "capability",
+      "pair": "AP-G3",
+      "title": "Exemptions with owner and expiry",
+      "description": "Every exemption has a named owner, a reason, an expiry and a review. Permanent 'exclude this MG' is itself a finding.",
+      "sub_criteria": [
+        "Are policy exemptions recorded with owner, reason and expiry?",
+        "Is there a review cadence that actually retires them?",
+        "Are root-level exclusions treated as landing-zone risk, not housekeeping?"
+      ]
+    },
+    {
+      "id": "G4",
+      "intent_id": "cost-tag-guardrails",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "capability",
+      "pair": "AP-G4",
+      "title": "Cost and tag guardrails",
+      "description": "The landing zone enforces the commercial minimum: required tags, allowed regions, maybe budgets. FinOps is a consumer of this; it is not a substitute for it.",
+      "sub_criteria": [
+        "Are required tags or labels enforced at vending or by policy?",
+        "Are allowed regions constrained?",
+        "Are budgets or cost-anomaly signals attached to landing zones with owners?"
+      ]
+    },
+    {
+      "id": "G5",
+      "intent_id": "compliance-export",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "capability",
+      "pair": "AP-G5",
+      "title": "Compliance evidence export",
+      "description": "Compliance is a query (policy compliance, Config, SCC posture), not a screenshot of a dashboard from last quarter.",
+      "sub_criteria": [
+        "Can the platform export current compliance against the assigned baseline?",
+        "Is that export used as assessment evidence?",
+        "Are non-compliant resources owned, not only counted?"
+      ]
+    },
+    {
+      "id": "H1",
+      "intent_id": "platform-as-code",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "capability",
+      "pair": "AP-H1",
+      "title": "Platform as code",
+      "description": "Hierarchy, policy, identity grants, hub network and logging sinks are in versioned IaC with review. The portal is for break-glass, not for the weekly change.",
+      "sub_criteria": [
+        "Are the platform landing zones defined in versioned IaC (Terraform, Bicep, CDK, Pulumi, Config Connector)?",
+        "Do reviews and promotions follow a pipeline, not a shared admin login?",
+        "Is portal change of platform resources treated as drift?"
+      ]
+    },
+    {
+      "id": "H2",
+      "intent_id": "vending-pipeline",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "capability",
+      "pair": "AP-H2",
+      "title": "Vending pipeline",
+      "description": "A request becomes a landing zone with identity, network, policy and logging already on. Human time is approval, not clicking 40 blades.",
+      "sub_criteria": [
+        "Is there a pipeline or catalog item that vends a subscription, account or project into the right node?",
+        "Does the vended unit boot with the baseline attached?",
+        "Is the request-to-ready time measured?"
+      ]
+    },
+    {
+      "id": "H3",
+      "intent_id": "drift-detection",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "capability",
+      "pair": "AP-H3",
+      "title": "Drift detection",
+      "description": "The platform notices when reality leaves the code. Drift is a ticket with an owner, not a shrug.",
+      "sub_criteria": [
+        "Is there a drift signal on platform IaC or on policy/config?",
+        "Does drift create a reviewable event rather than a silent overwrite?",
+        "Are recurring ClickOps offenders visible?"
+      ]
+    },
+    {
+      "id": "H4",
+      "intent_id": "self-service-guardrailed",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "capability",
+      "pair": "AP-H4",
+      "title": "Guardrailed self-service",
+      "description": "Application teams can get a landing zone or a spoke without a platform engineer performing the ritual. Guardrails do the saying-no.",
+      "sub_criteria": [
+        "Can an application team request a compliant landing zone without a platform engineer clicking it into existence?",
+        "Are denied requests explained by policy, not by personality?",
+        "Is self-service actually used, or is it a demo?"
+      ]
+    },
+    {
+      "id": "H5",
+      "intent_id": "platform-change-management",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "capability",
+      "pair": "AP-H5",
+      "title": "Platform change management",
+      "description": "Changes to identity, hub, policy and logging have a path, a reviewer, and a way to stop a bad change. Hotfixes are logged as such.",
+      "sub_criteria": [
+        "Is there a defined change path for the platform landing zones?",
+        "Are emergency hotfixes recorded and followed by code catch-up?",
+        "Can a bad policy assignment be rolled back from code, not from memory?"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,663 @@
+{
+  "version": "1.0.0",
+  "description": "48-question interview export mapping. Answers are Class 3 evidence leads, never scores.",
+  "source": "Landing_Zone_Assessment_Interview_Evidence_Discovery_Questionnaire.html",
+  "evidence_class": "workshop",
+  "questions": [
+    {
+      "id": "A-Q1",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "prompt": "If I asked you to point at the landing-zone root today — tenant, organization or management account — what would you point at, and who owns it?",
+      "hint": "Explore named owners, extra directories, partner or acquisition clouds, and whether production exists outside the declared root. Distinguish the commercial payer from the technical organization.",
+      "sample": "Useful evidence leads: tenant/org ID, hierarchy export, billing-account mapping, named platform owner.",
+      "referenced_criterion_ids": [
+        "A1",
+        "A4",
+        "AP-A1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "A-Q2",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "prompt": "What cloud estates, billing relationships or directories exist that are not on that map?",
+      "hint": "Explore leftover EA enrollments, personal tenants, standalone accounts, no-organization projects, sandbox clouds that grew up, and merged-company remnants.",
+      "sample": "Probe: “If finance forwarded last month’s invoices, would any of them surprise the platform team?”",
+      "referenced_criterion_ids": [
+        "A4",
+        "AP-A1",
+        "AP-A3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "A-Q3",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "prompt": "What actually runs in the management, payer or bootstrap plane?",
+      "hint": "Explore application workloads, data, developer sandboxes, and who has standing rights there. The management plane should host organization services, not business systems.",
+      "sample": "Ask them to list the last three resources created in that account — and who created them.",
+      "referenced_criterion_ids": [
+        "A2",
+        "AP-A2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "A-Q4",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "prompt": "How do billing, contract and technical ownership line up — and where do they disagree?",
+      "hint": "Explore invoice owners vs landing-zone owners, orphaned subscriptions, and cost allocation blocked by structure rather than tagging.",
+      "sample": "Useful evidence leads: billing export, enrollment/payer view, subscription-to-MG or account-to-OU map.",
+      "referenced_criterion_ids": [
+        "A3",
+        "AP-A3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "A-Q5",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "prompt": "If the person who can recover the cloud root left tomorrow, what would still work?",
+      "hint": "Explore break-glass, dual control, MFA on root/super-admin, where credentials live, and whether use would be noticed. Shared Global Admin or unused root keys are in scope.",
+      "sample": "Probe: “When was emergency access last tested — and who would see the log?”",
+      "referenced_criterion_ids": [
+        "A5",
+        "AP-A5",
+        "AP-A4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "A-Q6",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "prompt": "How do you know, this week, that you have a complete list of subscriptions, accounts or projects?",
+      "hint": "Explore API inventory vs spreadsheet vs workshop memory. New isolation units that first appear on an invoice are a finding.",
+      "sample": "Useful evidence leads: Resource Graph / Organizations / Asset Inventory export dated this week.",
+      "referenced_criterion_ids": [
+        "A1",
+        "F2",
+        "AP-F2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "B-Q1",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "prompt": "How does a person get access to the cloud, and how is that access taken away?",
+      "hint": "Explore federation vs cloud-local users, shared logins, leaver processing, and whether IdP offboarding actually removes cloud rights.",
+      "sample": "Ask for the last leaver: what was revoked, by whom, and how would you prove it?",
+      "referenced_criterion_ids": [
+        "B1",
+        "AP-B2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "B-Q2",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "prompt": "How is privileged access granted, time-bounded, reviewed — and who still has it standing?",
+      "hint": "Explore PIM / Identity Center / PAM, approval, session length, Access Reviews, and standing Global Admin, AdministratorAccess or organizationAdmin on humans.",
+      "sample": "Useful evidence leads: eligible-role export, standing-assignment list, activation log, access review.",
+      "referenced_criterion_ids": [
+        "B2",
+        "AP-B1",
+        "AP-B4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "B-Q3",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "prompt": "How do workloads, pipelines and automation authenticate — without a person in the loop?",
+      "hint": "Explore managed identities, workload federation, IRSA, attached service accounts vs stored client secrets, IAM user keys and downloaded JSON keys.",
+      "sample": "Probe: “What would we find if we searched the CI variables for a cloud key?”",
+      "referenced_criterion_ids": [
+        "B3",
+        "AP-B3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "B-Q4",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "prompt": "Who has owner-equivalent rights at tenant, organization or management-group root, and why?",
+      "hint": "Explore app teams granted Owner ‘so they can work’, custom roles vs built-in Owner, and whether those grants can disable policy, logging or networking.",
+      "sample": "Useful evidence leads: role-assignment export at root / MG / org, SSO permission-set list.",
+      "referenced_criterion_ids": [
+        "B4",
+        "AP-B4",
+        "AP-B1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "B-Q5",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "prompt": "What is the break-glass path, who knows it, and would you know if it was used?",
+      "hint": "Explore dual control, exclusion from daily use, alerting, and whether emergency access is the unofficial admin account.",
+      "sample": "Probe: “Show me the alert that fires when break-glass signs in.”",
+      "referenced_criterion_ids": [
+        "B5",
+        "AP-B5",
+        "A5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "B-Q6",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "prompt": "Where do local cloud users, shared mailboxes or long-lived keys still exist — and why have they survived?",
+      "hint": "Explore exceptions with owners and expiry vs tribal convenience. Capture the story; then ask what inventory would confirm it.",
+      "sample": "Ask for one ‘temporary’ key or user that is more than a year old.",
+      "referenced_criterion_ids": [
+        "AP-B2",
+        "AP-B3",
+        "B1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "C-Q1",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "prompt": "Walk me through the hierarchy. What does placing a workload in a given node actually change?",
+      "hint": "Explore management groups / OUs / folders as a policy spine vs a naming scheme. If moving a workload changes nothing, the hierarchy is a filing cabinet.",
+      "sample": "Useful evidence leads: hierarchy export, policy assignments per node, a recent move request.",
+      "referenced_criterion_ids": [
+        "C1",
+        "AP-C1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "C-Q2",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "prompt": "Where does the platform landing zone end and an application landing zone begin?",
+      "hint": "Explore identity, connectivity, logging, security vs application workloads. Listen for apps hosted in connectivity or management subscriptions.",
+      "sample": "Probe: “If we rebuilt the hub, which business systems would we have to migrate first?”",
+      "referenced_criterion_ids": [
+        "C2",
+        "AP-C2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "C-Q3",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "prompt": "How is a new subscription, account or project born — from request to ready?",
+      "hint": "Explore vending pipeline vs email-to-a-named-person vs portal click. Capture cycle time, who clicks, and what baseline is attached at birth.",
+      "sample": "Ask for the last three isolation units created and whether they landed in the right node with policy and logging on.",
+      "referenced_criterion_ids": [
+        "C4",
+        "AP-C4",
+        "H2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "C-Q4",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "prompt": "How are naming and tags supposed to work — and what happens when they do not?",
+      "hint": "Explore documented standard vs create-time enforcement, untagged spend, and whether violations are noise or a ticket.",
+      "sample": "Probe: “Deploy something without the required tags. What stops you?”",
+      "referenced_criterion_ids": [
+        "C3",
+        "AP-C3",
+        "G4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "C-Q5",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "prompt": "How are production and non-production kept apart — on paper, in IAM, and on the wire?",
+      "hint": "Explore shared subscriptions with ‘prod’ resource groups, shared admin roles, and playground identities that can reach production data.",
+      "sample": "Useful evidence leads: prod vs nonprod node, role assignments, peering / Shared VPC rules.",
+      "referenced_criterion_ids": [
+        "C5",
+        "AP-C5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "C-Q6",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "prompt": "What happens when someone creates a subscription, account or project in the portal outside the pattern?",
+      "hint": "Explore detection, follow-up, whether it is possible at all, and whether ClickOps is unofficially accepted.",
+      "sample": "Ask for a recent snowflake and whether it is still running.",
+      "referenced_criterion_ids": [
+        "AP-C4",
+        "AP-H1",
+        "H3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "D-Q1",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "prompt": "Where is the hub, and what is actually forced through it?",
+      "hint": "Explore hub-spoke / vWAN / TGW / Shared VPC, inspection placement, spoke-to-spoke defaults, and teams with their own internet edge.",
+      "sample": "Useful evidence leads: hub resource IDs, peering/attachment list, firewall policy, public-IP inventory.",
+      "referenced_criterion_ids": [
+        "D1",
+        "AP-D1",
+        "AP-D2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "D-Q2",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "prompt": "Who owns hybrid connectivity, and can an application team create a side door?",
+      "hint": "Explore ExpressRoute / Direct Connect / Interconnect / VPN landing in the platform vs in an app subscription. Redundancy and who-to-call belong here.",
+      "sample": "Probe: “Show me every circuit and VPN. Which of them did platform not approve?”",
+      "referenced_criterion_ids": [
+        "D2",
+        "AP-D5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "D-Q3",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "prompt": "How does a private name resolve in a new landing zone — including on-premises and private endpoints?",
+      "hint": "Explore central Private DNS / Route 53 Resolver / Cloud DNS vs per-team zones, hosts files, and ‘it works on my laptop’.",
+      "sample": "Ask them to resolve a private-endpoint name from a spoke that was vended last quarter.",
+      "referenced_criterion_ids": [
+        "D3",
+        "AP-D3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "D-Q4",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "prompt": "When is a public endpoint allowed, who approves it, and how does it die?",
+      "hint": "Explore deny policies vs honour system, public storage / K8s API / jump hosts, exception expiry, and whether a current public inventory exists.",
+      "sample": "Useful evidence leads: deny policy, public-IP/resource graph, exemption with owner and date.",
+      "referenced_criterion_ids": [
+        "D4",
+        "AP-D4",
+        "G2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "D-Q5",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "prompt": "Can a non-production identity reach production on the network today?",
+      "hint": "Explore default spoke mesh, AllowVnetInbound, TGW default route tables, one big Shared VPC. Segmentation by naming is not segmentation.",
+      "sample": "Probe: “If a sandbox is compromised, what can it route to?”",
+      "referenced_criterion_ids": [
+        "D5",
+        "AP-D2",
+        "C5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "D-Q6",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "prompt": "If we deleted the network slide deck, could you redraw the topology from inventory this week?",
+      "hint": "Explore whether peerings, attachments and interconnects have owners, and whether ‘temporary’ paths are still in production.",
+      "sample": "Useful evidence leads: peering/attachment export, undocumented ER authorizations, leftover VIFs.",
+      "referenced_criterion_ids": [
+        "AP-D5",
+        "F2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "E-Q1",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "prompt": "What does the landing zone actually stop a team from doing — not merely report after the fact?",
+      "hint": "Explore deny vs audit-only, MCSB / SCPs / org policies, and whether a new landing zone can boot with the baseline off.",
+      "sample": "Probe: “Create a public storage account in production. What happens?”",
+      "referenced_criterion_ids": [
+        "E1",
+        "AP-E1",
+        "G2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "E-Q2",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "prompt": "Where do threat detections land, and who triages them with an SLA?",
+      "hint": "Explore Defender / GuardDuty / SCC at organization scope vs per-subscription islands, delegated admin, and findings nobody reads.",
+      "sample": "Useful evidence leads: org auto-enable, delegated security account, a finding ticket from last month.",
+      "referenced_criterion_ids": [
+        "E2",
+        "AP-E2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "E-Q3",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "prompt": "Where do keys and secrets actually live — vault, pipeline, wiki, or git?",
+      "hint": "Explore CMK claimed vs used, rotation, access logs, client secrets in CI, downloaded service-account keys, and secrets as identity.",
+      "sample": "Ask for one production secret’s home and its last rotation date.",
+      "referenced_criterion_ids": [
+        "E3",
+        "E4",
+        "AP-E3",
+        "AP-E4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "E-Q4",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "prompt": "Where does security tooling live, and how do platform and SOC share a finding?",
+      "hint": "Explore a security landing zone vs marketplace products per team, RACI, and overlapping tools.",
+      "sample": "Probe: “A high-severity cloud finding arrives at 02:00. Who owns it?”",
+      "referenced_criterion_ids": [
+        "E5",
+        "AP-E5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "E-Q5",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "prompt": "When does security review happen relative to a workload going live?",
+      "hint": "Explore questionnaires after production, findings without a landing-zone owner, and ‘we’ll add Defender later’.",
+      "sample": "Ask for the last three go-lives and whether the baseline was already on.",
+      "referenced_criterion_ids": [
+        "AP-E5",
+        "AP-E1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "E-Q6",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "prompt": "If an auditor asked for this week’s security posture of the landing zone, what would you export — not screenshot?",
+      "hint": "Explore Policy Insights / Config / SCC posture exports vs a dashboard PDF from last quarter.",
+      "sample": "Useful evidence leads: compliance export dated this week, with owners on non-compliant resources.",
+      "referenced_criterion_ids": [
+        "G5",
+        "E1",
+        "F2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "F-Q1",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "prompt": "Where do tenant, organization or account activity logs actually land, and for how long?",
+      "hint": "Explore org CloudTrail / MG diagnostic settings / org audit sinks vs logs left in the producing account at default retention.",
+      "sample": "Probe: “Could we reconstruct an admin action from 120 days ago without asking an app team?”",
+      "referenced_criterion_ids": [
+        "F1",
+        "AP-F1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "F-Q2",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "prompt": "When did you last export the live hierarchy, policy assignments and identity bindings?",
+      "hint": "Explore API-fresh inventory vs last year’s draw.io. Unknown isolation units discovered in a workshop are a finding.",
+      "sample": "Useful evidence leads: Resource Graph / Config aggregator / Asset Inventory taken for this assessment.",
+      "referenced_criterion_ids": [
+        "F2",
+        "AP-F2",
+        "A1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "F-Q3",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "prompt": "What is monitored on the platform plane — logging pipeline, hybrid path, policy engine — not on the applications?",
+      "hint": "Explore whether a failed log export, dead ExpressRoute or deleted diagnostic setting would page anyone.",
+      "sample": "Ask who is on-call for the landing zone itself.",
+      "referenced_criterion_ids": [
+        "F3",
+        "AP-F3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "F-Q4",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "prompt": "If the landing zone burned down, what restores identity, DNS, policy, IaC state and keys?",
+      "hint": "Explore application backup (often mature) vs platform restore (often a laptop). Ask whether a restore has been rehearsed.",
+      "sample": "Useful evidence leads: state-backend location, Key Vault / KMS backup, last restore test date.",
+      "referenced_criterion_ids": [
+        "F4",
+        "AP-F4",
+        "H1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "F-Q5",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "prompt": "How does the platform know what is running on the compute it hosts, and how is it updated?",
+      "hint": "Explore Update Manager / SSM / OS Config coverage, unmanaged images, and ‘we use Kubernetes so this does not apply’ as a claim to evidence.",
+      "sample": "Ask for agent coverage % and one fleet that is deliberately unmanaged.",
+      "referenced_criterion_ids": [
+        "F5",
+        "AP-F5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "F-Q6",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "prompt": "When was the last surprise — a missing account, a silent log gap, a platform alert that never fired?",
+      "hint": "This question is for tacit knowledge. Capture the story, then name the evidence that would have caught it.",
+      "sample": "Follow with: “What would we collect so the Engine can test whether that gap is still open?”",
+      "referenced_criterion_ids": [
+        "AP-F1",
+        "AP-F2",
+        "AP-F3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "G-Q1",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "prompt": "Which guardrails are assigned at the hierarchy — and which still live only in a standard or a deck?",
+      "hint": "Explore MG/OU/folder assignments vs per-subscription cottage industry vs FullAWSAccess / empty initiatives / default org policies.",
+      "sample": "Useful evidence leads: effective policy on one production landing zone, assignment export.",
+      "referenced_criterion_ids": [
+        "G1",
+        "G2",
+        "AP-G1",
+        "AP-G2"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "G-Q2",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "prompt": "Name the small set of things the platform will not allow in production.",
+      "hint": "Public data, disable logging, leave the org, user-access-admin, any region, no tags. If the list is empty, prevention is goodwill.",
+      "sample": "Probe: “Which of those denies are in force on production, not only in a lab?”",
+      "referenced_criterion_ids": [
+        "G2",
+        "E1",
+        "D4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "G-Q3",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "prompt": "How is an exemption born, who owns it, and how does it die?",
+      "hint": "Explore expiresOn, review cadence, whole MGs/OUs excluded ‘for now’, and exemptions owned by a departed person.",
+      "sample": "Ask for the oldest production exemption and its expiry date.",
+      "referenced_criterion_ids": [
+        "G3",
+        "AP-G3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "G-Q4",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "prompt": "Can a team put a GPU farm in an unapproved region, untagged, with no budget owner?",
+      "hint": "Explore required tags, allowed locations, budgets. Cost reporting consumes these guardrails; it does not replace them.",
+      "sample": "Useful evidence leads: allowed-locations policy, required-tag policy, MG/account budgets.",
+      "referenced_criterion_ids": [
+        "G4",
+        "AP-G4",
+        "C3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "G-Q5",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "prompt": "When you say the landing zone is compliant, what did you query — and when?",
+      "hint": "Explore Policy Insights / Config / SCC vs screenshots, questionnaires and workshop scores used as evidence.",
+      "sample": "Probe: “Show me non-compliant resources with owners, not a green tile.”",
+      "referenced_criterion_ids": [
+        "G5",
+        "AP-G5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "G-Q6",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "prompt": "Who can turn a deny into an allow at 2 a.m., and does the code catch up afterwards?",
+      "hint": "Explore portal exemptions during incidents, undocumented hotfixes, and whether the next pipeline run would surprise production.",
+      "sample": "Ask for the last emergency policy change and the follow-up PR.",
+      "referenced_criterion_ids": [
+        "AP-G3",
+        "AP-G1",
+        "H5"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "H-Q1",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "prompt": "If we rebuilt the platform landing zones from the repository tomorrow, what would we get — and what would we miss?",
+      "hint": "Explore Terraform / Bicep / CDK / AFT / ALZ as system of record vs portal-first with exports after the fact.",
+      "sample": "Useful evidence leads: repo URL, last apply, plan vs reality, state-backend location.",
+      "referenced_criterion_ids": [
+        "H1",
+        "AP-H1"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "H-Q2",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "prompt": "Walk through requesting a new landing zone or spoke. Who does the work, and how long does it take?",
+      "hint": "Explore catalog/pipeline vs email-request vs ticket-only. Self-service that nobody uses is still ticket-only.",
+      "sample": "Ask for request-to-ready time for the last five units, and whether the baseline was on at birth.",
+      "referenced_criterion_ids": [
+        "H2",
+        "H4",
+        "AP-H2",
+        "AP-H4",
+        "C4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "H-Q3",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "prompt": "How do you know when the cloud has left the code — and what happens then?",
+      "hint": "Explore drift detection, ignored drift, ‘apply would be destructive’, and recurring ClickOps offenders.",
+      "sample": "Probe: “When was the last drift signal, and did anyone act?”",
+      "referenced_criterion_ids": [
+        "H3",
+        "AP-H3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "H-Q4",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "prompt": "What can an application team get without a platform engineer performing the ritual?",
+      "hint": "Explore guardrailed self-service vs personality-based saying-no. Onboarding time dominated by platform wait is in scope.",
+      "sample": "Ask an application owner (if present) what they last waited on.",
+      "referenced_criterion_ids": [
+        "H4",
+        "AP-H4"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "H-Q5",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "prompt": "Tell me about the last production hotfix to identity, hub, policy or logging.",
+      "hint": "Explore portal vs pipeline, break-glass record, whether code caught up, and whether the next apply is now unsafe.",
+      "sample": "Useful evidence leads: Activity Log / CloudTrail of the change, follow-up PR, or the absence of both.",
+      "referenced_criterion_ids": [
+        "H5",
+        "AP-H5",
+        "G3"
+      ],
+      "evidence_class": "workshop"
+    },
+    {
+      "id": "H-Q6",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "prompt": "Which parts of the landing zone are still tribal knowledge — the steps that exist only in someone’s head?",
+      "hint": "This question is for silent knowledge. DNS, exemption ritual, vending exceptions, the ‘real’ network path. Capture names; then convert to evidence leads.",
+      "sample": "Follow with: “If that person is away for a month, what breaks — and what would we collect to make it visible to the Engine?”",
+      "referenced_criterion_ids": [
+        "H1",
+        "C4",
+        "AP-H1"
+      ],
+      "evidence_class": "workshop"
+    }
+  ]
+}

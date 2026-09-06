@@ -1,0 +1,207 @@
+{
+  "version": "1.0.0",
+  "description": "Frozen Landing Zone design-area taxonomy. Domain and criterion iteration must come from this registry.",
+  "design_areas": [
+    {
+      "id": "A",
+      "name": "Tenant, billing & organization construct",
+      "slug": "tenant-billing-organization",
+      "capabilities": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "antipatterns": [
+        "AP-A1",
+        "AP-A2",
+        "AP-A3",
+        "AP-A4",
+        "AP-A5"
+      ],
+      "workshop_themes": [
+        "Where is the authoritative cloud organization, and who owns it?",
+        "Are production workloads forbidden from the management/payer plane?",
+        "Does billing, contract and technical ownership describe the same estate?"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Identity & access",
+      "slug": "identity-access",
+      "capabilities": [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5"
+      ],
+      "antipatterns": [
+        "AP-B1",
+        "AP-B2",
+        "AP-B3",
+        "AP-B4",
+        "AP-B5"
+      ],
+      "workshop_themes": [
+        "How does a human get access, and how is it taken away?",
+        "How is privileged access made eligible, time-bound and logged?",
+        "How do workloads authenticate without long-lived secrets?"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Resource organization",
+      "slug": "resource-organization",
+      "capabilities": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5"
+      ],
+      "antipatterns": [
+        "AP-C1",
+        "AP-C2",
+        "AP-C3",
+        "AP-C4",
+        "AP-C5"
+      ],
+      "workshop_themes": [
+        "Does the hierarchy encode policy, or is it a filing cabinet?",
+        "Where does the platform landing zone end and an application landing zone begin?",
+        "How is a new subscription, account or project born?"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "Network topology & connectivity",
+      "slug": "network-topology-connectivity",
+      "capabilities": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5"
+      ],
+      "antipatterns": [
+        "AP-D1",
+        "AP-D2",
+        "AP-D3",
+        "AP-D4",
+        "AP-D5"
+      ],
+      "workshop_themes": [
+        "Where is the hub, and what is forced through it?",
+        "Who owns hybrid connectivity, DNS and inspection?",
+        "Is private-by-default a control, or a preference?"
+      ]
+    },
+    {
+      "id": "E",
+      "name": "Security baseline",
+      "slug": "security-baseline",
+      "capabilities": [
+        "E1",
+        "E2",
+        "E3",
+        "E4",
+        "E5"
+      ],
+      "antipatterns": [
+        "AP-E1",
+        "AP-E2",
+        "AP-E3",
+        "AP-E4",
+        "AP-E5"
+      ],
+      "workshop_themes": [
+        "What is prevented by the platform, versus detected after the fact?",
+        "Where do logs, detections and keys live — and who operates them?",
+        "Are secrets and encryption a control, or a developer preference?"
+      ]
+    },
+    {
+      "id": "F",
+      "name": "Management & observability",
+      "slug": "management-observability",
+      "capabilities": [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5"
+      ],
+      "antipatterns": [
+        "AP-F1",
+        "AP-F2",
+        "AP-F3",
+        "AP-F4",
+        "AP-F5"
+      ],
+      "workshop_themes": [
+        "Where do activity, resource and diagnostic logs actually land?",
+        "Can the platform list every subscription, account or project this week?",
+        "If the platform burned down, what would restore it?"
+      ]
+    },
+    {
+      "id": "G",
+      "name": "Governance & policy",
+      "slug": "governance-policy",
+      "capabilities": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5"
+      ],
+      "antipatterns": [
+        "AP-G1",
+        "AP-G2",
+        "AP-G3",
+        "AP-G4",
+        "AP-G5"
+      ],
+      "workshop_themes": [
+        "What does the platform actually deny, versus what it merely audits?",
+        "How is an exemption born, lived, and killed?",
+        "Can compliance evidence be exported, or only screenshot?"
+      ]
+    },
+    {
+      "id": "H",
+      "name": "Platform automation & DevOps",
+      "slug": "platform-automation-devops",
+      "capabilities": [
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "H5"
+      ],
+      "antipatterns": [
+        "AP-H1",
+        "AP-H2",
+        "AP-H3",
+        "AP-H4",
+        "AP-H5"
+      ],
+      "workshop_themes": [
+        "Is the landing zone born from code, or from a portal?",
+        "How does drift get detected, and who is allowed to hotfix the foundation?",
+        "Can an application team request a landing zone without a six-week ticket?"
+      ]
+    }
+  ],
+  "streams": [
+    "capability",
+    "antipattern"
+  ],
+  "providers": [
+    "azure",
+    "aws",
+    "gcp"
+  ]
+}

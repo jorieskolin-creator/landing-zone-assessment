@@ -1,0 +1,41 @@
+{
+  "packId": "landing-zone",
+  "version": "1.0.0",
+  "schemaVersion": "assessment_domain_pack_v1",
+  "status": "frozen-catalogue",
+  "title": "Landing Zone Assessment",
+  "description": "Versioned Landing Zone domain pack. Catalogue content is frozen; Knowledge Base and Tactic Playbook content are contracted here and filled in later work.",
+  "sourceDocuments": [
+    "Landing_Zone_Assessment_Implementation_Plan.md",
+    "Landing_Zone_Assessment_Architecture_Plan.html",
+    "Landing_Zone_Assessment_Engine_Criteria_Batch_Definitions.html",
+    "Landing_Zone_Assessment_Interview_Evidence_Discovery_Questionnaire.html"
+  ],
+  "files": {
+    "taxonomy": "taxonomy.json",
+    "criteria": "criteria.json",
+    "antipatterns": "antipatterns.json",
+    "pairs": "pair-registry.json",
+    "providers": "provider-evidence.json",
+    "evidenceTaxonomy": "evidence-taxonomy.json",
+    "routingPolicy": "routing-keywords.json",
+    "validationRules": "validation-rules.json",
+    "personas": "personas.json",
+    "knowledgeBase": "knowledge-base-manifest.json",
+    "tactics": "tactics.json",
+    "tacticBindings": "tactic-bindings.json",
+    "scoringPolicy": "scoring-policy.json",
+    "qualityGatePolicy": "quality-gate-policy.json",
+    "reportVocabulary": "report-vocabulary.json",
+    "questionnaire": "questionnaire-mapping.json"
+  },
+  "invariants": {
+    "designAreaCount": 8,
+    "pairsPerDesignArea": 5,
+    "subCriteriaPerCriterion": 3,
+    "capabilityCount": 40,
+    "antipatternCount": 40,
+    "questionnaireCount": 48,
+    "providers": ["azure", "aws", "gcp"]
+  }
+}

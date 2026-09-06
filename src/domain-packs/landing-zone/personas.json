@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "description": "Landing Zone report personas. Facts must agree across personas; vocabulary and emphasis may differ.",
+  "personas": {
+    "ciso_leadership": {
+      "id": "ciso_leadership",
+      "title": "CISO and leadership",
+      "priority": 1,
+      "description": "Owns residual risk, evidence sufficiency, and whether a BLOCK starts a decision conversation.",
+      "focus_areas": ["control_plane_facts", "contradictions", "unknowns", "risk_exposure"],
+      "language_style": "Forensic and decision-oriented. Distinguish configured fact from declared intent.",
+      "key_questions": [
+        "What is configured now, and what remains unknown?",
+        "Where do documents or workshops contradict the control plane?",
+        "Which findings are sufficient to discuss, and which need more evidence?"
+      ]
+    },
+    "platform_owner": {
+      "id": "platform_owner",
+      "title": "Platform Owner and Cloud Foundation",
+      "priority": 2,
+      "description": "Owns hierarchy, vending, shared services, and whether the foundation can be rebuilt from code.",
+      "focus_areas": ["organization_construct", "vending", "shared_network", "platform_automation"],
+      "language_style": "Operational and specific. Use landing-zone object names, not framework slogans.",
+      "key_questions": [
+        "Which design areas are in scope, and which exports were supplied?",
+        "Where is the platform born from code versus ClickOps?",
+        "What would restore identity, DNS, policy and IaC state?"
+      ]
+    },
+    "security_owners": {
+      "id": "security_owners",
+      "title": "Identity, Network, Security, and SOC owners",
+      "priority": 3,
+      "description": "Owns privileged access, forced paths, preventive baseline, detections, and exemption hygiene.",
+      "focus_areas": ["privileged_access", "segmentation", "preventive_controls", "log_destinations"],
+      "language_style": "Control-plane first. Workshop confidence does not replace assignments and bindings.",
+      "key_questions": [
+        "Which privileged roles are standing on humans?",
+        "What does the platform actually deny in production?",
+        "Where do detections and activity logs land, and who triages them?"
+      ]
+    },
+    "application_delivery": {
+      "id": "application_delivery",
+      "title": "Application and delivery teams",
+      "priority": 4,
+      "description": "Consumes landing zones. Needs guardrailed self-service, clear exceptions, and what they must not do.",
+      "focus_areas": ["self_service", "guardrails", "exceptions", "onboarding_path"],
+      "language_style": "Practical. Describe what a team can request and what the platform will stop.",
+      "key_questions": [
+        "How is a new landing zone requested, and what baseline is on at birth?",
+        "What public endpoints or standing owner rights are still allowed?",
+        "Which exceptions have owners and expiry?"
+      ]
+    }
+  }
+}

@@ -1,0 +1,649 @@
+{
+  "version": "1.0.0",
+  "domain": "Landing Zone Assessment",
+  "stream": "antipattern",
+  "description": "40 frozen Landing Zone anti-patterns, paired one-to-one with capabilities.",
+  "source": "Landing_Zone_Assessment_Engine_Criteria_Batch_Definitions.html",
+  "criteria": [
+    {
+      "id": "AP-A1",
+      "intent_id": "shadow-tenants",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "antipattern",
+      "pair": "A1",
+      "title": "Shadow tenants and unmanaged orgs",
+      "description": "Production lives in extra directories, organizations or personal accounts that the platform team cannot inventory or govern.",
+      "sub_criteria": [
+        "Do production workloads exist in tenants, organizations or accounts outside the declared root?",
+        "Is there no maintained inventory of extra directories or billing relationships?",
+        "Are mergers, partners or 'temporary' clouds still running production without a landing-zone owner?"
+      ]
+    },
+    {
+      "id": "AP-A2",
+      "intent_id": "workloads-in-management-plane",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "antipattern",
+      "pair": "A2",
+      "title": "Workloads in the management plane",
+      "description": "Applications, data lakes or developer sandboxes sit in the management, payer or tenant-root subscription. A landing-zone change now risks the company.",
+      "sub_criteria": [
+        "Are application resources deployed in the management, payer or bootstrap account?",
+        "Would a landing-zone rebuild require migrating production out of that plane first?",
+        "Do app teams have standing contributor rights on the management plane?"
+      ]
+    },
+    {
+      "id": "AP-A3",
+      "intent_id": "billing-split-from-tech",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "antipattern",
+      "pair": "A3",
+      "title": "Billing split from technical ownership",
+      "description": "Finance pays a bill that platform cannot map. Technical owners cannot name the contract. Scope debates replace assessment.",
+      "sub_criteria": [
+        "Can platform and finance not agree which subscriptions, accounts or projects are in-scope?",
+        "Are invoices received for clouds that have no landing-zone owner?",
+        "Is cost allocation blocked because billing structure does not match the hierarchy?"
+      ]
+    },
+    {
+      "id": "AP-A4",
+      "intent_id": "unbounded-guest-root",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "antipattern",
+      "pair": "A4",
+      "title": "Unbounded guest or partner access at root",
+      "description": "External identities hold owner-equivalent rights at tenant, organization or management-account level with no expiry.",
+      "sub_criteria": [
+        "Do guest, partner or vendor identities hold owner-equivalent roles at the root?",
+        "Is that access standing (no expiry, no dual control)?",
+        "Is there no review of external admin at the organization plane?"
+      ]
+    },
+    {
+      "id": "AP-A5",
+      "intent_id": "unowned-root-credentials",
+      "batch": "A",
+      "design_area_id": "A",
+      "design_area": "Tenant, billing & organization construct",
+      "stream": "antipattern",
+      "pair": "A5",
+      "title": "Unowned root credentials",
+      "description": "Root, super-admin or Global Admin credentials are shared, unlogged, or known only to a departed person.",
+      "sub_criteria": [
+        "Are root or super-admin credentials shared, stored in email, or unused-and-unknown?",
+        "Is there no MFA or hardware key on the cloud root?",
+        "Would the estate be unrecoverable if one person left?"
+      ]
+    },
+    {
+      "id": "AP-B1",
+      "intent_id": "standing-root-equivalent",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "antipattern",
+      "pair": "B1",
+      "title": "Standing root-equivalent access",
+      "description": "Humans hold permanent Global Admin, AdministratorAccess or organizationAdmin. Privilege is a lifestyle, not an event.",
+      "sub_criteria": [
+        "Do humans hold standing owner-equivalent roles at tenant, org or account root?",
+        "Is there no activation, time-bound or approval step?",
+        "Is that population larger than a named break-glass set?"
+      ]
+    },
+    {
+      "id": "AP-B2",
+      "intent_id": "local-cloud-users",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "antipattern",
+      "pair": "B2",
+      "title": "Local cloud users as primary identity",
+      "description": "People log in with cloud-native users disconnected from the corporate IdP. Leavers keep access. Joiners get a second identity to babysit.",
+      "sub_criteria": [
+        "Are cloud-local human users the normal way to access the estate?",
+        "Does leaver processing in the corporate IdP leave cloud access intact?",
+        "Are shared logins (team@, admin@) in use?"
+      ]
+    },
+    {
+      "id": "AP-B3",
+      "intent_id": "long-lived-keys-as-identity",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "antipattern",
+      "pair": "B3",
+      "title": "Long-lived keys as identity",
+      "description": "Access keys, client secrets and downloaded service-account keys are how automation and people authenticate. Rotation is a wish.",
+      "sub_criteria": [
+        "Are long-lived access keys or JSON service-account keys the default for workloads or humans?",
+        "Are keys older than policy (or unaged) still valid?",
+        "Do pipelines store cloud credentials in variables rather than federate?"
+      ]
+    },
+    {
+      "id": "AP-B4",
+      "intent_id": "unscoped-owner-at-root",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "antipattern",
+      "pair": "B4",
+      "title": "Unscoped Owner at root",
+      "description": "Application teams receive Owner, Editor or AdministratorAccess at the organization or management-group root 'so they can work'. Guardrails cannot hold.",
+      "sub_criteria": [
+        "Do application teams hold owner-equivalent rights at the organization or management-group root?",
+        "Can they disable policy, networking or logging as a side effect of that grant?",
+        "Is there no alternative scoped role for daily delivery?"
+      ]
+    },
+    {
+      "id": "AP-B5",
+      "intent_id": "unmonitored-break-glass",
+      "batch": "B",
+      "design_area_id": "B",
+      "design_area": "Identity & access",
+      "stream": "antipattern",
+      "pair": "B5",
+      "title": "Unmonitored or missing break-glass",
+      "description": "Either emergency access does not exist, or it exists and nobody would notice if it were used — or abused.",
+      "sub_criteria": [
+        "Is there no designed emergency-access path?",
+        "Is emergency access used as a daily convenience account?",
+        "Would use of emergency access produce no alert?"
+      ]
+    },
+    {
+      "id": "AP-C1",
+      "intent_id": "flat-sprawl",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "antipattern",
+      "pair": "C1",
+      "title": "Flat subscription or account sprawl",
+      "description": "Hundreds of subscriptions, accounts or projects hang off the root. Policy cannot inherit. Nobody can draw the map.",
+      "sub_criteria": [
+        "Do most isolation units sit directly under the tenant, org root or a single catch-all node?",
+        "Is the hierarchy unused as a policy spine?",
+        "Can the platform not produce a current map of nodes and owners?"
+      ]
+    },
+    {
+      "id": "AP-C2",
+      "intent_id": "apps-in-platform",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "antipattern",
+      "pair": "C2",
+      "title": "Applications in the platform landing zone",
+      "description": "Business systems share the connectivity, identity or management subscription. Platform change freezes the business; business change risks the platform.",
+      "sub_criteria": [
+        "Do application workloads share platform subscriptions, accounts or projects?",
+        "Would a platform rebuild collide with application data?",
+        "Are application teams granted rights on platform landing zones to 'get things done'?"
+      ]
+    },
+    {
+      "id": "AP-C3",
+      "intent_id": "adhoc-naming",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "antipattern",
+      "pair": "C3",
+      "title": "Ad-hoc naming and tag theatre",
+      "description": "Names are local jokes. Tags exist in a PDF. Create-time enforcement is absent. Search, cost and incident response guess.",
+      "sub_criteria": [
+        "Do names and tags differ by team with no enforced standard?",
+        "Is the tagging standard documentation-only?",
+        "Are untagged resources treated as acceptable?"
+      ]
+    },
+    {
+      "id": "AP-C4",
+      "intent_id": "clickops-birth",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "antipattern",
+      "pair": "C4",
+      "title": "ClickOps birth of isolation units",
+      "description": "Subscriptions, accounts or projects are created in the portal, emailed into existence, or copied from a neighbour. Baseline is optional.",
+      "sub_criteria": [
+        "Is the normal create path a portal click or a ticket to a human who clicks?",
+        "Do new units appear without policy, logging or network baseline?",
+        "Is there no record of who requested the unit and why?"
+      ]
+    },
+    {
+      "id": "AP-C5",
+      "intent_id": "mixed-environments",
+      "batch": "C",
+      "design_area_id": "C",
+      "design_area": "Resource organization",
+      "stream": "antipattern",
+      "pair": "C5",
+      "title": "Mixed environments in one boundary",
+      "description": "Production, test and playground share a subscription, account or folder. A playground identity can reach production data.",
+      "sub_criteria": [
+        "Do production and non-production share the same isolation unit?",
+        "Can non-production identities reach production data or keys?",
+        "Is 'we use resource groups / VPCs instead' used to avoid a landing-zone line?"
+      ]
+    },
+    {
+      "id": "AP-D1",
+      "intent_id": "per-app-internet-edge",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "antipattern",
+      "pair": "D1",
+      "title": "Per-application internet edge",
+      "description": "Every team brings its own public IP, firewall flavour and VPN. The platform cannot see, inspect or retire paths.",
+      "sub_criteria": [
+        "Do application teams create their own public IPs, firewalls or VPNs as the normal path?",
+        "Is egress inspection optional per team?",
+        "Is there no inventory of internet edges?"
+      ]
+    },
+    {
+      "id": "AP-D2",
+      "intent_id": "flat-global-network",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "antipattern",
+      "pair": "D2",
+      "title": "Flat global network",
+      "description": "Everything can route to everything. Segmentation is a slide. A compromised sandbox reaches production.",
+      "sub_criteria": [
+        "Can every spoke route to every other spoke by default?",
+        "Is production reachable from non-production on the network?",
+        "Are NSG/SG/firewall rules effectively allow-any?"
+      ]
+    },
+    {
+      "id": "AP-D3",
+      "intent_id": "split-brain-dns",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "antipattern",
+      "pair": "D3",
+      "title": "Split-brain or absent private DNS",
+      "description": "Each team runs DNS. Private endpoints do not resolve. Hybrid names work 'on my laptop'. Incident response cannot find things.",
+      "sub_criteria": [
+        "Is private DNS missing, or different in every landing zone?",
+        "Do private endpoints fail to resolve without tribal knowledge?",
+        "Are hosts files and tribal resolvers in production use?"
+      ]
+    },
+    {
+      "id": "AP-D4",
+      "intent_id": "public-as-default",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "antipattern",
+      "pair": "D4",
+      "title": "Public as the default",
+      "description": "Storage, Kubernetes API, databases and jump hosts are public unless someone remembers to tick a box. Policy does not deny it.",
+      "sub_criteria": [
+        "Are public endpoints allowed by default on data, control-plane or jump services?",
+        "Is there no deny policy for public access?",
+        "Is the public inventory unknown?"
+      ]
+    },
+    {
+      "id": "AP-D5",
+      "intent_id": "unmanaged-peering-mesh",
+      "batch": "D",
+      "design_area_id": "D",
+      "design_area": "Network topology & connectivity",
+      "stream": "antipattern",
+      "pair": "D5",
+      "title": "Unmanaged peering mesh",
+      "description": "Peerings, attachments and interconnects accumulate. Nobody can draw the current topology. A delete is an outage lottery.",
+      "sub_criteria": [
+        "Is the current network topology not drawable from inventory?",
+        "Do peerings and attachments exist without an owner or change record?",
+        "Would removing a 'temporary' path have unknown blast radius?"
+      ]
+    },
+    {
+      "id": "AP-E1",
+      "intent_id": "optional-security",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "antipattern",
+      "pair": "E1",
+      "title": "Optional security",
+      "description": "The baseline is a PDF. Teams may enable Defender, GuardDuty or SCC 'when they are ready'. Most are not ready.",
+      "sub_criteria": [
+        "Is the security baseline advisory rather than assigned?",
+        "Can a landing zone be vended with threat detection off?",
+        "Is 'we'll add security later' visible in the last N vended units?"
+      ]
+    },
+    {
+      "id": "AP-E2",
+      "intent_id": "siem-islands",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "antipattern",
+      "pair": "E2",
+      "title": "Per-subscription SIEM islands",
+      "description": "Each team has a log workspace, a GuardDuty detector, or a SCC project. Nobody can hunt across the estate. Retention is a guess.",
+      "sub_criteria": [
+        "Are detections and security logs fragmented per landing zone with no org view?",
+        "Is there no delegated security administrator at organization scope?",
+        "Would a SOC hunt require asking every team for access?"
+      ]
+    },
+    {
+      "id": "AP-E3",
+      "intent_id": "keys-in-code",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "antipattern",
+      "pair": "E3",
+      "title": "Keys in code or unused CMK theatre",
+      "description": "CMK is claimed in architecture decks while disks use default keys and API keys sit in Git. Encryption is a brand.",
+      "sub_criteria": [
+        "Are customer-managed keys claimed but not actually in use on data stores?",
+        "Do repositories or pipelines contain live cloud keys?",
+        "Is there no key-access logging or rotation?"
+      ]
+    },
+    {
+      "id": "AP-E4",
+      "intent_id": "secrets-in-pipelines",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "antipattern",
+      "pair": "E4",
+      "title": "Secrets in pipelines and wikis",
+      "description": "The secret store is Azure DevOps library, GitHub Actions secrets used as long-lived cloud keys, Confluence, or a shared spreadsheet.",
+      "sub_criteria": [
+        "Are production secrets stored in CI variable groups, wikis or chat?",
+        "Are those values long-lived cloud credentials rather than federated identity?",
+        "Is rotation manual and overdue?"
+      ]
+    },
+    {
+      "id": "AP-E5",
+      "intent_id": "security-as-ticket",
+      "batch": "E",
+      "design_area_id": "E",
+      "design_area": "Security baseline",
+      "stream": "antipattern",
+      "pair": "E5",
+      "title": "Security as an after-the-fact ticket",
+      "description": "Workloads go live, then a security questionnaire is filed. Findings have no landing-zone owner. Platform and SOC point at each other.",
+      "sub_criteria": [
+        "Does security review start after the workload is in production?",
+        "Are cloud findings unowned between platform and SOC?",
+        "Is there no security landing zone to host org controls?"
+      ]
+    },
+    {
+      "id": "AP-F1",
+      "intent_id": "logs-left-in-subscription",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "antipattern",
+      "pair": "F1",
+      "title": "Logs left in the subscription",
+      "description": "Activity logs stay in the producing account, expire at default, and disappear. Forensics starts with 'we no longer have that'.",
+      "sub_criteria": [
+        "Are organization activity logs not exported from the producing landing zone?",
+        "Is default retention the de-facto policy?",
+        "Would an incident older than a few weeks be unreconstructable?"
+      ]
+    },
+    {
+      "id": "AP-F2",
+      "intent_id": "no-inventory",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "antipattern",
+      "pair": "F2",
+      "title": "No current inventory",
+      "description": "The estate map is a draw.io from a previous consultant. New accounts appear in the invoice first.",
+      "sub_criteria": [
+        "Is there no API-fresh inventory of isolation units?",
+        "Do invoices or workshops discover accounts the platform did not know?",
+        "Is policy assignment state unknown?"
+      ]
+    },
+    {
+      "id": "AP-F3",
+      "intent_id": "app-monitoring-only",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "antipattern",
+      "pair": "F3",
+      "title": "Application monitoring only",
+      "description": "APM is excellent. The logging pipeline, ExpressRoute, org trail and policy engine have no owner and no alert.",
+      "sub_criteria": [
+        "Are platform-plane services unmonitored while applications are?",
+        "Would a failed log export be noticed only in an audit?",
+        "Is there no platform on-call?"
+      ]
+    },
+    {
+      "id": "AP-F4",
+      "intent_id": "no-platform-restore",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "antipattern",
+      "pair": "F4",
+      "title": "No platform restore",
+      "description": "Application backup is mature. The landing zone IaC state, DNS and keys have one copy on one laptop.",
+      "sub_criteria": [
+        "Is platform configuration unrestorable except by tribal knowledge?",
+        "Is Terraform/Bicep/Pulumi state on a laptop or an unversioned storage account?",
+        "Have restores never been rehearsed?"
+      ]
+    },
+    {
+      "id": "AP-F5",
+      "intent_id": "snowflake-agents",
+      "batch": "F",
+      "design_area_id": "F",
+      "design_area": "Management & observability",
+      "stream": "antipattern",
+      "pair": "F5",
+      "title": "Snowflake agents and images",
+      "description": "Every team brings an agent, an image, and an exception. The platform cannot patch, observe or retire them.",
+      "sub_criteria": [
+        "Are guest agents and images unmanaged exceptions as the default?",
+        "Can the platform not tell what is running on compute it hosts?",
+        "Is drift from the golden image invisible?"
+      ]
+    },
+    {
+      "id": "AP-G1",
+      "intent_id": "policy-as-pdf",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "antipattern",
+      "pair": "G1",
+      "title": "Policy as documentation only",
+      "description": "There is a beautiful standard. Nothing in the control plane assigns it. Workshops recite it. The API does not.",
+      "sub_criteria": [
+        "Is the guardrail set documented but not assigned in the control plane?",
+        "Do new landing zones boot without the baseline?",
+        "Is 'we plan to enable policy next quarter' the current state?"
+      ]
+    },
+    {
+      "id": "AP-G2",
+      "intent_id": "root-allow-all",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "antipattern",
+      "pair": "G2",
+      "title": "Root-level allow-all",
+      "description": "The only org-level policy is FullAWSAccess, an empty initiative, or restoreDefault. Prevention lives in goodwill.",
+      "sub_criteria": [
+        "Is the effective organization policy equivalent to allow-all?",
+        "Can any landing zone disable logging, attach public IPs, or leave the org?",
+        "Are denies present only in a lab?"
+      ]
+    },
+    {
+      "id": "AP-G3",
+      "intent_id": "permanent-exemptions",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "antipattern",
+      "pair": "G3",
+      "title": "Permanent exemptions",
+      "description": "Whole management groups, OUs or folders are excluded 'for now'. Now is three years old. The excluded node holds production.",
+      "sub_criteria": [
+        "Are hierarchy nodes excluded from policy with no expiry?",
+        "Does the excluded node contain production?",
+        "Is the exemption undocumented or owned by a departed person?"
+      ]
+    },
+    {
+      "id": "AP-G4",
+      "intent_id": "no-cost-policy",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "antipattern",
+      "pair": "G4",
+      "title": "No cost or region guardrail",
+      "description": "Any region, no tags, no budgets. The landing zone will happily host a GPU farm in an unapproved geography.",
+      "sub_criteria": [
+        "Can resources be created in any region without policy friction?",
+        "Are tags optional?",
+        "Do landing zones have no budget owner?"
+      ]
+    },
+    {
+      "id": "AP-G5",
+      "intent_id": "screenshot-compliance",
+      "batch": "G",
+      "design_area_id": "G",
+      "design_area": "Governance & policy",
+      "stream": "antipattern",
+      "pair": "G5",
+      "title": "Screenshot compliance",
+      "description": "Evidence of control is a PDF of a dashboard, a workshop assertion, or a vendor questionnaire. The control plane was not queried.",
+      "sub_criteria": [
+        "Is compliance evidenced only by slides, questionnaires or screenshots?",
+        "Was the control plane not queried for this assessment?",
+        "Do findings say 'we believe we are compliant' without an export?"
+      ]
+    },
+    {
+      "id": "AP-H1",
+      "intent_id": "clickops-platform",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "antipattern",
+      "pair": "H1",
+      "title": "ClickOps platform",
+      "description": "The landing zone exists in the portal. Code, if any, is an export from last year. The next change will be another click.",
+      "sub_criteria": [
+        "Is the platform primarily configured in the console?",
+        "Is IaC absent, stale, or generated after the fact?",
+        "Would a rebuild from code fail?"
+      ]
+    },
+    {
+      "id": "AP-H2",
+      "intent_id": "email-vending",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "antipattern",
+      "pair": "H2",
+      "title": "Email-request vending",
+      "description": "A landing zone is an email to a named person who has Owner at root. Cycle time is weeks. Quality is mood.",
+      "sub_criteria": [
+        "Is the create path an email, chat or ticket that ends in a human clicking the portal?",
+        "Is cycle time unmeasured or measured in weeks?",
+        "Do vended units differ depending on who was on shift?"
+      ]
+    },
+    {
+      "id": "AP-H3",
+      "intent_id": "drift-accepted",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "antipattern",
+      "pair": "H3",
+      "title": "Drift accepted",
+      "description": "Code and cloud parted ways. Apply would be destructive, so nobody applies. The repository is literature.",
+      "sub_criteria": [
+        "Would an IaC apply be unsafe because reality has moved?",
+        "Is there no drift detection, or is drift ignored?",
+        "Is the repository no longer the system of record?"
+      ]
+    },
+    {
+      "id": "AP-H4",
+      "intent_id": "ticket-only-self-service",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "antipattern",
+      "pair": "H4",
+      "title": "Ticket-only, no self-service",
+      "description": "Every spoke, DNS record and exception is a platform-engineer hour. The landing zone does not scale because the platform team is the bottleneck.",
+      "sub_criteria": [
+        "Must every landing-zone request go through a platform engineer performing the work?",
+        "Is there a catalog item that nobody uses?",
+        "Is onboarding time dominated by platform wait?"
+      ]
+    },
+    {
+      "id": "AP-H5",
+      "intent_id": "undocumented-hotfixes",
+      "batch": "H",
+      "design_area_id": "H",
+      "design_area": "Platform automation & DevOps",
+      "stream": "antipattern",
+      "pair": "H5",
+      "title": "Undocumented hotfixes",
+      "description": "Production was saved at 2 a.m. in the portal. The code was not updated. The next apply will undo the save — or nobody will ever apply again.",
+      "sub_criteria": [
+        "Are production platform hotfixes done in the portal without a follow-up change in code?",
+        "Is there no break-glass record?",
+        "Would the next pipeline run surprise production?"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "schemaVersion": "lz_tactic_bindings_v1",
+  "status": "contract_defined_content_pending",
+  "description": "Tactic bindings to verified findings. Empty until playbook content exists. PRIMARY / SUPPORTING / RELATED only from resolved findings.",
+  "relationship_values": ["PRIMARY", "SUPPORTING", "RELATED"],
+  "activation_rules": [
+    "Permit tactics only from verified and sufficiently resolved findings.",
+    "Suppress tactics for silent or unsupported areas.",
+    "Reference frameworks and accelerators never become customer evidence."
+  ],
+  "bindings": []
+}

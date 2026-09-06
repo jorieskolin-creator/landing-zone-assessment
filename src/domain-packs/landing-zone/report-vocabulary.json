@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "description": "Landing Zone report language. Same report spine as the kernel; different subject.",
+  "product_name": "Landing Zone Assessment",
+  "auditor_role": "Landing Zone Forensic Auditor",
+  "maturity_labels": ["Foundation", "Pilot", "Rollout", "Operate"],
+  "publication_states": ["GO", "WARN", "BLOCK"],
+  "required_report_sections": [
+    "assessment_scope_and_pack_versions",
+    "provider_by_design_area_results",
+    "configured_facts",
+    "declared_intent",
+    "contradictions",
+    "unknowns_and_evidence_gaps",
+    "capability_maturity_and_antipattern_burden",
+    "evidence_citations",
+    "permitted_tactics",
+    "expert_annotations",
+    "customer_decisions",
+    "assessment_sufficiency_and_quality_gate",
+    "runtrace_and_methodology"
+  ],
+  "forbidden_narratives": [
+    "treating_framework_guidance_as_proof",
+    "treating_workshop_confidence_as_platform_configuration",
+    "inferring_absence_from_missing_documentation",
+    "blending_providers",
+    "scoring_excluded_or_not_applicable_criteria",
+    "narrating_excellence_over_a_confirmed_antipattern",
+    "producing_tactics_without_sufficient_evidence"
+  ]
+}
