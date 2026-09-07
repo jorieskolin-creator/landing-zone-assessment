@@ -1682,7 +1682,7 @@ export interface MaturityAggregate {
 export interface ResolutionBasedMaturityModel {
   schema_version: 'resolution_based_maturity_model_v1';
   formula_version: 'resolution_based_maturity_formula_v1';
-  registry_version: '1.0.0';
+  registry_version: string;
   mode: 'ACTIVE';
   gamma: 0.5;
   criterion_resolutions: MaturityCriterionResolutionRecord[];
@@ -1719,7 +1719,7 @@ export interface AssessmentSufficiencyResult {
 export interface ResolutionBasedMaturityRunTrace {
   schema_version: 'resolution_based_maturity_run_trace_v1';
   formula_version: 'resolution_based_maturity_formula_v1';
-  registry_version: '1.0.0';
+  registry_version: string;
   mode: 'ACTIVE';
   scoring_authority: true;
   gamma: 0.5;

@@ -41,7 +41,7 @@ export const loadLandingZonePack = (): AssessmentDomainPack => ({
   scoringPolicy,
   qualityGatePolicy,
   reportVocabulary,
-});
+} as unknown as AssessmentDomainPack);
 
 export const LANDING_ZONE_QUESTIONNAIRE = questionnaire.questions;
 

@@ -17,10 +17,10 @@ source = source
   .replace(/import \{[\s\S]*?\} from '\.\.\/knowledge_base';\n/, `
 const BATCH_IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const BATCH_DEFINITIONS = Object.fromEntries(BATCH_IDS.map(domain => [domain, { title: domain, maturity: { one: true }, antipattern: { one: true } }]));
-const expectedPhase1IdsForStream = (stream) => BATCH_IDS.flatMap(domain => Array.from({ length: 5 }, (_, index) => `${domain}${index + 1}`));
+const expectedPhase1IdsForStream = (stream) => BATCH_IDS.flatMap(domain => Array.from({ length: 5 }, (_, index) => \`\${domain}\${index + 1}\`));
 const expectedBatchOutputIdsFor = (batchId) => ({
-  maturity: Array.from({ length: 5 }, (_, index) => `${batchId}${index + 1}`),
-  antipattern: Array.from({ length: 5 }, (_, index) => `${batchId}${index + 1}`),
+  maturity: Array.from({ length: 5 }, (_, index) => \`\${batchId}\${index + 1}\`),
+  antipattern: Array.from({ length: 5 }, (_, index) => \`\${batchId}\${index + 1}\`),
 });
 const buildShadowKnowledgePacket = () => ({ readiness: 'NOT_READY' });
 `)
