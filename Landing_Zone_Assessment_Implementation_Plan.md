@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.3 |
+| Current version | 1.4 |
 | Last updated | 2026-09-07 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -651,4 +651,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-06 | 1.0 | Initial repository plan. Treats criteria as frozen, defines file-based first implementation, and schedules Knowledge Base and Tactic Playbook integration before full pipeline and real-case verification. |
 | 2026-09-06 | 1.1 | Started the domain boundary and Work 3: pack contract, loader/registry, frozen A–H JSON catalogue, and pack validation. Applying the boundary to a complete copied kernel remains pending. |
 | 2026-09-06 | 1.2 | Added Work 2 pack-driven taxonomy helpers and tests for A–F unions, `[A-F][1-5]` regular expressions, fixed domain loops, and five-wide criterion generation. Applying them to the complete copied kernel remains pending. |
-| 2026-09-07 | 1.3 | Established Landing Zone Assessment as a fully independent solution. Kernel reuse is by attributed source copy into this repository only; no build, runtime, deployment, package, source-control, data, or infrastructure connection to FinOps Engine is permitted, and this project makes no changes to the FinOps Engine repository. |
+| 2026-09-07 | 1.4 | Work 1: copied FinOps Engine kernel baseline `d671a38723d76398f683ee7362acf12343a796bd` into this repository, wired production knowledge access to the Landing Zone pack, retained FinOps JSON as characterization fixtures only, and added independence checks. Missing Landing Zone Knowledge Base and Tactic Playbook content fails visibly and does not fall back to FinOps content. |

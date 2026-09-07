@@ -100,11 +100,36 @@ export const persistencePrefix = (pack: AssessmentDomainPack): string =>
 export const resolveOutputContractId = (contractId: string): string =>
   FINOPS_OUTPUT_CONTRACT_ALIASES[contractId] ?? contractId;
 
-export const criterionReferenceRegex = (pack: AssessmentDomainPack): RegExp => {
-  const ids = pack.criteria
-    .map((item) => item.id)
-    .sort((a, b) => b.length - a.length)
+export const criterionReferenceRegexFromIds = (ids: string[]): RegExp => {
+  const unique = [...new Set(ids.filter(Boolean))].sort((a, b) => b.length - a.length)
     .map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const alt = ids.join("|");
+  if (unique.length === 0) return /$^/;
+  const alt = unique.join("|");
   return new RegExp(`\\[(?:${alt})(?:\\s*-\\s*(?:${alt}))?\\]`);
+};
+
+export const criterionReferenceRegex = (pack: AssessmentDomainPack): RegExp =>
+  criterionReferenceRegexFromIds(pack.criteria.map((item) => item.id));
+
+export const domainIdFromCriterionId = (criterionId: string, pack?: AssessmentDomainPack): string => {
+  if (pack) {
+    const bare = criterionId.replace(/^AP-/, "");
+    const hit = pack.criteria.find((item) =>
+      item.id === criterionId || item.id === bare || item.id === `AP-${bare}`
+    );
+    if (hit) return hit.design_area_id;
+  }
+  const stripped = criterionId.replace(/^AP-/, "");
+  return stripped.match(/^([A-Za-z]+)/)?.[1] || stripped;
+};
+
+export const unavailableEvidenceCheckItems = (
+  pack: AssessmentDomainPack,
+  batchId: string,
+): Array<{ stream: EngineStream; id: string; status: "missing" }> => {
+  const expected = expectedBatchOutputIds(pack, batchId);
+  return [
+    ...expected.maturity.map((id) => ({ stream: "maturity" as const, id, status: "missing" as const })),
+    ...expected.antipattern.map((id) => ({ stream: "antipattern" as const, id, status: "missing" as const })),
+  ];
 };

@@ -1,0 +1,1833 @@
+
+import {
+  EVIDENCE_SYNTHESIS_SYSTEM_INSTRUCTION,
+  EVIDENCE_SYNTHESIS_USER_PROMPT,
+  ROADMAP_SYNTHESIS_PROMPT_CAUTIOUS_APPENDIX,
+  ROADMAP_SYNTHESIS_SYSTEM_INSTRUCTION,
+  ROADMAP_SYNTHESIS_USER_PROMPT,
+  STRATEGY_USER_PROMPT_FINDINGS
+} from "../constants";
+import { bracketFromValidation, explainBracket } from "./confidenceBracket";
+import { runPhase1Audit } from "../orchestrator";
+import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TAXONOMY_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
+import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
+import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
+import { EVIDENCE_DENSITY_BLOCK, runQualityGate, runQualityGateExplanation } from "./qualityGateService";
+import { calculateMetrics } from "./metricsService";
+import {
+  buildRegenerateAppendix,
+  buildRoadmapFactCheckPrompt,
+  buildSummaryFactCheckPrompt,
+  claimsForRepairScope,
+  determineFactCheckRepairScope,
+  mergeRequiredFactChecks,
+  parseFactCheckResponse,
+  ROADMAP_FACT_CHECK_CONTRACT,
+  SUMMARY_FACT_CHECK_CONTRACT
+} from "./factCheckService";
+import { FactCheckClaim, FactCheckResult, FactCheckPassSnapshot } from "../types";
+import { StageId } from "../models";
+import { getModelRoutingConfig, runStage, serverLog } from "./modelRouter";
+import { createRun, failRun, getRun, readyRun, suspendRun } from "./runLifecycleService";
+import { saveCheckpoint, type CheckpointKind } from "./checkpointService";
+import {
+  buildMissingRequiredTacticAppendix,
+  buildTacticSelectionContext,
+  buildTacticSelectionPlan,
+  classifyFinalRequiredTactics,
+  findMissingRequiredTacticIds,
+  findRoadmapActionsMissingCriterionReferences,
+  sanitizeRoadmapTacticGrounding,
+  TacticGroundingAdjustment,
+  TacticSelectionPlan
+} from "./tacticGroundingService";
+import { sanitizeBlockedStrategy, sanitizeEvidenceSummaryUncertainty, sanitizeStrategyAfterFactCheck } from "./strategySanitationService";
+import {
+  buildDomainPackets,
+  buildSourceRegistry,
+  renderPseudonymousSourceContext,
+  scanRegistryDlp,
+  sourceRegistryRuntimeStatus
+} from "./sourceRegistryService";
+import { buildRunTrace, clearStageTraces, consumeStageTraces, summarizeRunTrace } from "./runTraceService";
+import { acquisitionQualityPersistence, buildAcquisitionQualitySnapshot, shadowTelemetryPersistence } from "./acquisitionQualityService";
+import { buildDataSignalCoverageReport } from "./structuredDataAnalysisService";
+import { deriveAllEvidenceSignals } from "./derivedEvidence";
+import { planGapRetrieval } from "./gapAnalyzerService";
+import { buildEvidenceLaneStagePackets } from "./evidenceStagePacketService";
+import { applyBoundedRetrieval } from "./boundedRetrievalService";
+import { expandWeakEvidencePacket } from "./semanticGapRetrievalService";
+import { analyzeEvidenceGaps } from "./evidenceGapAnalysisService";
+import { sanitizeEvidenceSources } from "./deterministicPrivacyService";
+import { scrubDiagnosticResultForPrivacy } from "./privacyService";
+import { parseGovernedJsonObject, validateFindingsModePayload } from "./jsonResponseService";
+import { reconcileEvidenceProvenance } from "./evidenceCheckService";
+import { maturityRunTraceProjection } from "./maturityModelService";
+// @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
+import { OUTPUT_CONTRACT_IDS, withOneOutputRegeneration } from "../../lib/outputContracts.js";
+import {
+  PipelineIntegrityError,
+  validateEvidenceAcquisition,
+  validateEvidenceContinuity,
+  validateKnowledgeAcquisition,
+  validatePreSynthesisIntegrity,
+} from "./pipelineIntegrityService";
+
+const FACT_CHECK_MAX_RETRIES = 2;
+const ID_VALIDATION_MAX_REGENS = 2;
+const ENGINE_VERSION = "2.0.0";
+
+// Pull every [TAC-XXX-NNN] (or [TAC-XXX-NNN-XXX]) reference out of the raw
+// strategy JSON and check each against the verified DB. Returns the list of
+// invalid IDs (deduplicated, sorted) — empty means everything checked out.
+const findInvalidTacticIds = (strategyData: any, validIds: Set<string>): string[] => {
+  const blob = JSON.stringify(strategyData ?? {});
+  const found = new Set<string>();
+  const RX = /\[(TAC-[A-Z]+-\d+(?:-[A-Z]+)?)\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = RX.exec(blob)) !== null) {
+    const id = m[1];
+    if (!validIds.has(id)) found.add(id);
+  }
+  return Array.from(found).sort();
+};
+
+const buildInvalidIdAppendix = (invalid: string[], validIds: Set<string>): string => `
+
+### REGENERATE INSTRUCTIONS — your previous output cited tactic IDs that do not exist
+
+The output contained these tactic IDs that are NOT in the Verified Tactics Database:
+${invalid.map(id => `  - ${id}`).join('\n')}
+
+These are not valid. You either invented them, abbreviated a real ID (e.g. TAC-CUL- vs TAC-CULT-, TAC-ARC- vs TAC-ARCH-), or appended a suffix (e.g. -COM) that does not exist.
+
+The COMPLETE list of valid tactic IDs is in the TACTIC IDS — LOOKUP TABLE section above. Use ONLY those exact strings.
+
+Regenerate the full output with the same shape. Replace every invalid ID with a valid one (matching the underlying mechanism you intended), or remove the bracketed ID entirely if no valid one fits. Do NOT introduce any new invalid IDs.
+`;
+
+const MATURITY_CRITERIA_IDS = expectedPhase1IdsForStream('maturity');
+const ANTIPATTERN_CRITERIA_IDS = expectedPhase1IdsForStream('antipattern');
+
+const DEFAULT_PERSONA: PersonaId = 'finops_lead';
+
+const normalizePersonaSummaries = (rawStrategy: any): {
+  executive_summaries: Record<PersonaId, string>;
+  executive_summary: string;
+  active_persona: PersonaId;
+} => {
+  const incoming = rawStrategy?.executive_summaries;
+  const legacy = typeof rawStrategy?.executive_summary === 'string' ? rawStrategy.executive_summary : '';
+  const result: Record<PersonaId, string> = { finops_lead: '', cfo: '', engineering_lead: '' };
+  if (incoming && typeof incoming === 'object') {
+    for (const p of PERSONA_IDS) {
+      if (typeof incoming[p] === 'string' && incoming[p].length > 0) {
+        result[p] = incoming[p];
+      }
+    }
+  }
+  const firstAvailable = PERSONA_IDS.find(p => result[p].length > 0);
+  const fallback = firstAvailable ? result[firstAvailable] : legacy;
+  for (const p of PERSONA_IDS) {
+    if (!result[p]) result[p] = fallback;
+  }
+  return {
+    executive_summaries: result,
+    executive_summary: result[DEFAULT_PERSONA] || fallback,
+    active_persona: DEFAULT_PERSONA
+  };
+};
+
+const parseAiResponse = (text: string): any => {
+  return parseGovernedJsonObject(text);
+};
+
+// Direct model calls now flow through modelRouter (`runStage`). The router
+// resolves stage → primary+fallbacks from src/models.ts and dispatches to the
+// right provider endpoint.
+
+const validateAndSanitizeLogs = (rawData: any): Phase1AuditLogs => {
+  const safeLog: Phase1AuditLogs = { maturity: {}, antipattern: {} };
+
+  const validateItem = (item: any, isAntipattern: boolean): AuditItem => {
+    if (!item || typeof item !== 'object') {
+      return {
+        count: -1, status: "NOK", evidence: "AI Analysis Failed",
+        evidence_quotes: [], is_silent: true, reasoning: "Data missing."
+      };
+    }
+
+    const safeItem: AuditItem = {
+      count: 0, status: "NOK", evidence: "Evidence extracted.",
+      evidence_quotes: [], is_silent: false, reasoning: "No reasoning provided."
+    };
+
+    if (typeof item.count === 'number') {
+      safeItem.count = Math.min(Math.max(Math.round(item.count), 0), 3);
+    }
+
+    if (isAntipattern) {
+      if (safeItem.count === 0) { safeItem.status = "OK"; safeItem.is_silent = true; safeItem.evidence = "Anti-pattern not detected. (Clean)"; }
+      else if (safeItem.count === 3) { safeItem.status = "NOK"; safeItem.is_silent = false; }
+      else { safeItem.status = "Partial"; safeItem.is_silent = false; }
+    } else {
+      if (safeItem.count === 3) { safeItem.status = "OK"; safeItem.is_silent = false; }
+      else if (safeItem.count === 0) { safeItem.status = "NOK"; safeItem.is_silent = true; safeItem.evidence = "Capability missing."; }
+      else { safeItem.status = "Partial"; safeItem.is_silent = false; }
+    }
+
+    if (typeof item.evidence === 'string' && item.evidence.length > 5) safeItem.evidence = item.evidence;
+    if (typeof item.reasoning === 'string') safeItem.reasoning = item.reasoning;
+    if (item.assessment_status === 'assessed' || item.assessment_status === 'not_assessed') {
+      safeItem.assessment_status = item.assessment_status;
+    }
+    if (Array.isArray(item.question_results)
+      && item.question_results.length === 3
+      && item.question_results.every((result: unknown) => ['supported', 'not_supported', 'unknown'].includes(String(result)))) {
+      safeItem.question_results = [...item.question_results];
+    }
+    if (['supported', 'weak', 'unsupported', 'missing'].includes(item.evidence_check_status)) {
+      safeItem.evidence_check_status = item.evidence_check_status;
+    }
+    if (typeof item.original_count === 'number') safeItem.original_count = Math.min(Math.max(Math.round(item.original_count), 0), 3);
+    if (typeof item.verified_count === 'number') safeItem.verified_count = Math.min(Math.max(Math.round(item.verified_count), 0), 3);
+    if (item.verification_unresolved === true && item.verified_count === null) {
+      safeItem.verification_unresolved = true;
+      safeItem.verified_count = null;
+    }
+    if (typeof item.adjustment_reason === 'string') safeItem.adjustment_reason = item.adjustment_reason;
+    if (typeof item.rescan_attempted === 'boolean') safeItem.rescan_attempted = item.rescan_attempted;
+    if (isAntipattern && ['confirmed_present', 'partially_present', 'tested_absent', 'unknown_absent'].includes(item.antipattern_absence_status)) {
+      safeItem.antipattern_absence_status = item.antipattern_absence_status;
+    }
+    if (isAntipattern && typeof item.coverage_reason === 'string') safeItem.coverage_reason = item.coverage_reason;
+
+    if (Array.isArray(item.evidence_quotes)) {
+      safeItem.evidence_quotes = item.evidence_quotes
+        .filter((q: any) => q && typeof q === 'object' && typeof q.quote === 'string')
+        .map((q: any): EvidenceQuote => ({
+          quote: q.quote,
+          source_document: typeof q.source_document === 'string' ? q.source_document : undefined,
+          section: typeof q.section === 'string' ? q.section : undefined,
+          category: EVIDENCE_CATEGORIES.includes(q.category) ? q.category as EvidenceCategory : undefined,
+          evidence_source: q.evidence_source === 'image' ? 'image' : q.evidence_source === 'derived' ? 'derived' : 'text',
+          derived_evidence_id: typeof q.derived_evidence_id === 'string' ? q.derived_evidence_id : undefined,
+          page_number: typeof q.page_number === 'number' && q.page_number > 0 ? q.page_number : undefined,
+          source_id: typeof q.source_id === 'string' ? q.source_id : undefined,
+          page_id: typeof q.page_id === 'string' ? q.page_id : undefined,
+          chunk_id: typeof q.chunk_id === 'string' ? q.chunk_id : undefined,
+          sheet_name: typeof q.sheet_name === 'string' ? q.sheet_name : undefined,
+          row_number: typeof q.row_number === 'number' && q.row_number > 0 ? q.row_number : undefined
+        }));
+    }
+
+    if (safeItem.evidence_quotes.length > 0) {
+      const footprint: Partial<Record<EvidenceCategory, number>> = {};
+      for (const q of safeItem.evidence_quotes) {
+        if (q.category) footprint[q.category] = (footprint[q.category] || 0) + 1;
+      }
+      if (Object.keys(footprint).length > 0) safeItem.category_footprint = footprint;
+    }
+    safeItem.assessment_status = safeItem.assessment_status
+      || (safeItem.evidence_quotes.length > 0 ? 'assessed' : 'not_assessed');
+    safeItem.question_results = safeItem.question_results
+      || (safeItem.assessment_status === 'not_assessed'
+        ? ['unknown', 'unknown', 'unknown']
+        : Array.from({ length: 3 }, (_, index) => index < safeItem.count ? 'supported' as const : 'unknown' as const));
+    // Silence describes missing assessment coverage, not score direction.
+    // A quote-backed capability at 0/3 is an assessed gap; an assessed
+    // anti-pattern at 0/3 is low burden. Neither is silent.
+    safeItem.is_silent = isAntipattern && safeItem.antipattern_absence_status
+      ? safeItem.antipattern_absence_status === 'unknown_absent'
+      : safeItem.assessment_status !== 'assessed';
+
+    return safeItem;
+  };
+
+  const rawMaturity = rawData?.phase_1_audit_logs?.maturity || {};
+  MATURITY_CRITERIA_IDS.forEach(id => safeLog.maturity[id] = validateItem(rawMaturity[id], false));
+
+  const rawAntipattern = rawData?.phase_1_audit_logs?.antipattern || {};
+  ANTIPATTERN_CRITERIA_IDS.forEach(id => safeLog.antipattern[id] = validateItem(rawAntipattern[id], true));
+
+  return safeLog;
+};
+
+export interface AnalyzeOptions {
+  // User-controlled override: forces the REASONER synthesis route even when
+  // auto-rules wouldn't fire. Use for high-stakes / board-level assessments.
+  deepMode?: boolean;
+  onRunStarted?: (runId: string) => void;
+}
+
+export const analyzeDocument = async (
+  sources: SourceRecord[],
+  onProgress: (update: PipelineProgressUpdate) => void,
+  options: AnalyzeOptions = {}
+): Promise<DiagnosticResult> => {
+  const images: never[] = [];
+  const modelRouting = await getModelRoutingConfig();
+  const modelRoutingMode = modelRouting.label;
+  // This is deliberately the first content-processing action: PostgreSQL owns
+  // the UUID and deadlines before source text is inspected or packetized.
+  const authoritativeRun = await createRun();
+  const runId = authoritativeRun.run_id;
+  options.onRunStarted?.(runId);
+  let completionIntent = false;
+  let deliveredResult: DiagnosticResult | undefined;
+  let hasRecoverableCheckpoint = false;
+  let checkpointParentHash: string | undefined;
+  const checkpoint = async (kind: CheckpointKind, scope: string, payload: Record<string, unknown>): Promise<void> => {
+    try {
+      const saved = await saveCheckpoint(runId, kind, scope, payload, checkpointParentHash);
+      checkpointParentHash = saved.payload_hash;
+      hasRecoverableCheckpoint = true;
+      serverLog(runId, 'info', 'checkpoint_saved', { kind, scope, revision: saved.revision });
+    } catch {
+      serverLog(runId, 'warn', 'checkpoint_save_failed', { kind, scope, error_code: 'CHECKPOINT_UNAVAILABLE' });
+    }
+  };
+  const activeProgressStages = new Set<PipelineProgressStage>();
+  const emitProgress = (update: PipelineProgressUpdate): void => {
+    if (update.status === 'in_progress') activeProgressStages.add(update.stage);
+    else activeProgressStages.delete(update.stage);
+    onProgress(update);
+  };
+  const pipelineStarted = Date.now();
+  const actuals: Record<string, string> = {
+    forensic_audit: modelRouting.routes.forensic_audit[0].id,
+    evidence_gap_analysis: modelRouting.routes.evidence_gap_analysis[0].id,
+    targeted_rescan: modelRouting.routes.targeted_rescan[0].id,
+    evidence_check: modelRouting.routes.evidence_check[0].id,
+    evidence_adjudication: modelRouting.routes.evidence_adjudication[0].id,
+    synthesis: modelRouting.routes.synthesis[0].id,
+    roadmap_synthesis: modelRouting.routes.roadmap_synthesis[0].id,
+    fact_check: modelRouting.routes.fact_check[0].id,
+    fact_check_high: modelRouting.routes.fact_check_high[0].id,
+  };
+
+  console.log(`[FinOps] === Pipeline start === run=${runId} deepMode=${!!options.deepMode}`);
+  serverLog(runId, 'info', 'pipeline_start', {
+    source_chars: sources.reduce((n,s) => n + (s.text?.length || 0) + (s.pages?.reduce((m,p)=>m+p.text.length,0) || 0), 0),
+    images: 0,
+    model_mode: modelRoutingMode,
+  });
+
+  try {
+    // Authoritative customer-content boundary. No model route is invoked until
+    // the complete source population has passed this deterministic scan.
+    const privacy = sanitizeEvidenceSources(sources);
+    if (privacy.decision.decision === 'BLOCK') {
+      throw new Error(`Deterministic privacy gate blocked the evidence set (${privacy.decision.blocking_codes.join(', ')}). Remove prohibited secrets before running the assessment.`);
+    }
+    const acquiredSources = privacy.sources;
+    const extractionWarnings = acquiredSources.filter(source => source.extraction?.truncated || source.extraction?.quality === 'poor' || (source.parse_warnings?.length || 0) > 0).length;
+    emitProgress({ stage: 'extraction', status: extractionWarnings > 0 ? 'completed_with_warnings' : 'completed' });
+    emitProgress({ stage: 'packetization', status: 'in_progress' });
+    const sourceRegistry = buildSourceRegistry(acquiredSources);
+    const derivedRun = deriveAllEvidenceSignals(acquiredSources, sourceRegistry);
+    let derivedAnalyticalEvidence = derivedRun.evidence;
+    const tableInspections = acquiredSources.flatMap(source =>
+      [...(source.structured_tables || []), ...(source.structured_table ? [source.structured_table] : [])]
+        .flatMap(table => table.deterministic_inspection ? [{
+          source_id: source.source_id,
+          sheet_name: table.sheet_name,
+          model_eligible: table.model_eligible !== false,
+          inspection: table.deterministic_inspection
+        }] : [])
+    );
+    const dataSignalCoverage = buildDataSignalCoverageReport();
+    const text = renderPseudonymousSourceContext(sourceRegistry, 120000);
+    const baselineSourcePackets = buildDomainPackets(sourceRegistry);
+    const gapPlan = planGapRetrieval({
+      packets: baselineSourcePackets,
+      derived: derivedAnalyticalEvidence,
+      locations: derivedRun.locations
+    });
+    const boundedRetrievalResult = applyBoundedRetrieval(sourceRegistry, baselineSourcePackets, { gap_plan: gapPlan });
+    let sourcePackets = boundedRetrievalResult.packets;
+    const boundedRetrieval = boundedRetrievalResult.trace;
+    if (boundedRetrieval.domains.some(domain => domain.passes.some(pass => pass.selected_chunk_ids.length > 0))) {
+      const privacyAgain = sanitizeEvidenceSources(acquiredSources);
+      if (privacyAgain.decision.decision === 'BLOCK') {
+        throw new Error(`Deterministic privacy gate blocked the evidence set after gap re-read (${privacyAgain.decision.blocking_codes.join(', ')}). Remove prohibited secrets before running the assessment.`);
+      }
+      derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry).evidence;
+    }
+    let packetWeakDomainIds = Object.entries(sourcePackets)
+      .filter(([, packet]) => packet.weak_coverage)
+      .map(([domain]) => domain);
+    const dlpScan = scanRegistryDlp(sourceRegistry);
+    const packetWarnings = Object.values(sourcePackets).filter(packet => packet.weak_coverage).length;
+    emitProgress({ stage: 'packetization', status: packetWarnings > 0 ? 'completed_with_warnings' : 'completed' });
+    emitProgress({ stage: 'privacy', status: 'in_progress' });
+    const packetCoverageWarnings = (packets: typeof sourcePackets): string[] => Object.entries(packets)
+      .filter(([, packet]) => packet.weak_coverage)
+      .map(([domain, packet]) => `Source packet ${domain} has incomplete deterministic routing coverage (${packet.included_chunk_count}/${packet.total_candidate_chunks} relevant chunks); no broad-source fallback was used.`);
+    let activePacketCoverageWarnings = packetCoverageWarnings(sourcePackets);
+    let sourceParseWarnings = [
+      ...sourceRegistry.warnings,
+      ...dlpScan.caution_hits.map(hit => `DLP caution: ${hit.kind} detected in ${hit.chunk_ids.length} chunk(s).`),
+      ...activePacketCoverageWarnings,
+    ];
+    serverLog(runId, 'info', 'source_registry_created', {
+      sources: sourceRegistry.source_count,
+      chunks: sourceRegistry.chunk_count,
+      dlp_review_chunks: 0,
+      images: 0,
+      withheld_sheets: sourceRegistry.acquisition_limitations.withheld_sheet_count,
+      withheld_rows: sourceRegistry.acquisition_limitations.withheld_row_count,
+      withheld_columns: sourceRegistry.acquisition_limitations.withheld_column_count,
+      active_filter_tables: sourceRegistry.acquisition_limitations.active_filter_table_count,
+      merged_ranges: sourceRegistry.acquisition_limitations.merged_range_count,
+      uninspected_workbook_image_sources: sourceRegistry.acquisition_limitations.uninspected_workbook_image_source_count,
+      partial_native_charts: sourceRegistry.acquisition_limitations.partial_native_chart_count,
+      unsupported_workbook_object_codes: sourceRegistry.acquisition_limitations.unsupported_object_codes.length,
+    });
+    for (const [domain, packet] of Object.entries(sourcePackets)) {
+      serverLog(runId, packet.weak_coverage ? 'warn' : 'info', 'source_packet_created', {
+        domain,
+        chunks: packet.included_chunk_count,
+        candidates: packet.total_candidate_chunks,
+        weak_coverage: packet.weak_coverage ? 'yes' : 'no',
+        chars: packet.char_count,
+        images: packet.images.length,
+      });
+    }
+    serverLog(runId, dlpScan.blocked ? 'error' : dlpScan.caution_hits.length > 0 ? 'warn' : 'info', 'dlp_full_source_scan', {
+      chunks: dlpScan.scanned_chunk_count,
+      high_risk_hits: dlpScan.high_risk_hits.reduce((sum, hit) => sum + hit.count, 0),
+      caution_hits: dlpScan.caution_hits.reduce((sum, hit) => sum + hit.count, 0),
+      blocked: dlpScan.blocked ? 'yes' : 'no',
+    });
+    if (dlpScan.blocked) {
+      throw new Error(`Security Alert: high-risk secret material detected in source chunks (${dlpScan.high_risk_hits.map(hit => `${hit.kind}:${hit.count}`).join(', ')}). Remove or redact secrets before running the assessment.`);
+    }
+    let evidenceIntegrity = validateEvidenceAcquisition(acquiredSources, sourceRegistry, sourcePackets);
+    let sourceRegistryStatus = sourceRegistryRuntimeStatus(
+      sourceRegistry,
+      sourcePackets,
+      0,
+      dlpScan,
+      privacy.decision,
+      evidenceIntegrity
+    );
+    let evidenceStagePackets = buildEvidenceLaneStagePackets({
+      source_packets: sourcePackets,
+      source_packet_hashes: evidenceIntegrity.packet_hashes,
+      derived_evidence: derivedAnalyticalEvidence,
+      acquisition_limitations: sourceRegistry.acquisition_limitations,
+      privacy_decision: privacy.decision,
+      acquisition_readiness: sourceRegistryStatus.acquisition_readiness
+    });
+    const baselineEvidenceStagePackets = evidenceStagePackets;
+    const semanticPackets = { ...sourcePackets };
+    const expandWeakEvidence = async (input: Parameters<NonNullable<import('../orchestrator').Phase1SourcePackets['expandWeakEvidence']>>[0]) => {
+      const gapAnalysis = await analyzeEvidenceGaps({
+        domainId: input.batchId,
+        items: input.items,
+        pass: input.pass,
+        seenTerms: input.seenTerms,
+        ctx: { runId },
+      });
+      const expanded = expandWeakEvidencePacket({
+        registry: sourceRegistry,
+        packet: semanticPackets[input.batchId],
+        items: input.items,
+        pass: input.pass,
+        seenTerms: input.seenTerms,
+        proposedTerms: gapAnalysis.failed ? undefined : gapAnalysis.terms,
+        gapAnalysisModel: gapAnalysis.model_used,
+        gapAnalysisFailed: gapAnalysis.failed,
+      });
+      semanticPackets[input.batchId] = expanded.packet;
+      if (expanded.trace.selected_chunk_ids.length > 0) {
+        derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry).evidence;
+      }
+      const snapshot = { ...semanticPackets };
+      const integrity = validateEvidenceAcquisition(acquiredSources, sourceRegistry, snapshot);
+      const status = sourceRegistryRuntimeStatus(sourceRegistry, snapshot, 0, dlpScan, privacy.decision, integrity);
+      const rebuilt = buildEvidenceLaneStagePackets({
+        source_packets: snapshot,
+        source_packet_hashes: integrity.packet_hashes,
+        derived_evidence: derivedAnalyticalEvidence,
+        acquisition_limitations: sourceRegistry.acquisition_limitations,
+        privacy_decision: privacy.decision,
+        acquisition_readiness: status.acquisition_readiness
+      })[input.batchId];
+      return {
+        packet: rebuilt,
+        trace: {
+          ...expanded.trace,
+          packet_hash_before: input.packet.integrity_hash,
+          packet_hash_after: rebuilt.integrity_hash
+        }
+      };
+    };
+    serverLog(runId, 'info', 'pipeline_integrity_passed', {
+      gate: 'acquisition',
+      sources: sourceRegistry.source_count,
+      chunks: sourceRegistry.chunk_count,
+      domains: Object.keys(sourcePackets).length,
+      registry_hash: evidenceIntegrity.registry_hash,
+      packet_manifest_hash: evidenceIntegrity.packet_manifest_hash,
+    });
+    await checkpoint('acquisition', 'accepted', {
+      source_registry_status: sourceRegistryStatus,
+      privacy_decision: privacy.decision,
+      integrity: evidenceIntegrity,
+      source_parse_warnings: sourceParseWarnings,
+    });
+
+    if (privacy.decision.redaction_count > 0) {
+      sourceParseWarnings.push(`Deterministic privacy controls redacted ${privacy.decision.redaction_count} prohibited contact, identifier, or financial-value occurrence(s) before packet assembly.`);
+    }
+    console.log("[FinOps] Deterministic privacy scan passed. Phase 1 is the first generative stage.");
+    const privacyWarnings = dlpScan.caution_hits.length > 0 || privacy.decision.redaction_count > 0;
+    emitProgress({ stage: 'privacy', status: privacyWarnings ? 'completed_with_warnings' : 'completed' });
+
+    console.log("[FinOps] Pre-fetching Tactics Database for Phase 3...");
+    emitProgress({ stage: 'knowledge', status: 'in_progress' });
+    const tacticsPromise = knowledgeBaseService.fetchStrategicPlaybook();
+    const referenceKbPromise = knowledgeBaseService.fetchReferenceKnowledgeBaseIndex();
+    const referenceKbIndex = await referenceKbPromise;
+    const knowledgeIntegrity = validateKnowledgeAcquisition(referenceKbIndex);
+    serverLog(runId, 'info', 'pipeline_integrity_passed', {
+      gate: 'knowledge',
+      knowledge_mode: knowledgeIntegrity.mode,
+      knowledge_hash: knowledgeIntegrity.index_hash,
+    });
+    serverLog(runId, referenceKbIndex.status.source === 'remote_blob' ? 'info' : 'warn', referenceKbIndex.status.source === 'remote_blob' ? 'kb_index_loaded' : 'kb_index_fallback', {
+      documents: referenceKbIndex.status.document_count,
+      failures: referenceKbIndex.status.failure_count,
+      source: referenceKbIndex.status.source,
+    });
+    const knowledgeWarnings = referenceKbIndex.status.failure_count > 0
+      || referenceKbIndex.status.source !== 'remote_blob'
+      || referenceKbIndex.status.document_count === 0;
+    emitProgress({ stage: 'knowledge', status: knowledgeWarnings ? 'completed_with_warnings' : 'completed' });
+
+    console.log(`[FinOps] [${runId}] Running Phase 1 Parallel Audit (${Object.keys(BATCH_DEFINITIONS).length} batches)...`);
+    emitProgress({ stage: 'analysis', status: 'in_progress', completed: 0, total: Object.keys(BATCH_DEFINITIONS).length });
+    emitProgress({ stage: 'evidence', status: 'in_progress', completed: 0, total: Object.keys(BATCH_DEFINITIONS).length });
+    const phase1Started = Date.now();
+    let aggregatedRawData = await runPhase1Audit(text, images, (completed, total, batchId) => {
+      emitProgress({ stage: 'analysis', status: 'in_progress', completed, total, domain_id: batchId });
+      emitProgress({ stage: 'evidence', status: 'in_progress', completed, total, domain_id: batchId });
+    }, { runId }, { packets: evidenceStagePackets, expandWeakEvidence });
+    if (aggregatedRawData.models_used.length > 0) {
+      actuals.forensic_audit = aggregatedRawData.models_used.join(',');
+    }
+    if (aggregatedRawData.targeted_rescan_models_used.length > 0) {
+      actuals.targeted_rescan = aggregatedRawData.targeted_rescan_models_used.join(',');
+    }
+    if (aggregatedRawData.evidence_check_models_used.length > 0) {
+      actuals.evidence_check = aggregatedRawData.evidence_check_models_used.join(',');
+    }
+    if (aggregatedRawData.evidence_adjudication_models_used.length > 0) {
+      actuals.evidence_adjudication = aggregatedRawData.evidence_adjudication_models_used.join(',');
+    }
+    if (aggregatedRawData.evidence_gap_analysis_models_used.length > 0) {
+      actuals.evidence_gap_analysis = aggregatedRawData.evidence_gap_analysis_models_used.join(',');
+    }
+    sourcePackets = { ...semanticPackets };
+    evidenceIntegrity = validateEvidenceAcquisition(acquiredSources, sourceRegistry, sourcePackets);
+    sourceRegistryStatus = sourceRegistryRuntimeStatus(
+      sourceRegistry,
+      sourcePackets,
+      0,
+      dlpScan,
+      privacy.decision,
+      evidenceIntegrity
+    );
+    evidenceStagePackets = buildEvidenceLaneStagePackets({
+      source_packets: sourcePackets,
+      source_packet_hashes: evidenceIntegrity.packet_hashes,
+      derived_evidence: derivedAnalyticalEvidence,
+      acquisition_limitations: sourceRegistry.acquisition_limitations,
+      privacy_decision: privacy.decision,
+      acquisition_readiness: sourceRegistryStatus.acquisition_readiness
+    });
+    packetWeakDomainIds = Object.entries(sourcePackets)
+      .filter(([, packet]) => packet.weak_coverage)
+      .map(([domain]) => domain);
+    sourceParseWarnings = sourceParseWarnings.filter(warning => !activePacketCoverageWarnings.includes(warning));
+    activePacketCoverageWarnings = packetCoverageWarnings(sourcePackets);
+    sourceParseWarnings.push(...activePacketCoverageWarnings);
+    validateEvidenceContinuity(evidenceIntegrity, sourceRegistry, sourcePackets);
+    const provenanceReconciliation = reconcileEvidenceProvenance(aggregatedRawData, sourceRegistry, sourcePackets, derivedAnalyticalEvidence);
+    aggregatedRawData = provenanceReconciliation.result;
+    if (provenanceReconciliation.adjustedCriteria.length > 0) {
+      serverLog(runId, 'warn', 'finding_provenance_adjusted', {
+        domains: [...new Set(provenanceReconciliation.adjustedCriteria.map(id => id.charAt(0)))].join(','),
+        criteria_count: provenanceReconciliation.adjustedCriteria.length,
+        removed_quotes: provenanceReconciliation.removedQuoteCount,
+      });
+    }
+    validatePreSynthesisIntegrity(
+      evidenceIntegrity,
+      knowledgeIntegrity,
+      sourceRegistry,
+      sourcePackets,
+      referenceKbIndex,
+      aggregatedRawData,
+      derivedAnalyticalEvidence,
+    );
+    serverLog(runId, 'info', 'pipeline_integrity_passed', {
+      gate: 'pre_synthesis',
+      domains: Object.keys(sourcePackets).length,
+      criteria: aggregatedRawData.evidence_check.items.length,
+      registry_hash: evidenceIntegrity.registry_hash,
+      packet_manifest_hash: evidenceIntegrity.packet_manifest_hash,
+      knowledge_hash: knowledgeIntegrity.index_hash,
+    });
+
+    const auditLogs = validateAndSanitizeLogs(aggregatedRawData);
+    const phase1Validation = validatePhase1Output({ phase_1_audit_logs: auditLogs });
+    if (!phase1Validation.valid) {
+      throw new PipelineIntegrityError('ANALYSIS_OUTPUT_INCOMPLETE', 'pre_synthesis');
+    }
+    if (phase1Validation.warnings.length > 0) {
+      console.warn(`[FinOps] Phase 1 validation produced ${phase1Validation.warnings.length} warning(s); content omitted by logging policy.`);
+    }
+    await checkpoint('phase1', 'accepted', {
+      phase_1_audit_logs: auditLogs,
+      evidence_check: aggregatedRawData.evidence_check,
+      validation: phase1Validation,
+      effective_source_registry_status: sourceRegistryStatus,
+      effective_evidence_integrity: evidenceIntegrity,
+      semantic_gap_retrieval: aggregatedRawData.semantic_gap_retrieval,
+    });
+    serverLog(runId, 'info', 'stage_complete', {
+      stage: 'forensic_audit',
+      model: aggregatedRawData.models_used.join(',') || actuals.forensic_audit,
+      duration_ms: Date.now() - phase1Started,
+    });
+
+    const phase1Status = aggregatedRawData.evidence_check.failed || !phase1Validation.valid ? 'completed_with_warnings' : 'completed';
+    emitProgress({ stage: 'analysis', status: phase1Status, completed: Object.keys(BATCH_DEFINITIONS).length, total: Object.keys(BATCH_DEFINITIONS).length });
+    emitProgress({ stage: 'evidence', status: phase1Status, completed: Object.keys(BATCH_DEFINITIONS).length, total: Object.keys(BATCH_DEFINITIONS).length });
+
+    emitProgress({ stage: 'calculation', status: 'in_progress' });
+    await new Promise(r => setTimeout(r, 600));
+    const validationData = calculateMetrics(auditLogs, {
+      evidencePacketReady: sourceRegistryStatus.acquisition_readiness.status !== 'BLOCKED',
+    });
+    const silentDomainIds = validationData.assessment_sufficiency.silent_domain_ids;
+    const unresolvedDomainIds = new Set(validationData.verification_unresolved.map(item => item.charAt(1)));
+    const overallScoreAvailable = validationData.assessment_sufficiency.decision === 'PASS'
+      && validationData.metrics.adjusted_maturity !== null;
+    await checkpoint('phase2', 'accepted', { phase_2_validation: validationData });
+    serverLog(runId, 'info', 'maturity_model_calculated', {
+      formula_version: validationData.resolution_maturity.formula_version,
+      registry_version: validationData.resolution_maturity.registry_version,
+      corroborated_maturity: validationData.metrics.corroborated_maturity,
+      observed_maturity: validationData.metrics.observed_maturity,
+      resolution: validationData.metrics.assessment_resolution,
+      adjusted_maturity: validationData.metrics.adjusted_maturity,
+      fully_resolved_pairs: validationData.resolution_maturity.overall.fully_resolved_pair_count,
+      partially_resolved_pairs: validationData.resolution_maturity.overall.partially_resolved_pair_count,
+      unresolved_pairs: validationData.resolution_maturity.overall.unresolved_pair_count,
+      contradictions: validationData.resolution_maturity.overall.contradiction_count,
+      sufficiency: validationData.assessment_sufficiency.decision,
+      scoring_authority: true,
+    });
+    emitProgress({ stage: 'calculation', status: 'completed' });
+
+    console.log(`[FinOps] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.crawl_walk_run}`);
+
+    // Confidence bracket: drives which synthesis prompt runs.
+    // LOW   → findings (no roadmap, no case studies)
+    // MEDIUM → cautious (per-phase confidence + assumptions, hedged verbs)
+    // HIGH  → directive (current behavior — full tactics, case studies)
+    const confidenceBracket = aggregatedRawData.evidence_check.failed
+      ? 'LOW'
+      : bracketFromValidation(validationData);
+    const bracketDetail = explainBracket(confidenceBracket, {
+      evidence_density: validationData.metrics.evidence_density,
+      delivery_integrity: validationData.metrics.delivery_integrity,
+      silent_areas_count: validationData.silent_areas.length,
+    });
+    console.log(`[FinOps] [${runId}] Synthesis confidence: ${bracketDetail}`);
+    serverLog(runId, 'info', 'synthesis_confidence', {
+      bracket: confidenceBracket,
+      evidence_density: Math.round(validationData.metrics.evidence_density),
+      delivery_integrity: Math.round(validationData.metrics.delivery_integrity),
+      maturity_zero_ratio: Math.round(validationData.metrics.maturity_zero_ratio || 0),
+      silent_areas: validationData.silent_areas.length,
+    });
+
+    // Synthesis escalation decision (rules + user override).
+    // Rules are conservative: only escalate to REASONER when the org is messy
+    // enough that a deeper roadmap is worth the cost premium.
+    const autoEscalate =
+      (validationData.crawl_walk_run === 'Crawl' && validationData.antipattern_findings.length >= 5)
+      || validationData.metrics.finops_readiness < 30
+      || validationData.maturity_gaps.length >= 15
+      || validationData.metrics.antipattern_burden > 70;
+    const useEscalation = options.deepMode || autoEscalate;
+    const synthesisStage = useEscalation ? 'synthesis_escalation' : 'synthesis';
+    const escalationReason = options.deepMode
+      ? 'user_deep_mode'
+      : autoEscalate
+        ? `auto:readiness=${Math.round(validationData.metrics.finops_readiness)},burden=${Math.round(validationData.metrics.antipattern_burden)},antipatterns=${validationData.antipattern_findings.length},gaps=${validationData.maturity_gaps.length},class=${validationData.crawl_walk_run}`
+        : 'none';
+    console.log(`[FinOps] [${runId}] Synthesis stage: ${synthesisStage} (${escalationReason})`);
+    serverLog(runId, 'info', 'synthesis_routing', {
+      stage: synthesisStage,
+      reason_code: options.deepMode ? 'USER_DEEP_MODE' : autoEscalate ? 'AUTO_ESCALATION' : 'STANDARD',
+      readiness: Math.round(validationData.metrics.finops_readiness),
+      burden: Math.round(validationData.metrics.antipattern_burden),
+      antipatterns: validationData.antipattern_findings.length,
+      gaps: validationData.maturity_gaps.length,
+      class: validationData.crawl_walk_run,
+    });
+
+    // Note: the previous "skip strategy on low evidence density" early-exit
+    // is gone. Low-evidence runs are now handled by FINDINGS-mode synthesis
+    // (bracket=LOW above), which produces an honest evidence + validation
+    // report instead of a placeholder. The deterministic QG below still
+    // emits BLOCK if evidence_density crosses the threshold, but the report
+    // ships with real findings content.
+
+    emitProgress({ stage: 'synthesis', status: 'in_progress' });
+    const tacticsContext = await tacticsPromise;
+    const referenceKbContext = await knowledgeBaseService.fetchReferenceKnowledgeBaseContext({
+      maxDocChars: 650,
+      label: 'phase3_strategy',
+    });
+
+    const definitionsContext = JSON.stringify(BATCH_DEFINITIONS, null, 2);
+    const taxonomyContext = JSON.stringify(FINOPS_TAXONOMY_REGISTRY, null, 2);
+    // Hard ID lookup at the TOP — prevents the model from confusing which
+    // company goes with which tactic ID. See knowledge_base/index.ts for
+    // the rationale. The prose case studies still follow below.
+    const tacticIdTable = buildTacticIdTable();
+    const fullSSOT = `=== TACTIC IDS — LOOKUP TABLE (use ONLY these IDs; never invent, abbreviate, or modify) ===
+${tacticIdTable}
+
+=== PART 1: TAXONOMY REGISTRY (INDEXING + KB USAGE BOUNDARIES) ===
+${taxonomyContext}
+
+=== PART 2: THE CRITERIA (DEFINITIONS) ===
+${definitionsContext}
+
+=== PART 3: REFERENCE KNOWLEDGE BASE (PDF RUBRICS + USAGE BOUNDARIES) ===
+${referenceKbContext}
+
+=== PART 4: THE PLAYBOOK (SOLUTIONS) ===
+${tacticsContext}`;
+
+
+    const handoffSummary = `
+FINOPS DIAGNOSTIC REPORT SUMMARY (Computed by System):
+-------------------------------------------------------
+Adjusted FinOps Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100`}${overallScoreAvailable ? '' : ' — diagnostic only; Assessment Sufficiency BLOCK'}
+Corroborated Maturity: ${validationData.metrics.corroborated_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.corroborated_maturity)}%`}
+Observed Maturity: ${validationData.metrics.observed_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.observed_maturity)}%`}
+Assessment Resolution: ${Math.round(validationData.metrics.assessment_resolution)}%
+Assessment Sufficiency: ${validationData.assessment_sufficiency.decision}
+Assessment Sufficiency Warnings: ${validationData.assessment_sufficiency.warning_reasons.join(' ') || 'None'}
+Maturity Classification: ${validationData.crawl_walk_run}
+Maturity Depth Index: ${Math.round(validationData.metrics.maturity_depth)}%
+Anti-Pattern Burden: ${Math.round(validationData.metrics.antipattern_burden)}%
+Anti-Pattern Burden Confidence: ${validationData.metrics.antipattern_burden_confidence || 'unknown'}
+Anti-Pattern Clearance: ${Math.round(validationData.metrics.antipattern_clearance)}%
+Anti-Pattern Coverage: ${Math.round(validationData.metrics.antipattern_coverage)}%
+Delivery Integrity: ${validationData.metrics.delivery_integrity}% (criteria the audit returned data for)
+Evidence Density: ${validationData.metrics.evidence_density}% (criteria with verified source coverage, including quote-backed gaps)
+Capability 0/3 Concentration: ${validationData.metrics.maturity_zero_ratio || 0}% (${validationData.metrics.maturity_zero_count || 0} of ${validationData.metrics.maturity_assessed_count || 0} assessed maturity criteria; an evidence-backed low-maturity signal, not missing evidence)
+Anti-Pattern Findings: ${validationData.metrics.antipattern_finding_count || 0} of 30 anti-patterns have confirmed or partial signals (${validationData.metrics.antipattern_finding_ratio || 0}%); ${validationData.metrics.score_gap_breakdown?.antipattern_tested_absent || 0} tested absences raise control, unknown absence does not
+Verified Anti-Pattern Absences: ${validationData.verified_antipattern_absences.length}
+Unknown / Not-Assessable Anti-Pattern Absences: ${validationData.unknown_antipattern_absences.length}
+Maturity Gaps: ${validationData.maturity_gaps.length}
+Silent Areas: ${validationData.silent_areas.length}
+
+UNRESOLVED REQUIRED VERIFICATION:
+${validationData.verification_unresolved.join('\n') || 'None'}
+
+SCORE EVIDENCE GAPS (unknown in maturity arithmetic and reducing resolution; not proof a capability is absent):
+${validationData.score_evidence_gaps.join('\n') || 'None'}
+
+PACKET RETRIEVAL WARNINGS (acquisition telemetry only; not a finding or roadmap restriction):
+${packetWeakDomainIds.join(', ') || 'None'}
+
+VERIFIED SILENT DOMAINS (<10% criterion evidence density):
+${silentDomainIds.join(', ') || 'None'}
+Criterion evidence density by domain: ${Object.entries(validationData.assessment_sufficiency.domain_criterion_evidence_density).map(([domain, density]) => `${domain}=${density}%`).join(', ')}
+For silent domains, do not make broad maturity conclusions or prescribe remediation tactics. Provide only bounded evidence-collection actions. Continue normal diagnosis and remediation for non-silent domains.
+
+CATEGORY BREAKDOWN:
+${Object.entries(validationData.category_scores).map(([cat, score]) => unresolvedDomainIds.has(cat) ? `  ${cat}: verification unavailable (no validated domain score)` : `  ${cat}: ${score}/15`).join('\n')}
+`;
+
+    const activatedTacticSelectionPlan = buildTacticSelectionPlan(auditLogs, silentDomainIds);
+    const tacticSelectionPlan = confidenceBracket === 'LOW'
+      ? { ...activatedTacticSelectionPlan, required: [], optional: [] }
+      : activatedTacticSelectionPlan;
+    const tacticSelectionContext = buildTacticSelectionContext(tacticSelectionPlan);
+
+    const compactLockedFindings = (strategy: any): string => JSON.stringify({
+      executive_summaries: strategy?.executive_summaries || {},
+      evidence_summary: strategy?.evidence_summary || null,
+      diagnosis: strategy?.diagnosis || null,
+      visual_scorecard: strategy?.visual_scorecard || null,
+    }, null, 2);
+
+    const buildSummaryCheckText = (strategy: any): string => {
+      const summaries = strategy.executive_summaries && typeof strategy.executive_summaries === 'object'
+        ? strategy.executive_summaries
+        : { [DEFAULT_PERSONA]: strategy.executive_summary || '' };
+      const summary = PERSONA_IDS
+        .map(p => {
+          const text = typeof summaries[p] === 'string' ? summaries[p] : '';
+          return text ? `[Persona: ${p}]\n${text}` : '';
+        })
+        .filter(Boolean)
+        .join('\n\n---\n\n');
+      const evidenceText = strategy.evidence_summary ? `\n\n[Evidence Summary]\n${JSON.stringify(strategy.evidence_summary)}` : '';
+      const diagnosisText = strategy.diagnosis ? `\n\n[Diagnosis]\n${JSON.stringify(strategy.diagnosis)}` : '';
+      return `${summary}${evidenceText}${diagnosisText}`;
+    };
+
+    const buildRoadmapCheckText = (strategy: any): string => {
+      const planningText = strategy.planning_decision ? `\n\n[Planning Decision]\n${JSON.stringify(strategy.planning_decision)}` : '';
+      return planningText.trim();
+    };
+
+    const buildRoadmapGroundingText = (roadmap: any[]): string => roadmap.map((phase: any) => {
+      const actions = Array.isArray(phase?.actions) ? phase.actions : [];
+      return [
+        `[Phase] ${phase?.phase || 'Unnamed phase'}`,
+        phase?.why ? `[WHY]\n${phase.why}` : '',
+        phase?.what ? `[WHAT]\n${phase.what}` : '',
+        actions.length > 0 ? `[HOW]\n${actions.map((action: string) => `- ${action}`).join('\n')}` : '[HOW]\n(no actions)'
+      ].filter(Boolean).join('\n');
+    }).join('\n\n---\n\n');
+
+    const callStructuredSynthesis = async ({
+      stage,
+      substage,
+      outputContract,
+      systemInstruction,
+      buildUserText,
+      recordModel,
+      validate,
+      regenerated,
+    }: {
+      stage: Extract<StageId, 'synthesis' | 'synthesis_escalation' | 'roadmap_synthesis'>;
+      substage: 'evidence_summary' | 'roadmap' | 'findings_mode';
+      outputContract: string;
+      systemInstruction: string;
+      buildUserText: (formatRetry: boolean) => string;
+      recordModel: (model: string) => void;
+      validate?: (value: any) => boolean;
+      regenerated: boolean;
+    }): Promise<any> => {
+      return withOneOutputRegeneration(async (formatRetry: boolean) => {
+        const synthStarted = Date.now();
+        const resp = await runStage(stage, {
+          userText: buildUserText(formatRetry),
+          systemInstruction,
+          outputContract,
+        }, { runId });
+        const parsed = parseAiResponse(resp.text);
+        if (validate && !validate(parsed)) throw Object.assign(new Error('INVALID_OUTPUT_CONTRACT'), { code: 'INVALID_OUTPUT_CONTRACT' });
+        recordModel(resp.modelUsed.id);
+        serverLog(runId, 'info', 'stage_complete', {
+          stage,
+          model: resp.modelUsed.id,
+          substage,
+          bracket: confidenceBracket,
+          duration_ms: Date.now() - synthStarted,
+          regen: regenerated || formatRetry ? 'yes' : 'no',
+        });
+        return parsed;
+      }, () => serverLog(runId, 'warn', 'synthesis_output_retry', {
+        stage,
+        substage,
+        reason_code: 'INVALID_OUTPUT_CONTRACT',
+        retry: 1,
+      }));
+    };
+
+    const callEvidenceSynthesis = async (correctionAppendix?: string): Promise<any> => {
+      return callStructuredSynthesis({
+        stage: synthesisStage,
+        substage: 'evidence_summary',
+        outputContract: OUTPUT_CONTRACT_IDS.evidenceSynthesis,
+        systemInstruction: EVIDENCE_SYNTHESIS_SYSTEM_INSTRUCTION,
+        regenerated: Boolean(correctionAppendix),
+        recordModel: model => { actuals.synthesis = model; },
+        buildUserText: formatRetry => [
+          EVIDENCE_SYNTHESIS_USER_PROMPT,
+          `\n\n### DIAGNOSTIC FINDINGS (Phase 1 & 2)\nUse only these findings and the source document for summary and diagnosis:\n${handoffSummary}`,
+          `\n\n### ORIGINAL SOURCE CONTEXT\n<SOURCE_DOCUMENT_TO_AUDIT>\n${text.substring(0, 50000)}\n</SOURCE_DOCUMENT_TO_AUDIT>`,
+          confidenceBracket === 'LOW' ? '\n\n### LOW-CONFIDENCE OVERRIDE\nEvidence is LOW confidence. Keep diagnosis provisional, return low diagnostic confidence, and emphasize missing evidence rather than root-cause certainty.' : '',
+          correctionAppendix || '',
+          formatRetry ? '\n\n### OUTPUT CONTRACT CORRECTION\nThe previous provider chain did not return the required JSON object. Return only the schema-compliant evidence synthesis object without commentary.' : '',
+        ].join(''),
+      });
+    };
+
+    const callRoadmapSynthesis = async (
+      lockedStrategy: any,
+      correctionAppendix?: string,
+      requiredPlan: TacticSelectionPlan = tacticSelectionPlan,
+    ): Promise<any> => {
+      return callStructuredSynthesis({
+        stage: 'roadmap_synthesis',
+        substage: 'roadmap',
+        outputContract: OUTPUT_CONTRACT_IDS.roadmapSynthesis,
+        systemInstruction: ROADMAP_SYNTHESIS_SYSTEM_INSTRUCTION,
+        regenerated: Boolean(correctionAppendix),
+        recordModel: model => { actuals.roadmap_synthesis = model; },
+        validate: value => findMissingRequiredTacticIds(value, requiredPlan).length === 0
+          && findRoadmapActionsMissingCriterionReferences(value).length === 0,
+        buildUserText: formatRetry => [
+          ROADMAP_SYNTHESIS_USER_PROMPT,
+          confidenceBracket === 'MEDIUM' ? ROADMAP_SYNTHESIS_PROMPT_CAUTIOUS_APPENDIX : '',
+          confidenceBracket !== 'LOW' ? `\n\n### THE GOLDEN STANDARD (SSOT)\nYou may ONLY prescribe solutions found in this Knowledge Base. Use it for roadmap actions only; never alter locked findings from it:\n\n${fullSSOT}` : '',
+          `\n\n### LOCKED FINDINGS JSON (IMMUTABLE)\n${compactLockedFindings(lockedStrategy)}`,
+          `\n\n### DIAGNOSTIC FINDINGS (Phase 1 & 2)\n${handoffSummary}`,
+          `\n\n${requiredPlan === tacticSelectionPlan ? tacticSelectionContext : buildTacticSelectionContext(requiredPlan)}`,
+          correctionAppendix || '',
+          formatRetry ? '\n\n### OUTPUT CONTRACT CORRECTION\nThe previous provider chain did not satisfy the complete roadmap contract. Return only the schema-compliant roadmap object, include every REQUIRED tactic from the governed selection plan, include at least one exact bracketed finding reference in every action, and add no commentary.' : '',
+        ].join(''),
+      });
+    };
+
+    const callFindingsSynthesis = async (correctionAppendix?: string): Promise<any> => {
+      return callStructuredSynthesis({
+        stage: synthesisStage,
+        substage: 'findings_mode',
+        outputContract: OUTPUT_CONTRACT_IDS.findingsSynthesis,
+        systemInstruction: EVIDENCE_SYNTHESIS_SYSTEM_INSTRUCTION,
+        regenerated: Boolean(correctionAppendix),
+        recordModel: model => { actuals.synthesis = model; },
+        validate: value => validateFindingsModePayload(value).length === 0,
+        buildUserText: formatRetry => [
+          STRATEGY_USER_PROMPT_FINDINGS,
+          `\n\n### DIAGNOSTIC FINDINGS (Phase 1 & 2)\nUse these findings to produce the findings-mode report:\n${handoffSummary}`,
+          `\n\n### ORIGINAL SOURCE CONTEXT\n<SOURCE_DOCUMENT_TO_AUDIT>\n${text.substring(0, 50000)}\n</SOURCE_DOCUMENT_TO_AUDIT>`,
+          correctionAppendix || '',
+          formatRetry ? '\n\n### OUTPUT CONTRACT CORRECTION\nThe previous provider chain did not return the required findings-mode object. Return only the schema-compliant JSON object without commentary or invented evidence.' : '',
+        ].join(''),
+      });
+    };
+
+    const mergePhase3Outputs = (summary: any, roadmapData: any): any => {
+      const summaryStrategy = summary?.phase_3_strategy || summary || {};
+      const roadmap = roadmapData?.phase_3_strategy || {};
+      return {
+        phase_3_strategy: {
+          ...summaryStrategy,
+          planning_decision: roadmap.planning_decision,
+          remediation_roadmap: Array.isArray(roadmap.remediation_roadmap) ? roadmap.remediation_roadmap : [],
+          findings_mode: summaryStrategy.findings_mode || roadmap.findings_mode,
+        }
+      };
+    };
+
+    type Phase3RepairScope = 'summary' | 'roadmap' | 'both';
+    interface Phase3Corrections {
+      summary?: string;
+      roadmap?: string;
+    }
+
+    const appendCorrection = (existing: string | undefined, appendix: string): string =>
+      existing ? `${existing}\n\n${appendix}` : appendix;
+
+    const callPhase3 = async (
+      corrections: Phase3Corrections = {},
+      scope: Phase3RepairScope = 'both',
+      currentStrategy?: any
+    ): Promise<any> => {
+      if (confidenceBracket === 'LOW') {
+        return callFindingsSynthesis([corrections.summary, corrections.roadmap].filter(Boolean).join('\n\n') || undefined);
+      }
+      const current = currentStrategy?.phase_3_strategy || {};
+      const normalizedSummary = scope === 'roadmap'
+        ? current
+        : normalizeStrategy(await callEvidenceSynthesis(corrections.summary))?.phase_3_strategy || {};
+      const roadmapData = scope === 'summary'
+        ? { phase_3_strategy: current }
+        : await callRoadmapSynthesis(normalizedSummary, corrections.roadmap);
+      return mergePhase3Outputs(normalizedSummary, roadmapData);
+    };
+
+    interface SplitFactCheckResult {
+      merged: FactCheckResult;
+      summary?: FactCheckResult;
+      roadmap?: FactCheckResult;
+    }
+
+    const runFactCheck = async (
+      data: any,
+      attemptNumber: number,
+      stage: Extract<StageId, 'fact_check' | 'fact_check_high'> = 'fact_check',
+      scope: Phase3RepairScope = 'both',
+      previous?: SplitFactCheckResult
+    ): Promise<SplitFactCheckResult> => {
+      const strategy = data?.phase_3_strategy || {};
+      const roadmap = strategy.remediation_roadmap || [];
+      const roadmapText = buildRoadmapGroundingText(roadmap);
+      try {
+        let summaryCheck = scope === 'roadmap' ? previous?.summary : undefined;
+        let roadmapCheck = scope === 'summary' ? previous?.roadmap : undefined;
+        if (scope !== 'roadmap') {
+          const summaryPrompt = buildSummaryFactCheckPrompt({
+            contentToCheck: buildSummaryCheckText(strategy),
+            remediationRoadmapText: '',
+            sourceDocument: text,
+            phase1: auditLogs,
+            phase2: validationData,
+            imageCount: images.length,
+          });
+          const summaryStarted = Date.now();
+          const summaryResp = await runStage(stage, {
+            userText: summaryPrompt,
+            images,
+            outputContract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
+            validateOutput: value => {
+              const checked = parseFactCheckResponse(value, attemptNumber, SUMMARY_FACT_CHECK_CONTRACT);
+              if (checked.failed) throw Object.assign(new Error(checked.failure_reason), { code: 'INVALID_FACT_CHECK_OUTPUT' });
+            },
+          }, { runId });
+          actuals[stage] = summaryResp.modelUsed.id;
+          serverLog(runId, 'info', 'stage_complete', {
+            stage,
+            model: summaryResp.modelUsed.id,
+            substage: 'summary',
+            duration_ms: Date.now() - summaryStarted,
+            attempt: attemptNumber,
+          });
+          summaryCheck = parseFactCheckResponse(summaryResp.text, attemptNumber, SUMMARY_FACT_CHECK_CONTRACT);
+        }
+        if (scope !== 'summary') {
+          const roadmapPrompt = buildRoadmapFactCheckPrompt({
+            contentToCheck: buildRoadmapCheckText(strategy),
+            remediationRoadmapText: roadmapText,
+            lockedFindingsText: compactLockedFindings(strategy),
+            sourceDocument: text,
+            phase1: auditLogs,
+            phase2: validationData,
+            imageCount: images.length,
+            tactics: FINOPS_TACTICS_LOCAL,
+            tacticActivityPlaybook: FINOPS_TACTIC_ACTIVITY_PLAYBOOK,
+          });
+          const roadmapStarted = Date.now();
+          const roadmapResp = await runStage(stage, {
+            userText: roadmapPrompt,
+            images,
+            outputContract: OUTPUT_CONTRACT_IDS.roadmapFactCheck,
+            validateOutput: value => {
+              const checked = parseFactCheckResponse(value, attemptNumber, ROADMAP_FACT_CHECK_CONTRACT);
+              if (checked.failed) throw Object.assign(new Error(checked.failure_reason), { code: 'INVALID_FACT_CHECK_OUTPUT' });
+            },
+          }, { runId });
+          actuals[stage] = roadmapResp.modelUsed.id;
+          serverLog(runId, 'info', 'stage_complete', {
+            stage,
+            model: roadmapResp.modelUsed.id,
+            substage: 'roadmap',
+            duration_ms: Date.now() - roadmapStarted,
+            attempt: attemptNumber,
+          });
+          roadmapCheck = parseFactCheckResponse(roadmapResp.text, attemptNumber, ROADMAP_FACT_CHECK_CONTRACT);
+        }
+        if (!summaryCheck || !roadmapCheck) {
+          throw Object.assign(new Error('Missing fact-check result for locked scope.'), { code: 'INVALID_FACT_CHECK_OUTPUT' });
+        }
+        return {
+          summary: summaryCheck,
+          roadmap: roadmapCheck,
+          merged: mergeRequiredFactChecks(summaryCheck, roadmapCheck, attemptNumber),
+        };
+      } catch (e: any) {
+        return {
+          merged: {
+            attempts: attemptNumber,
+            total_claims: 0,
+            supported_count: 0,
+            unsupported_claims: [],
+            failed: true,
+            failure_reason: `Fact-check call failed: ${e?.message || e}`
+          }
+        };
+      }
+    };
+
+    const buildFallbackEvidenceSummary = () => ({
+      headline: overallScoreAvailable
+        ? `${validationData.crawl_walk_run} FinOps maturity with a ${Math.round(validationData.metrics.adjusted_maturity!)}/100 resolution-adjusted score`
+        : 'Maturity classification unavailable because Assessment Sufficiency did not pass',
+      maturity_classification: validationData.crawl_walk_run,
+      key_metrics: [
+        overallScoreAvailable
+          ? `Adjusted FinOps Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
+          : `Adjusted FinOps Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
+        `Corroborated maturity: ${validationData.metrics.corroborated_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.corroborated_maturity)}%`}`,
+        `Observed maturity: ${validationData.metrics.observed_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.observed_maturity)}%`}`,
+        `Assessment resolution: ${Math.round(validationData.metrics.assessment_resolution)}%`,
+        `Assessment sufficiency: ${validationData.assessment_sufficiency.decision}`,
+        `Maturity depth: ${Math.round(validationData.metrics.maturity_depth)}%`,
+        `Anti-pattern burden: ${Math.round(validationData.metrics.antipattern_burden)}% (${validationData.metrics.antipattern_burden_confidence || 'unknown'} confidence)`,
+        `Anti-pattern clearance: ${Math.round(validationData.metrics.antipattern_clearance)}%`,
+        `Anti-pattern coverage: ${Math.round(validationData.metrics.antipattern_coverage)}%`,
+        `Delivery integrity: ${Math.round(validationData.metrics.delivery_integrity)}%`,
+        `Evidence density: ${Math.round(validationData.metrics.evidence_density)}%`,
+      ],
+      confirmed_strengths: Object.entries(validationData.category_scores)
+        .filter(([cat, score]) => !unresolvedDomainIds.has(cat) && !silentDomainIds.includes(cat as DomainId) && score >= 10)
+        .map(([cat, score]) => `Domain ${cat} shows relatively strong maturity signal (${score}/15).`),
+      confirmed_gaps: validationData.maturity_gaps.slice(0, 8),
+      confirmed_antipatterns: validationData.antipattern_findings.slice(0, 8),
+      silent_or_missing_evidence: [
+        ...validationData.verification_unresolved,
+        ...validationData.silent_areas,
+        ...validationData.unknown_antipattern_absences
+      ].slice(0, 8)
+    });
+
+    const buildFallbackDiagnosis = () => ({
+      primary_bottleneck: validationData.maturity_gaps[0] || validationData.antipattern_findings[0] || 'No single bottleneck dominated the validated audit output.',
+      root_causes: [
+        ...validationData.maturity_gaps.slice(0, 3),
+        ...validationData.antipattern_findings.slice(0, 3)
+      ].slice(0, 5),
+      domain_diagnosis: Object.fromEntries(
+        Object.entries(validationData.category_scores).map(([cat, score]) => [cat, silentDomainIds.includes(cat as DomainId)
+          ? `Domain ${cat} is silent below 10% verified criterion evidence; no broad maturity conclusion or remediation is supported. Collect domain evidence.`
+          : unresolvedDomainIds.has(cat)
+            ? `Verification was unavailable in domain ${cat}; scanner candidates were excluded and no validated domain score is reported.`
+            : `Maturity signal ${score}/15 in domain ${cat}.`])
+      ),
+      confidence: confidenceBracket === 'HIGH' ? 'high' : confidenceBracket === 'MEDIUM' ? 'medium' : 'low',
+      confidence_rationale: bracketDetail
+    });
+
+    const buildFallbackPlanningDecision = () => ({
+      decision: confidenceBracket === 'LOW' ? 'NO_GO' : confidenceBracket === 'MEDIUM' ? 'CONDITIONAL_GO' : 'GO',
+      rationale: confidenceBracket === 'LOW'
+        ? 'Evidence is not strong enough for a directive roadmap; gather missing source material first.'
+        : confidenceBracket === 'MEDIUM'
+          ? 'Use high-confidence actions first and validate assumptions before scaling later phases.'
+          : 'Evidence supports a directive roadmap subject to the Quality Gate result.',
+      safe_to_act_on: confidenceBracket === 'LOW'
+        ? ['Collect missing evidence listed in the findings report.', 'Validate candidate remediation themes before execution.']
+        : ['Act on roadmap phases that cite validated findings and valid tactic IDs.'],
+      evidence_needed_before_action: validationData.silent_areas.slice(0, 6)
+    });
+
+    const buildFallbackFindingsMode = () => ({
+      evidence_backed_findings: [
+        ...validationData.maturity_gaps.slice(0, 4),
+        ...validationData.antipattern_findings.slice(0, 2),
+        ...validationData.verified_antipattern_absences.slice(0, 2)
+      ].slice(0, 8),
+      candidate_themes: validationData.silent_areas.length > 0
+        ? validationData.silent_areas.slice(0, 6)
+        : validationData.maturity_gaps.slice(0, 6),
+      missing_evidence: [
+        ...validationData.silent_areas,
+        ...validationData.unknown_antipattern_absences
+      ].slice(0, 8),
+      validation_plan: [
+        'Provide source material that documents current FinOps ownership, cadence, and decision rights.',
+        'Attach evidence of tagging, allocation, budget, and forecasting practices.',
+        'Include recent cost review outputs or optimization decision records before rerunning the assessment.'
+      ]
+    });
+
+    const buildDeterministicLowConfidenceStrategy = () => {
+      const outcome = `The assessment completed deterministic acquisition and analysis, but evidence density was ${Math.round(validationData.metrics.evidence_density)}% and ${validationData.silent_areas.length} criteria remained silent. This supports a blocking decision, not a directive summary or roadmap.`;
+      const boundary = 'Decision: NO_GO. No remediation roadmap is issued. Gather the missing evidence identified below, validate the candidate themes, and rerun the assessment before authorizing implementation.';
+      return {
+        phase_3_strategy: {
+          executive_summaries: {
+            finops_lead: `${outcome}\n\n${boundary}`,
+            cfo: `${outcome}\n\nThe available evidence is insufficient to support investment prioritization or claimed financial outcomes. ${boundary}`,
+            engineering_lead: `${outcome}\n\nThe available evidence is insufficient to prescribe engineering controls or operating changes. ${boundary}`,
+          },
+          executive_summary: `${outcome}\n\n${boundary}`,
+          active_persona: DEFAULT_PERSONA,
+          evidence_summary: buildFallbackEvidenceSummary(),
+          diagnosis: buildFallbackDiagnosis(),
+          planning_decision: buildFallbackPlanningDecision(),
+          visual_scorecard: {
+            headline: 'Insufficient Evidence — Findings Only',
+            maturity_score: overallScoreAvailable
+              ? `${Math.round(validationData.metrics.adjusted_maturity!)}/100 adjusted maturity`
+              : `${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 diagnostic`} — Assessment Sufficiency BLOCK`,
+            burden_score: `${Math.round(validationData.metrics.antipattern_burden)}% anti-pattern burden`,
+          },
+          remediation_roadmap: [],
+          findings_mode: buildFallbackFindingsMode(),
+          confidence_bracket: 'LOW',
+        },
+      };
+    };
+
+    const normalizeStrategy = (raw: any): any => {
+      if (!raw?.phase_3_strategy) return raw;
+      const normalized = normalizePersonaSummaries(raw.phase_3_strategy);
+      const incomingPlanningDecision = raw.phase_3_strategy.planning_decision;
+      const incomingDiagnosis = raw.phase_3_strategy.diagnosis;
+      const normalizedPlanningDecision = confidenceBracket === 'LOW'
+        ? incomingPlanningDecision?.decision === 'NO_GO'
+          ? incomingPlanningDecision
+          : buildFallbackPlanningDecision()
+        : incomingPlanningDecision || buildFallbackPlanningDecision();
+      raw.phase_3_strategy = {
+        ...raw.phase_3_strategy,
+        executive_summaries: normalized.executive_summaries,
+        executive_summary: normalized.executive_summary,
+        active_persona: normalized.active_persona,
+        evidence_summary: raw.phase_3_strategy.evidence_summary?.headline ? raw.phase_3_strategy.evidence_summary : buildFallbackEvidenceSummary(),
+        diagnosis: typeof incomingDiagnosis?.primary_bottleneck === 'string' && incomingDiagnosis.primary_bottleneck.trim().length > 0
+          ? { ...incomingDiagnosis, primary_bottleneck: incomingDiagnosis.primary_bottleneck.trim() }
+          : buildFallbackDiagnosis(),
+        planning_decision: normalizedPlanningDecision,
+        remediation_roadmap: confidenceBracket === 'LOW' ? [] : (raw.phase_3_strategy.remediation_roadmap || []),
+        confidence_bracket: confidenceBracket,
+        findings_mode: confidenceBracket === 'LOW'
+          ? raw.phase_3_strategy.findings_mode || buildFallbackFindingsMode()
+          : raw.phase_3_strategy.findings_mode
+      };
+      const domainDiagnosis = raw.phase_3_strategy.diagnosis?.domain_diagnosis;
+      if (domainDiagnosis && typeof domainDiagnosis === 'object') {
+        for (const domainId of silentDomainIds) {
+          domainDiagnosis[domainId] = `Domain ${domainId} is silent below 10% verified criterion evidence; no broad maturity conclusion or remediation is supported. Collect domain evidence.`;
+        }
+      }
+      return sanitizeEvidenceSummaryUncertainty(raw);
+    };
+
+    // Wrap callPhase3 with a deterministic ID-validity gate. Before any
+    // fact-check spend, we extract all [TAC-...] references and verify each
+    // exists in the DB. Invalid IDs trigger a targeted regen with the full
+    // valid-ID list. Catches structural failures the LLM-based fact-check
+    // sometimes misses, and avoids burning fact-check tokens on output with
+    // obvious tactic-ID errors.
+    const validIds = validTacticIdSet();
+    let tacticGroundingWarnings: string[] = [];
+    let tacticGroundingAdjustments: TacticGroundingAdjustment[] = [];
+    const callPhase3Validated = async (
+      corrections: Phase3Corrections = {},
+      scope: Phase3RepairScope = 'both',
+      currentStrategy?: any
+    ): Promise<any> => {
+      let data = normalizeStrategy(await callPhase3(corrections, scope, currentStrategy));
+      let invalid = findInvalidTacticIds(data, validIds);
+      let regen = 0;
+      while (invalid.length > 0 && regen < ID_VALIDATION_MAX_REGENS) {
+        regen++;
+        console.warn(`[FinOps] [${runId}] Strategy cites ${invalid.length} invalid tactic ID(s); regen ${regen}/${ID_VALIDATION_MAX_REGENS}.`);
+        serverLog(runId, 'warn', 'invalid_tactic_ids', {
+          invalid_count: invalid.length,
+          regen,
+        });
+        const idAppendix = buildInvalidIdAppendix(invalid, validIds);
+        corrections = { ...corrections, roadmap: appendCorrection(corrections.roadmap, idAppendix) };
+        data = normalizeStrategy(await callPhase3(corrections, 'roadmap', data));
+        invalid = findInvalidTacticIds(data, validIds);
+      }
+      if (invalid.length > 0) {
+        console.error(`[FinOps] [${runId}] Strategy still contains ${invalid.length} invalid tactic ID(s) after ${ID_VALIDATION_MAX_REGENS} regens.`);
+        serverLog(runId, 'error', 'invalid_tactic_ids_persisted', {
+          invalid_count: invalid.length,
+        });
+      }
+      let grounding = sanitizeRoadmapTacticGrounding(data, validationData, silentDomainIds);
+      let missingRequired = findMissingRequiredTacticIds(grounding.strategyData, tacticSelectionPlan);
+      if (missingRequired.length > 0) {
+        serverLog(runId, 'warn', 'required_tactic_ids_missing', {
+          missing_count: missingRequired.length,
+          tactic_ids: missingRequired.join(','),
+        });
+        const requiredAppendix = buildMissingRequiredTacticAppendix(missingRequired, tacticSelectionPlan);
+        corrections = { ...corrections, roadmap: appendCorrection(corrections.roadmap, requiredAppendix) };
+        data = normalizeStrategy(await callPhase3(corrections, 'roadmap', data));
+        invalid = findInvalidTacticIds(data, validIds);
+        if (invalid.length > 0) {
+          throw Object.assign(new Error('INVALID_OUTPUT_CONTRACT'), { code: 'INVALID_OUTPUT_CONTRACT' });
+        }
+        grounding = sanitizeRoadmapTacticGrounding(data, validationData, silentDomainIds);
+        missingRequired = findMissingRequiredTacticIds(grounding.strategyData, tacticSelectionPlan);
+      }
+      if (missingRequired.length > 0) {
+        serverLog(runId, 'error', 'required_tactic_ids_persisted', {
+          missing_count: missingRequired.length,
+          tactic_ids: missingRequired.join(','),
+        });
+        throw Object.assign(new Error('INVALID_OUTPUT_CONTRACT'), { code: 'INVALID_OUTPUT_CONTRACT' });
+      }
+      tacticGroundingWarnings = grounding.warnings;
+      tacticGroundingAdjustments = grounding.adjustments;
+      if (grounding.adjustments.length > 0) {
+        console.warn(`[FinOps] [${runId}] Roadmap tactic grounding adjusted ${grounding.adjustments.length} tactic reference(s) before fact-check.`);
+        serverLog(runId, 'warn', 'roadmap_tactic_grounding_adjusted', {
+          adjustments: grounding.adjustments.length,
+          tactic_ids: grounding.adjustments.map(a => a.tactic_id).join(','),
+        });
+      }
+      return grounding.strategyData;
+    };
+
+    const trajectory: FactCheckPassSnapshot[] = [];
+    const snapshot = (fc: FactCheckResult): FactCheckPassSnapshot => ({
+      attempt: fc.attempts,
+      total_claims: fc.total_claims,
+      supported_count: fc.supported_count,
+      unsupported_count: fc.unsupported_claims.length,
+      unsupported_signatures: fc.unsupported_claims.map(c => c.claim.substring(0, 80)),
+    });
+
+    const defectsForScope = (claims: FactCheckClaim[], scope: Phase3RepairScope): FactCheckClaim[] =>
+      scope === 'both'
+        ? claims
+        : claimsForRepairScope(claims, scope);
+
+    const isStrictFactCheckImprovement = (
+      current: FactCheckClaim[],
+      candidate: FactCheckClaim[],
+      scope: Phase3RepairScope
+    ): boolean => {
+      const profile = (claims: FactCheckClaim[]): [number, number] => {
+        const scoped = defectsForScope(claims, scope);
+        return [scoped.filter(claim => claim.severity?.startsWith('BLOCKING_')).length, scoped.length];
+      };
+      const [currentBlocking, currentTotal] = profile(current);
+      const [candidateBlocking, candidateTotal] = profile(candidate);
+      return candidateBlocking < currentBlocking
+        || (candidateBlocking === currentBlocking && candidateTotal < currentTotal);
+    };
+
+    let strategyData: any;
+    let deterministicSynthesisFallback = false;
+    if (validationData.metrics.evidence_density < EVIDENCE_DENSITY_BLOCK) {
+      deterministicSynthesisFallback = true;
+      strategyData = buildDeterministicLowConfidenceStrategy();
+      serverLog(runId, 'warn', 'synthesis_deterministic_fallback', {
+        stage: synthesisStage,
+        reason_code: 'EVIDENCE_DENSITY_BELOW_FLOOR',
+        evidence_density: Math.round(validationData.metrics.evidence_density),
+        silent_areas: validationData.silent_areas.length,
+      });
+    } else {
+      try {
+        strategyData = await callPhase3Validated();
+      } catch (error: any) {
+        if (confidenceBracket !== 'LOW') throw error;
+        deterministicSynthesisFallback = true;
+        strategyData = buildDeterministicLowConfidenceStrategy();
+        serverLog(runId, 'warn', 'synthesis_deterministic_fallback', {
+          stage: synthesisStage,
+          reason_code: typeof error?.code === 'string' ? error.code : 'SYNTHESIS_UNAVAILABLE',
+          evidence_density: Math.round(validationData.metrics.evidence_density),
+          silent_areas: validationData.silent_areas.length,
+        });
+      }
+    }
+    await checkpoint('synthesis', 'accepted', { phase_3_strategy: strategyData.phase_3_strategy });
+    emitProgress({ stage: 'synthesis', status: deterministicSynthesisFallback ? 'completed_with_warnings' : 'completed' });
+    emitProgress({ stage: 'verification', status: 'in_progress' });
+    let acceptedFactChecks = await runFactCheck(strategyData, 1);
+    let factCheck = acceptedFactChecks.merged;
+    await checkpoint('fact_check', 'pass_1', { fact_check: factCheck });
+    let lastUnsupported: FactCheckClaim[] = factCheck.unsupported_claims;
+    if (!factCheck.failed) trajectory.push(snapshot(factCheck));
+
+    let attempt = 1;
+    while (
+      !factCheck.failed &&
+      lastUnsupported.length > 0 &&
+      attempt <= FACT_CHECK_MAX_RETRIES
+    ) {
+      console.log(`[FinOps] Fact-check pass ${attempt}: ${lastUnsupported.length} unsupported claims, regenerating...`);
+      try {
+        const requestedScope = confidenceBracket === 'LOW'
+          ? 'both'
+          : determineFactCheckRepairScope(lastUnsupported);
+        const summaryDefects = claimsForRepairScope(lastUnsupported, 'summary');
+        const roadmapDefects = claimsForRepairScope(lastUnsupported, 'roadmap');
+        const repairCorrections: Phase3Corrections = confidenceBracket === 'LOW'
+          ? { summary: buildRegenerateAppendix(lastUnsupported, 'both') }
+          : {
+              ...(requestedScope !== 'roadmap' ? {
+                summary: buildRegenerateAppendix(summaryDefects.length > 0 ? summaryDefects : lastUnsupported, 'summary')
+              } : {}),
+              ...(requestedScope !== 'summary' ? {
+                roadmap: buildRegenerateAppendix(roadmapDefects.length > 0 ? roadmapDefects : lastUnsupported, 'roadmap')
+              } : {}),
+            };
+        const candidateStrategy = await callPhase3Validated(repairCorrections, requestedScope, strategyData);
+        const candidateAttempt = attempt + 1;
+        const candidateChecks = await runFactCheck(
+          candidateStrategy,
+          candidateAttempt,
+          'fact_check',
+          requestedScope,
+          acceptedFactChecks
+        );
+        const candidateFactCheck = candidateChecks.merged;
+        attempt = candidateAttempt;
+        if (candidateFactCheck.failed) {
+          serverLog(runId, 'warn', 'synthesis_candidate_rejected', { attempt, reason_code: 'FACT_CHECK_FAILED' });
+          break;
+        }
+        trajectory.push(snapshot(candidateFactCheck));
+        if (!isStrictFactCheckImprovement(lastUnsupported, candidateFactCheck.unsupported_claims, requestedScope)) {
+          serverLog(runId, 'warn', 'synthesis_candidate_rejected', {
+            attempt,
+            reason_code: 'FACT_CHECK_NOT_IMPROVED',
+          });
+          break;
+        }
+        strategyData = candidateStrategy;
+        acceptedFactChecks = candidateChecks;
+        factCheck = candidateFactCheck;
+        lastUnsupported = factCheck.unsupported_claims;
+        await checkpoint('fact_check', `pass_${candidateAttempt}`, { fact_check: candidateFactCheck });
+        await checkpoint('synthesis', 'accepted', { phase_3_strategy: strategyData.phase_3_strategy });
+      } catch (error: any) {
+        serverLog(runId, 'warn', 'synthesis_candidate_rejected', {
+          attempt: attempt + 1,
+          reason_code: typeof error?.code === 'string' ? error.code : 'SYNTHESIS_REGENERATION_FAILED',
+        });
+        break;
+      }
+    }
+
+    factCheck.attempts = attempt;
+    factCheck.trajectory = trajectory;
+
+    if (factCheck.failed) {
+      console.warn('[FinOps] Fact-check unavailable; failure details retained in the governed result, not operational logs.');
+    } else {
+      console.log(`[FinOps] Fact-check complete after ${factCheck.attempts} pass(es): ${factCheck.supported_count}/${factCheck.total_claims} claims supported, ${lastUnsupported.length} unsupported.`);
+      if (trajectory.length > 1) {
+        const traj = trajectory.map(p => `pass${p.attempt}:${p.supported_count}/${p.total_claims}supp,${p.unsupported_count}unsupp`).join(' → ');
+        console.log(`[FinOps] [${runId}] Fact-check trajectory: ${traj}`);
+        serverLog(runId, 'info', 'fact_check_trajectory', { trajectory: traj, passes: trajectory.length });
+      }
+    }
+
+    const applySanitation = (data: any, fc: FactCheckResult, event: string = 'strategy_sanitized') => {
+      const sanitation = sanitizeStrategyAfterFactCheck(data, fc);
+      if (sanitation.sanitized.length > 0) {
+        const removed = sanitation.sanitized.filter(i => i.action === 'removed').length;
+        const rewritten = sanitation.sanitized.filter(i => i.action === 'rewritten').length;
+        const quarantined = sanitation.sanitized.filter(i => i.action === 'quarantined').length;
+        console.warn(`[FinOps] [${runId}] Strategy sanitation handled ${sanitation.sanitized.length} unsupported item(s): removed=${removed}, rewritten=${rewritten}, quarantined=${quarantined}.`);
+        serverLog(runId, 'warn', event, {
+          total: sanitation.sanitized.length,
+          removed,
+          rewritten,
+          quarantined,
+          remaining_unsupported: sanitation.factCheck.unsupported_claims.length,
+        });
+      }
+      return sanitation;
+    };
+
+    let sanitation = applySanitation(strategyData, factCheck, 'claims_sanitized');
+    strategyData = sanitation.strategyData;
+    factCheck = sanitation.factCheck;
+
+    let requiredTacticRepairAttempted = false;
+    let requiredTacticRepairSucceeded = false;
+    let requiredTacticContract = classifyFinalRequiredTactics(
+      strategyData,
+      tacticSelectionPlan,
+      factCheck.sanitized_claims || []
+    );
+    const repairableTacticIds = [...requiredTacticContract.citation_rejected, ...requiredTacticContract.missing];
+    if (confidenceBracket !== 'LOW' && repairableTacticIds.length > 0) {
+      requiredTacticRepairAttempted = true;
+      try {
+        const repairPlan: TacticSelectionPlan = {
+          ...tacticSelectionPlan,
+          required: tacticSelectionPlan.required.filter(candidate => !requiredTacticContract.contraindicated.includes(candidate.tactic_id)),
+        };
+        const correction = [
+          buildMissingRequiredTacticAppendix(repairableTacticIds, tacticSelectionPlan),
+          requiredTacticContract.contraindicated.length > 0
+            ? `Do not restore Quality Checker-confirmed contraindicated tactic IDs: ${requiredTacticContract.contraindicated.join(', ')}.`
+            : '',
+          'This is the single bounded post-sanitation roadmap repair. Preserve the locked evidence summary and diagnosis.',
+        ].filter(Boolean).join('\n\n');
+        const repairedRoadmap = await callRoadmapSynthesis(strategyData, correction, repairPlan);
+        let repairedStrategy = normalizeStrategy(mergePhase3Outputs(strategyData, repairedRoadmap));
+        const repairedChecks = await runFactCheck(
+          repairedStrategy,
+          factCheck.attempts + 1,
+          'fact_check',
+          'roadmap',
+          acceptedFactChecks,
+        );
+        if (!repairedChecks.merged.failed) {
+          repairedChecks.merged.trajectory = [
+            ...(factCheck.trajectory || []),
+            snapshot(repairedChecks.merged),
+          ];
+          repairedChecks.merged.sanitized_claims = [
+            ...(factCheck.sanitized_claims || []),
+            ...(repairedChecks.merged.sanitized_claims || []),
+          ];
+          sanitation = applySanitation(repairedStrategy, repairedChecks.merged, 'required_tactic_repair_sanitized');
+          repairedStrategy = sanitation.strategyData;
+          strategyData = repairedStrategy;
+          factCheck = sanitation.factCheck;
+          acceptedFactChecks = repairedChecks;
+          requiredTacticContract = classifyFinalRequiredTactics(
+            strategyData,
+            tacticSelectionPlan,
+            factCheck.sanitized_claims || []
+          );
+          requiredTacticRepairSucceeded = requiredTacticContract.citation_rejected.length === 0
+            && requiredTacticContract.missing.length === 0;
+          await checkpoint('synthesis', 'accepted', { phase_3_strategy: strategyData.phase_3_strategy });
+          await checkpoint('fact_check', 'required_tactic_repair', { fact_check: factCheck });
+        }
+        serverLog(runId, requiredTacticRepairSucceeded ? 'info' : 'warn', 'required_tactic_repair_result', {
+          repaired: requiredTacticRepairSucceeded,
+          requested_count: repairableTacticIds.length,
+          unresolved_count: requiredTacticContract.citation_rejected.length + requiredTacticContract.missing.length,
+        });
+      } catch (error: any) {
+        serverLog(runId, 'warn', 'required_tactic_repair_result', {
+          repaired: false,
+          requested_count: repairableTacticIds.length,
+          unresolved_count: repairableTacticIds.length,
+          reason_code: typeof error?.code === 'string' ? error.code : 'REPAIR_UNAVAILABLE',
+        });
+      }
+    }
+
+    let groundingValidation = validatePhase3Grounding(strategyData, validationData, text);
+    if (requiredTacticContract.contraindicated.length > 0) {
+      groundingValidation.warnings.push(
+        `Required tactic evaluation withheld ${requiredTacticContract.contraindicated.join(', ')} after Quality Checker-confirmed Playbook contraindication.`
+      );
+    }
+    const unresolvedRequiredTactics = [...requiredTacticContract.citation_rejected, ...requiredTacticContract.missing];
+    if (unresolvedRequiredTactics.length > 0) {
+      groundingValidation.errors.push(
+        `Required tactic contract is incomplete after final sanitation and bounded repair: ${unresolvedRequiredTactics.join(', ')}.`
+      );
+    }
+    groundingValidation.warnings.push(...tacticGroundingWarnings);
+    if (groundingValidation.errors.length > 0) {
+      console.error(`[FinOps] Phase 3 grounding produced ${groundingValidation.errors.length} error(s); content omitted by logging policy.`);
+    }
+    if (groundingValidation.warnings.length > 0) {
+      console.warn(`[FinOps] Phase 3 grounding produced ${groundingValidation.warnings.length} warning(s); content omitted by logging policy.`);
+    }
+
+    let qualityGate = runQualityGate(auditLogs, validationData, phase1Validation, groundingValidation, aggregatedRawData.evidence_check, factCheck, sourceRegistryStatus);
+    const factCheckOnlyBlock = qualityGate.decision === 'BLOCK'
+      && qualityGate.blocking_reasons.length > 0
+      && qualityGate.blocking_reasons.every(reason => reason.startsWith('Fact-check:'));
+    if (factCheckOnlyBlock && !factCheck.failed) {
+      serverLog(runId, 'warn', 'fact_check_escalated', {
+        from_stage: 'fact_check',
+        to_stage: 'fact_check_high',
+        medium_attempts: factCheck.attempts,
+        blocking_reasons: qualityGate.blocking_reasons.length,
+      });
+      const highFactChecks = await runFactCheck(strategyData, factCheck.attempts + 1, 'fact_check_high');
+      const highFactCheck = highFactChecks.merged;
+      await checkpoint('fact_check', 'escalated', { fact_check: highFactCheck });
+      if (!highFactCheck.failed) {
+        highFactCheck.trajectory = [...(factCheck.trajectory || []), snapshot(highFactCheck)];
+        highFactCheck.sanitized_claims = [
+          ...(factCheck.sanitized_claims || []),
+          ...(highFactCheck.sanitized_claims || []),
+        ];
+        sanitation = applySanitation(strategyData, highFactCheck, 'claims_quarantined');
+        strategyData = sanitation.strategyData;
+        factCheck = sanitation.factCheck;
+        groundingValidation = validatePhase3Grounding(strategyData, validationData, text);
+        requiredTacticContract = classifyFinalRequiredTactics(
+          strategyData,
+          tacticSelectionPlan,
+          factCheck.sanitized_claims || []
+        );
+        if (requiredTacticContract.contraindicated.length > 0) {
+          groundingValidation.warnings.push(
+            `Required tactic evaluation withheld ${requiredTacticContract.contraindicated.join(', ')} after Quality Checker-confirmed Playbook contraindication.`
+          );
+        }
+        const escalatedUnresolvedTactics = [...requiredTacticContract.citation_rejected, ...requiredTacticContract.missing];
+        if (escalatedUnresolvedTactics.length > 0) {
+          groundingValidation.errors.push(
+            `Required tactic contract is incomplete after final sanitation and bounded repair: ${escalatedUnresolvedTactics.join(', ')}.`
+          );
+        }
+        groundingValidation.warnings.push(...tacticGroundingWarnings);
+        qualityGate = runQualityGate(auditLogs, validationData, phase1Validation, groundingValidation, aggregatedRawData.evidence_check, factCheck, sourceRegistryStatus);
+      }
+      serverLog(runId, highFactCheck.failed ? 'warn' : 'info', 'fact_check_escalation_result', {
+        ok: !highFactCheck.failed,
+        decision: qualityGate.decision,
+        model: actuals.fact_check_high,
+        supported: highFactCheck.supported_count,
+        total: highFactCheck.total_claims,
+        unsupported: highFactCheck.unsupported_claims.length,
+        ...(highFactCheck.failed ? { error_code: 'FACT_CHECK_FAILED' } : {}),
+      });
+    }
+    console.log(`[FinOps] [${runId}] Quality Gate decision: ${qualityGate.decision}`);
+    if (qualityGate.decision === 'WARN' && strategyData?.phase_3_strategy?.planning_decision?.decision === 'GO') {
+      const decision = strategyData.phase_3_strategy.planning_decision;
+      decision.decision = 'CONDITIONAL_GO';
+      decision.rationale = `${decision.rationale || 'The grounded roadmap may proceed with review.'} Quality Gate warnings must be resolved or explicitly accepted before scaling implementation.`;
+      decision.evidence_needed_before_action = Array.from(new Set([
+        ...(decision.evidence_needed_before_action || []),
+        ...qualityGate.warnings.filter(warning => warning.startsWith('Source routing coverage')),
+      ]));
+    }
+    await checkpoint('phase2', 'accepted', { phase_2_validation: validationData });
+
+    // LLM-augmented explanation only when the deterministic gate flagged
+    // something. GO results don't need narrative — the metrics speak for them.
+    if (qualityGate.decision !== 'GO') {
+      const qgExplainStarted = Date.now();
+      const explanation = await runQualityGateExplanation(qualityGate, text, { runId });
+      qualityGate.llm_explanation = explanation;
+      serverLog(runId, explanation.failed || explanation.fallback_used ? 'warn' : 'info', 'qg_explanation', {
+        decision: qualityGate.decision,
+        model: explanation.model_used || 'n/a',
+        duration_ms: Date.now() - qgExplainStarted,
+        ok: !explanation.failed && !explanation.fallback_used,
+        fallback_used: explanation.fallback_used === true,
+        ...(explanation.fallback_used ? { error_code: 'QUALITY_GATE_EXPLANATION_FALLBACK' } : {}),
+        ...(explanation.failed ? { error_code: 'QUALITY_GATE_EXPLANATION_FAILED' } : {}),
+      });
+    }
+
+    // Stamp the strategy with the bracket synthesis ran in, plus the effective
+    // bracket the UI should render against. A post-fact-check QG=BLOCK downgrades
+    // any directive/cautious run to LOW for display purposes — case studies and
+    // directive language stay hidden when confidence collapsed after generation.
+    const effectiveBracket = qualityGate.decision === 'BLOCK' ? 'LOW' : confidenceBracket;
+    if (strategyData?.phase_3_strategy && typeof strategyData.phase_3_strategy === 'object') {
+      strategyData.phase_3_strategy.confidence_bracket = confidenceBracket;
+      strategyData.phase_3_strategy.effective_bracket = effectiveBracket;
+    }
+    if (qualityGate.decision === 'BLOCK') {
+      strategyData = sanitizeBlockedStrategy(strategyData, qualityGate.blocking_reasons, {
+        evidenceDensity: validationData.metrics.evidence_density,
+        evidenceCheckCompleted: !aggregatedRawData.evidence_check.failed,
+        scoreEvidenceGaps: validationData.score_evidence_gaps,
+      });
+    }
+    if (strategyData?.phase_3_strategy?.visual_scorecard) {
+      strategyData.phase_3_strategy.visual_scorecard.maturity_score =
+        overallScoreAvailable
+          ? `${Math.round(validationData.metrics.adjusted_maturity!)}/100 adjusted maturity`
+          : `${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 diagnostic`} — Assessment Sufficiency BLOCK`;
+    }
+    if (qualityGate.decision === 'BLOCK' && strategyData?.phase_3_strategy?.evidence_summary) {
+      const summary = strategyData.phase_3_strategy.evidence_summary;
+      summary.headline = overallScoreAvailable
+        ? `Roadmap actionability BLOCKED · ${validationData.crawl_walk_run} · Adjusted FinOps Maturity ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
+        : 'Roadmap actionability BLOCKED · maturity classification unavailable because Assessment Sufficiency did not pass';
+      summary.key_metrics = [
+        overallScoreAvailable
+          ? `Adjusted FinOps Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
+          : `Adjusted FinOps Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
+        `Assessment resolution: ${Math.round(validationData.metrics.assessment_resolution)}%`,
+        `Assessment sufficiency: ${validationData.assessment_sufficiency.decision}`,
+        ...((summary.key_metrics || []).filter((metric: string) => !/maturity score|adjusted finops maturity|assessment resolution|assessment sufficiency|readiness|capability attainment|anti-pattern control/i.test(metric))),
+      ];
+    }
+    if (effectiveBracket !== confidenceBracket) {
+      console.warn(`[FinOps] [${runId}] Strategy downgraded by QG: ${confidenceBracket} → ${effectiveBracket} (decision=${qualityGate.decision})`);
+      serverLog(runId, 'warn', 'strategy_downgraded', {
+        from: confidenceBracket,
+        to: effectiveBracket,
+        decision: qualityGate.decision,
+      });
+    }
+    await checkpoint('quality_gate', 'accepted', {
+      quality_gate: qualityGate,
+      phase_3_strategy: strategyData.phase_3_strategy,
+    });
+
+    emitProgress({ stage: 'verification', status: qualityGate.decision === 'GO' ? 'completed' : 'completed_with_warnings' });
+    emitProgress({ stage: 'finalization', status: 'in_progress' });
+
+    const fallbackStrategy = {
+      executive_summary: "Strategy incomplete.",
+      executive_summaries: {
+        finops_lead: "Strategy incomplete.",
+        cfo: "Strategy incomplete.",
+        engineering_lead: "Strategy incomplete."
+      },
+      active_persona: DEFAULT_PERSONA,
+      evidence_summary: buildFallbackEvidenceSummary(),
+      diagnosis: buildFallbackDiagnosis(),
+      planning_decision: buildFallbackPlanningDecision(),
+      visual_scorecard: { headline: "Error", maturity_score: "N/A", burden_score: "N/A" },
+      remediation_roadmap: []
+    };
+    const resolvedStrategy = strategyData.phase_3_strategy || fallbackStrategy;
+    const finalStrategy = qualityGate.decision === 'BLOCK'
+      ? sanitizeBlockedStrategy({ phase_3_strategy: resolvedStrategy }, qualityGate.blocking_reasons, {
+        evidenceDensity: validationData.metrics.evidence_density,
+        evidenceCheckCompleted: !aggregatedRawData.evidence_check.failed,
+        scoreEvidenceGaps: validationData.score_evidence_gaps,
+      }).phase_3_strategy
+      : resolvedStrategy;
+
+    let finalResult: DiagnosticResult = {
+      meta: {
+        run_id: runId,
+        document_analyzed: "Uploaded Text",
+        timestamp: new Date().toISOString(),
+        engine_version: ENGINE_VERSION,
+        source_parse_warnings: sourceParseWarnings.length > 0 ? sourceParseWarnings : undefined,
+        source_registry: sourceRegistryStatus,
+        knowledge_base: referenceKbIndex.status,
+        evidence_privacy: privacy.decision,
+        model_mode: modelRoutingMode,
+        model_routing_policy_version: modelRouting.policy_version,
+        model_roles: Object.fromEntries(Object.entries(modelRouting.roles).map(([role, config]) => [role, {
+          primary_provider: config.primary_provider,
+          primary_model: config.profiles[0].id,
+          fallback_provider: config.fallback_provider,
+          fallback_model: config.profiles[1].id,
+        }])) as DiagnosticResult['meta']['model_roles'],
+        model_config: {
+          forensic_audit: actuals.forensic_audit,
+          evidence_gap_analysis: actuals.evidence_gap_analysis,
+          targeted_rescan: actuals.targeted_rescan,
+          evidence_check: actuals.evidence_check,
+          evidence_adjudication: actuals.evidence_adjudication,
+          synthesis: actuals.synthesis,
+          roadmap_synthesis: actuals.roadmap_synthesis,
+          fact_check: actuals.fact_check,
+          fact_check_high: actuals.fact_check_high,
+          validators: "deterministic"
+        }
+      },
+      phase_1_audit_logs: auditLogs,
+      evidence_check: aggregatedRawData.evidence_check,
+      phase_2_validation: validationData,
+      phase_3_strategy: finalStrategy,
+      quality_gate: qualityGate
+    };
+    const runTrace = buildRunTrace({
+      runId,
+      engineVersion: ENGINE_VERSION,
+      sourceRegistry,
+      sourcePackets,
+      evidenceStagePackets,
+      baselineEvidenceStagePackets,
+      dlpScan,
+      dlpReviewChunkCount: 0,
+      referenceKbIndex,
+      stageTraces: consumeStageTraces(runId),
+      auditLogs,
+      evidenceCheck: aggregatedRawData.evidence_check,
+      phase2: validationData,
+      strategy: finalResult.phase_3_strategy,
+      qualityGate,
+      tacticGroundingAdjustments,
+      tacticSelectionPlan,
+      requiredTacticDispositions: requiredTacticContract.dispositions,
+      requiredTacticSanitationHistory: factCheck.sanitized_claims || [],
+      requiredTacticRepairAttempted,
+      requiredTacticRepairSucceeded,
+      derivedAnalyticalEvidence,
+      tableInspections,
+      dataSignalCoverage,
+      boundedRetrieval,
+      semanticGapRetrieval: aggregatedRawData.semantic_gap_retrieval,
+      gapRetrieval: gapPlan,
+      resolutionMaturity: maturityRunTraceProjection(
+        validationData.resolution_maturity,
+        validationData.assessment_sufficiency,
+      ),
+    });
+    finalResult.meta.run_trace = runTrace;
+    finalResult.meta.run_trace_summary = summarizeRunTrace(runTrace);
+    const acquisitionQuality = buildAcquisitionQualitySnapshot({
+      logs: auditLogs,
+      phase2: validationData,
+      sourceRegistry: sourceRegistryStatus,
+      knowledgeBase: referenceKbIndex.status,
+      runTrace
+    });
+    finalResult.meta.acquisition_quality = acquisitionQuality;
+    finalResult = scrubDiagnosticResultForPrivacy(finalResult, { redactPersonNames: true }).result;
+    await checkpoint('final_report', 'ready_for_delivery', { result: finalResult });
+    deliveredResult = finalResult;
+    completionIntent = true;
+    await readyRun(
+      runId,
+      acquisitionQualityPersistence(acquisitionQuality, sourceRegistryStatus),
+      shadowTelemetryPersistence(boundedRetrieval, derivedAnalyticalEvidence, dataSignalCoverage)
+    );
+    const totalDuration = Date.now() - pipelineStarted;
+    console.log(`[FinOps] [${runId}] === Pipeline complete === duration_ms=${totalDuration} quality_gate=${qualityGate.decision} bracket=${effectiveBracket}`);
+    serverLog(runId, 'info', 'pipeline_complete', {
+      outcome: 'ok',
+      duration_ms: totalDuration,
+      quality_gate: qualityGate.decision,
+      bracket: effectiveBracket,
+      synthesis_bracket: confidenceBracket,
+      fact_check_supported: factCheck.supported_count,
+      fact_check_total: factCheck.total_claims,
+      models: actuals,
+      model_mode: modelRoutingMode,
+    });
+    emitProgress({ stage: 'finalization', status: 'completed' });
+    return finalResult;
+
+  } catch (error: any) {
+    const integrityError = error instanceof PipelineIntegrityError ? error : null;
+    const namedCode = typeof error?.code === 'string' ? error.code : typeof error?.message === 'string' ? error.message : '';
+    const errorCode = integrityError?.code
+      || (['SYNTHESIS_OUTPUT_INVALID', 'INVALID_STRUCTURED_TABLE', 'INVALID_REQUEST', 'INVALID_RUN_TRANSITION', 'RUN_INACTIVE'].includes(namedCode) ? namedCode : 'PIPELINE_FAILED');
+    if (completionIntent && deliveredResult) {
+      serverLog(runId, 'warn', 'delivery_mark_failed', {
+        duration_ms: Date.now() - pipelineStarted,
+        error_code: errorCode,
+        quality_gate: deliveredResult.quality_gate?.decision,
+        model_mode: modelRoutingMode,
+      });
+      emitProgress({ stage: 'finalization', status: 'completed_with_warnings' });
+      return deliveredResult;
+    }
+    for (const stage of activeProgressStages) onProgress({ stage, status: 'failed' });
+    clearStageTraces(runId);
+    if (!completionIntent) {
+      if (hasRecoverableCheckpoint) await suspendRun(runId, errorCode).catch(() => undefined);
+      else await failRun(runId, errorCode).catch(() => undefined);
+    }
+    else {
+      const authoritative = await getRun(runId).catch(() => null);
+      if (authoritative?.state === 'active') await suspendRun(runId, errorCode).catch(() => undefined);
+    }
+    const duration = Date.now() - pipelineStarted;
+    if (integrityError) {
+      serverLog(runId, 'error', 'pipeline_integrity_failed', {
+        gate: integrityError.gate,
+        error_code: integrityError.code,
+        domains: integrityError.domains.join(',') || 'none',
+      });
+    }
+    console.error(`[FinOps] [${runId}] === Pipeline FAILED === duration_ms=${duration} error_code=${errorCode}`);
+    serverLog(runId, 'error', 'pipeline_failed', {
+      duration_ms: duration,
+      error_code: errorCode,
+      models: actuals,
+      model_mode: modelRoutingMode,
+    });
+    throw error;
+  }
+};
