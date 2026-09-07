@@ -460,7 +460,7 @@ When content becomes available:
 2. Build the Landing Zone knowledge index.
 3. Include the selected Knowledge Base version in governed packets and RunTrace.
 4. Test retrieval relevance and clean-room separation.
-5. Fail visibly if required knowledge content cannot be loaded; do not silently replace it with unrelated FinOps content.
+5. Fail visibly if required Landing Zone knowledge content cannot be loaded; do not substitute any non-Landing Zone content, including material retained from the copied FinOps baseline.
 
 ### Work 11 — Integrate the Tactic Playbook
 
@@ -500,7 +500,7 @@ Prompts must use Landing Zone language and explicitly prevent:
 - narrating excellence over a confirmed anti-pattern
 - producing tactics without sufficient evidence
 
-Replace FinOps personas with:
+Replace FinOps-origin personas retained in the copied baseline with:
 
 - CISO and leadership
 - Platform Owner and Cloud Foundation
