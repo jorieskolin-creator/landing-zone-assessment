@@ -22,6 +22,7 @@ const domainIdClass = BATCH_IDS.map(id => id.toLowerCase()).join('') || 'a-h';
 const domainScoreDenominator = (() => {
   const perDomain = new Map<string, number>();
   for (const criterion of FINOPS_CRITERIA) {
+    if (!criterion || typeof criterion !== 'object') continue;
     const record = criterion as { id?: string; design_area_id?: string };
     const domainId = record.design_area_id || String(record.id || '').replace(/\d+$/, '');
     if (!domainId) continue;

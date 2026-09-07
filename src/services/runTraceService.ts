@@ -268,9 +268,24 @@ const traceFindings = (auditLogs: Phase1AuditLogs): TraceFinding[] => {
 
 const criterionIdsInAction = (action: string): Set<string> => {
   const ids = new Set<string>();
-  const tokenRx = new RegExp(CRITERION_TOKEN_RX.source, CRITERION_TOKEN_RX.flags.includes('g') ? CRITERION_TOKEN_RX.flags : `${CRITERION_TOKEN_RX.flags}g`);
+  const tokenFlags = CRITERION_TOKEN_RX.flags.includes('g') ? CRITERION_TOKEN_RX.flags : `${CRITERION_TOKEN_RX.flags}g`;
+  const tokenRx = new RegExp(CRITERION_TOKEN_RX.source, tokenFlags);
+  const knownId = (id: string): boolean => new RegExp(CRITERION_TOKEN_RX.source).test(id);
   for (const match of action.matchAll(tokenRx)) {
     if (match[0]) ids.add(match[0]);
+  }
+  const rangeRx = /\b((?:AP-)?)([A-Z]+)(\d+)\s*-\s*(?:\2)?(\d+)\b/g;
+  for (const match of action.matchAll(rangeRx)) {
+    const prefix = match[1] || '';
+    const category = match[2];
+    const start = Number(match[3]);
+    const end = Number(match[4]);
+    const low = Math.min(start, end);
+    const high = Math.max(start, end);
+    for (let index = low; index <= high; index++) {
+      const id = `${prefix}${category}${index}`;
+      if (knownId(id)) ids.add(id);
+    }
   }
   return ids;
 };
