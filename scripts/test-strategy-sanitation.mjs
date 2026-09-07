@@ -16,8 +16,8 @@ const dir = await mkdtemp(join(tmpdir(), 'finops-strategy-sanitation-'));
 await writeFile(join(dir, 'modelRouter.mjs'), 'export const runStage = async () => ({ text: "{}", modelUsed: { id: "stub" } });\n', 'utf8');
 
 const qualityGateSource = (await readFile(new URL('../src/services/qualityGateService.ts', import.meta.url), 'utf8')).replace(
-  "import { FINOPS_CRITERIA } from '../knowledge_base';",
-  'const FINOPS_CRITERIA = Array(30);'
+  "import { BATCH_IDS, FINOPS_CRITERIA } from '../knowledge_base';",
+  "const BATCH_IDS = ['A', 'B', 'C', 'D', 'E', 'F']; const FINOPS_CRITERIA = Array(30);"
 );
 await writeFile(
   join(dir, 'qualityGateService.mjs'),
