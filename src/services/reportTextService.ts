@@ -18,7 +18,7 @@ export const strengthsSectionTitle = (isInsufficientEvidence: boolean): string =
 
 export const displaySourceCoverageWarning = (warning: string): string => {
   const match = warning.match(
-    /^Source packet ([A-F]) has incomplete deterministic routing coverage \((\d+)\/(\d+) relevant chunks\); no broad-source fallback was used\.$/
+    /^Source packet ([A-Za-z0-9]+) has incomplete deterministic routing coverage \((\d+)\/(\d+) relevant chunks\); no broad-source fallback was used\.$/
   );
   if (!match) return warning;
   const [, domain, included, candidates] = match;

@@ -7,7 +7,7 @@ import { OUTPUT_CONTRACT_IDS, validateOutputContractText } from '../../lib/outpu
 const MAX_QUERY_TEXT_LENGTH = 80;
 
 interface GapQueryOutput {
-  schema_version: 'finops_evidence_gap_query_v1';
+  schema_version: 'assessment_evidence_gap_query_v1' | 'finops_evidence_gap_query_v1';
   domain_id: string;
   queries: Array<{ criterion_id: string; themes: string[]; terms: string[] }>;
 }
@@ -79,7 +79,7 @@ export const analyzeEvidenceGaps = async (input: {
   });
   const systemInstruction = `You are a bounded evidence-retrieval query planner. Convert only the supplied low-evidence criterion summaries into concise semantic search themes and terms for deterministic local search of the already-approved customer Source Registry.
 
-Return the exact finops_evidence_gap_query_v1 JSON contract. Use each supplied criterion_id exactly. Propose synonyms, domain language, and likely labels that may retrieve relevant passages even when wording differs. Do not score, classify, diagnose, recommend, infer facts, request external search, or include source quotes. Do not use or request a knowledge base. Maximum four themes and eight terms per criterion.`;
+Return the exact ${OUTPUT_CONTRACT_IDS.evidenceGapQuery} JSON contract (finops_evidence_gap_query_v1 remains a versioned alias). Use each supplied criterion_id exactly. Propose synonyms, domain language, and likely labels that may retrieve relevant passages even when wording differs. Do not score, classify, diagnose, recommend, infer facts, request external search, or include source quotes. Do not use or request a knowledge base. Maximum four themes and eight terms per criterion.`;
 
   try {
     let validated: GapQueryOutput | undefined;

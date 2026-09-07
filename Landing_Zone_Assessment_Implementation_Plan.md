@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.4 |
+| Current version | 1.5 |
 | Last updated | 2026-09-07 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -276,12 +276,13 @@ The original automated Landing Zone assessment result and later expert annotatio
 
 The work is ordered by technical dependency, not by separate release classifications.
 
-Current implementation status at version 1.3:
+Current implementation status at version 1.5:
 
 - The Landing Zone pack contract, loader, frozen catalogue, validation, and pack-taxonomy helpers exist in this repository.
-- The complete execution kernel has not yet been copied into this repository.
+- Work 1 copied the FinOps Engine kernel baseline into this repository and wired production knowledge access to the Landing Zone pack.
+- Work 2 applied those pack-taxonomy helpers to the copied kernel: domain and criterion iteration, output-contract IDs, routing terms, Knowledge Base expected keys, and persistence prefixes come from the local pack rather than A–F / five-wide FinOps literals.
 - The current repository has no live or build-time dependency on FinOps Engine.
-- Exploratory kernel changes made in any external working copy are not part of this solution and must not be pushed to FinOps Engine. Required changes must be applied after the baseline source is copied here.
+- Exploratory kernel changes made in any external working copy are not part of this solution and must not be pushed to FinOps Engine.
 
 ### Work 1 — Establish the independent copied kernel and domain boundary
 
@@ -652,3 +653,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-06 | 1.1 | Started the domain boundary and Work 3: pack contract, loader/registry, frozen A–H JSON catalogue, and pack validation. Applying the boundary to a complete copied kernel remains pending. |
 | 2026-09-06 | 1.2 | Added Work 2 pack-driven taxonomy helpers and tests for A–F unions, `[A-F][1-5]` regular expressions, fixed domain loops, and five-wide criterion generation. Applying them to the complete copied kernel remains pending. |
 | 2026-09-07 | 1.4 | Work 1: copied FinOps Engine kernel baseline `d671a38723d76398f683ee7362acf12343a796bd` into this repository, wired production knowledge access to the Landing Zone pack, retained FinOps JSON as characterization fixtures only, and added independence checks. Missing Landing Zone Knowledge Base and Tactic Playbook content fails visibly and does not fall back to FinOps content. |
+| 2026-09-07 | 1.5 | Work 2: applied pack-driven taxonomy to the copied kernel in this repository. Replaced A–F unions, `[A-F][1-5]` regular expressions, fixed six-domain loops, five-wide criterion generation, hard-coded expected keys and batch titles, FinOps-only routing fallbacks, and FinOps persistence prefixes. Characterization tests keep FinOps-shaped stubs and aliases. |

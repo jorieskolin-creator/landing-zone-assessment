@@ -16,10 +16,12 @@ import {
   batchTitles,
   criterionIds,
   criterionReferenceRegex,
+  criterionTokenRegex,
   domainIds,
   expectedBatchOutputIds,
   expectedKnowledgeDocumentKeys,
   expectedPhase1Ids,
+  persistencePrefix,
   routingTerms,
 } from "../kernel/packTaxonomy";
 
@@ -37,6 +39,12 @@ export const landingZoneAntipatterns = () =>
 
 export const landingZoneCriterionReferenceRegex = (): RegExp =>
   criterionReferenceRegex(LANDING_ZONE_PACK);
+
+export const landingZoneCriterionTokenRegex = (): RegExp =>
+  criterionTokenRegex(LANDING_ZONE_PACK);
+
+export const landingZonePersistencePrefix = (): string =>
+  persistencePrefix(LANDING_ZONE_PACK);
 
 export const expectedPhase1IdsForStream = (stream: "maturity" | "antipattern"): string[] =>
   expectedPhase1Ids(LANDING_ZONE_PACK, stream);

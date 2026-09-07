@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip } from 'recharts';
 import { AuditCategory, AuditItem, PipelineProgressStage, PipelineProgressStatus, PipelineProgressUpdate, QualityGateResult, RemediationStep } from '../types';
-import { BATCH_DEFINITIONS, expectedPhase1IdsForStream, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { BATCH_DEFINITIONS, BATCH_TITLES, expectedPhase1IdsForStream, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
 import { antiPatternStatusLabel, inferAntiPatternAbsenceStatus } from '../services/antiPatternSemantics';
 import { displayQualityGateDiagnostic, scannerEvidenceCheckDisagreementTitle, splitQualityGateDiagnostics } from '../services/reportDiagnosticsService';
 
@@ -161,17 +161,14 @@ export const NeuralLoadingGrid: React.FC<{
   progress: Partial<Record<PipelineProgressStage, PipelineProgressUpdate>>;
   completedDomains: string[];
 }> = ({ progress, completedDomains }) => {
-  const domains = [
-    { id: 'A', label: 'VISIBILITY' },
-    { id: 'B', label: 'OPTIMIZE' },
-    { id: 'C', label: 'GOVERN' },
-    { id: 'D', label: 'ARCHITECT' },
-    { id: 'E', label: 'CULTURE' },
-    { id: 'F', label: 'GENAI COST' },
-  ];
+  const domains = Object.entries(BATCH_TITLES).map(([id, title]) => ({
+    id,
+    label: title.split(/[&,/]/)[0].trim().toUpperCase(),
+  }));
+  const domainTotal = Math.max(domains.length, 1);
   const active = [...PIPELINE_STEPS].reverse().find(step => progress[step.id]?.status === 'in_progress');
   const headline = active?.id === 'analysis' || active?.id === 'evidence'
-    ? 'Analyzing FinOps Streams...'
+    ? 'Analyzing assessment streams...'
     : active ? `${active.label}...` : 'Preparing governed assessment...';
   const analysisActive = progress.analysis?.status === 'in_progress' || progress.evidence?.status === 'in_progress';
 
@@ -211,12 +208,12 @@ export const NeuralLoadingGrid: React.FC<{
         <div className="rounded-3xl border border-slate-800 bg-slate-950/30 p-5 md:p-6">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-300">FinOps domain analysis</div>
-              <div className="text-[11px] text-slate-500 mt-1">Six domains execute in parallel; checks appear as each domain completes.</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-300">Landing Zone design-area analysis</div>
+              <div className="text-[11px] text-slate-500 mt-1">{domainTotal} design areas execute in parallel; checks appear as each domain completes.</div>
             </div>
-            <span className={`text-[10px] uppercase tracking-widest font-bold ${analysisActive ? 'text-emerald-400' : 'text-slate-500'}`}>{analysisActive ? 'Parallel processing active' : `${completedDomains.length}/6 completed`}</span>
+            <span className={`text-[10px] uppercase tracking-widest font-bold ${analysisActive ? 'text-emerald-400' : 'text-slate-500'}`}>{analysisActive ? 'Parallel processing active' : `${completedDomains.length}/${domainTotal} completed`}</span>
           </div>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
             {domains.map(domain => {
               const done = completedDomains.includes(domain.id);
               return <div key={domain.id} className={`rounded-2xl border p-3 text-center ${done ? 'border-emerald-500/40 bg-emerald-500/10' : analysisActive ? 'border-emerald-400/40 bg-slate-900' : 'border-slate-800 bg-slate-900/40'}`}>
@@ -711,18 +708,23 @@ export const StrategicRoadmap: React.FC<RoadmapProps> = ({ steps }) => (
 
 export const ComparisonChart: React.FC<RadarProps> = ({ maturity, antipattern }) => {
   const data = useMemo(() => {
-    const categories = [
-      { id: 'A', label: 'Visibility' },
-      { id: 'B', label: 'Optimization' },
-      { id: 'C', label: 'Governance' },
-      { id: 'D', label: 'Architecture' },
-      { id: 'E', label: 'Culture' }
-    ];
+    const categories = Object.entries(BATCH_TITLES).map(([id, title]) => ({
+      id,
+      label: title.split(/[&,/]/)[0].trim(),
+    }));
     return categories.map(cat => {
-      let mScore = 0; let aScore = 0;
-      Object.entries(maturity).forEach(([key, item]) => { const ai = item as AuditItem; if (key.startsWith(cat.id)) mScore += ai.count; });
-      Object.entries(antipattern).forEach(([key, item]) => { const ai = item as AuditItem; if (key.startsWith(cat.id)) aScore += ai.count; });
-      return { subject: cat.label, Maturity: Math.round((mScore / 15) * 100), 'Anti-Patterns': Math.round((aScore / 15) * 100), fullMark: 100 };
+      let mScore = 0; let aScore = 0; let mCount = 0; let aCount = 0;
+      Object.entries(maturity).forEach(([key, item]) => {
+        const ai = item as AuditItem;
+        if (key.replace(/^AP-/, '').startsWith(cat.id)) { mScore += ai.count; mCount += 1; }
+      });
+      Object.entries(antipattern).forEach(([key, item]) => {
+        const ai = item as AuditItem;
+        if (key.replace(/^AP-/, '').startsWith(cat.id)) { aScore += ai.count; aCount += 1; }
+      });
+      const maturityMax = Math.max(mCount * 3, 1);
+      const antipatternMax = Math.max(aCount * 3, 1);
+      return { subject: cat.label, Maturity: Math.round((mScore / maturityMax) * 100), 'Anti-Patterns': Math.round((aScore / antipatternMax) * 100), fullMark: 100 };
     });
   }, [maturity, antipattern]);
 

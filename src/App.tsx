@@ -29,12 +29,14 @@ import tier1CloudStrategy from '../test/tier1-cloud-strategy.txt?raw';
 import tier1RiSpStrategy from '../test/tier1-ri-sp-strategy.txt?raw';
 import tier1CostOptReview from '../test/tier1-cost-optimization-review.txt?raw';
 import demoSimulation from '../test/demo-simulation.txt?raw';
+import { persistencePrefix } from './knowledge_base';
 
 const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Demo Pack';
-const SAVED_ASSESSMENT_KEY = 'finops:last-assessment:v1';
-const SAVED_ASSESSMENT_META_KEY = 'finops:last-assessment-meta:v1';
-const LAST_CRASH_KEY = 'finops:last-crash:v1';
-const ACTIVE_RUN_KEY = 'finops:recoverable-run:v1';
+const PERSISTENCE_PREFIX = persistencePrefix();
+const SAVED_ASSESSMENT_KEY = `${PERSISTENCE_PREFIX}:last-assessment:v1`;
+const SAVED_ASSESSMENT_META_KEY = `${PERSISTENCE_PREFIX}:last-assessment-meta:v1`;
+const LAST_CRASH_KEY = `${PERSISTENCE_PREFIX}:last-crash:v1`;
+const ACTIVE_RUN_KEY = `${PERSISTENCE_PREFIX}:recoverable-run:v1`;
 
 interface SavedAssessmentMeta {
   savedAt: string;

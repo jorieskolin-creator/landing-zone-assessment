@@ -72,7 +72,7 @@ const playbook = [
 
 await writeFile(
   join(dir, 'knowledge_base.mjs'),
-  `export const FINOPS_TACTICS_LOCAL = ${JSON.stringify(tactics)}; export const FINOPS_TACTIC_ACTIVITY_PLAYBOOK = ${JSON.stringify(playbook)};\n`,
+  `export const FINOPS_TACTICS_LOCAL = ${JSON.stringify(tactics)}; export const FINOPS_TACTIC_ACTIVITY_PLAYBOOK = ${JSON.stringify(playbook)}; export const CRITERION_REFERENCE_RX = /\\[(?:AP-)?[A-Z]+[0-9]+(?:\\s*-\\s*(?:AP-)?[A-Z]*[0-9]+)?\\]/;\n`,
   'utf8'
 );
 await writeFile(

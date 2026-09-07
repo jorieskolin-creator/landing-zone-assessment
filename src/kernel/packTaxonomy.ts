@@ -9,12 +9,12 @@
  * - src/orchestrator.ts expected batch output ids and unavailable evidence items
  * - src/services/pipelineIntegrityService.ts expectedIds
  * - src/services/tacticGroundingService.ts CRITERION_REFERENCE_RX
- * - src/services/runTraceService.ts criterionRx
- * - src/services/maturityModelService.ts ['A'..'F'] loops
+ * - src/services/runTraceService.ts criterion token regex
+ * - src/services/maturityModelService.ts domain iteration
  * - src/knowledge_base/index.ts BATCH_TITLES and expectedDocumentKeys
- * - src/services/sourceRegistryService.ts DOMAIN_TERMS
- * - lib/outputContracts.js domain_diagnosis and finops_* contract ids
- * - src/components/DashboardComponents.tsx ALL_CRITERIA_IDS
+ * - src/services/sourceRegistryService.ts DOMAIN_ROUTING_TERMS
+ * - lib/outputContracts.js domain_diagnosis and assessment_* contract ids
+ * - src/components/DashboardComponents.tsx pack-driven criterion and domain lists
  */
 
 import type { AssessmentDomainPack } from "../domain-packs/assessment-domain-pack";
@@ -100,16 +100,32 @@ export const persistencePrefix = (pack: AssessmentDomainPack): string =>
 export const resolveOutputContractId = (contractId: string): string =>
   FINOPS_OUTPUT_CONTRACT_ALIASES[contractId] ?? contractId;
 
-export const criterionReferenceRegexFromIds = (ids: string[]): RegExp => {
-  const unique = [...new Set(ids.filter(Boolean))].sort((a, b) => b.length - a.length)
+const escapedUniqueIds = (ids: string[]): string[] =>
+  [...new Set(ids.filter(Boolean))]
+    .sort((a, b) => b.length - a.length)
     .map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+export const criterionReferenceRegexFromIds = (ids: string[]): RegExp => {
+  const unique = escapedUniqueIds(ids);
   if (unique.length === 0) return /$^/;
   const alt = unique.join("|");
   return new RegExp(`\\[(?:${alt})(?:\\s*-\\s*(?:${alt}))?\\]`);
 };
 
+export const criterionTokenRegexFromIds = (ids: string[]): RegExp => {
+  const unique = escapedUniqueIds(ids);
+  if (unique.length === 0) return /$^/g;
+  return new RegExp(`\\b(?:${unique.join("|")})\\b`, "g");
+};
+
 export const criterionReferenceRegex = (pack: AssessmentDomainPack): RegExp =>
   criterionReferenceRegexFromIds(pack.criteria.map((item) => item.id));
+
+export const criterionTokenRegex = (pack: AssessmentDomainPack): RegExp =>
+  criterionTokenRegexFromIds(pack.criteria.map((item) => item.id));
+
+export const displayAntipatternCriterionId = (criterionId: string): string =>
+  criterionId.startsWith("AP-") ? criterionId : `AP-${criterionId}`;
 
 export const domainIdFromCriterionId = (criterionId: string, pack?: AssessmentDomainPack): string => {
   if (pack) {

@@ -29,35 +29,6 @@ const invalidStructuredTable = (): Error & { code: string } => Object.assign(
   { code: 'INVALID_STRUCTURED_TABLE' }
 );
 
-const DOMAIN_TERMS: Record<string, string[]> = {
-  A: [
-    'allocation', 'tagging', 'tag', 'showback', 'chargeback', 'dashboard', 'reporting',
-    'cost visibility', 'unit economics', 'cost per', 'anomaly', 'alert', 'owner', 'cost center'
-  ],
-  B: [
-    'reservation', 'reserved instance', 'savings plan', 'commitment', 'rightsizing', 'right-size',
-    'utilization', 'waste', 'idle', 'orphaned', 'spot', 'preemptible', 'storage lifecycle', 'tiering'
-  ],
-  C: [
-    'policy', 'governance', 'budget', 'forecast', 'approval', 'guardrail', 'procurement',
-    'vendor', 'compliance', 'regulatory', 'raci', 'operating model', 'finops operating'
-  ],
-  D: [
-    'architecture', 'engineering', 'infrastructure as code', 'terraform', 'pulumi', 'cloudformation',
-    'autoscaling', 'auto scaling', 'serverless', 'container', 'kubernetes', 'multi-cloud', 'hybrid',
-    'design review'
-  ],
-  E: [
-    'culture', 'organization', 'team', 'finance', 'engineering accountability', 'platform team',
-    'finops team', 'enabling team', 'training', 'kpi', 'incentive', 'collaboration', 'community'
-  ],
-  F: [
-    'genai', 'generative ai', 'llm', 'token', 'tokens', 'model routing', 'prompt', 'context window',
-    'rag', 'embedding', 'openai', 'anthropic', 'gemini', 'inference', 'ai cost', 'model spend',
-    'api usage', 'ai budget'
-  ]
-};
-
 const GAP_TERMS = [
   'missing', 'not available', 'not implemented', 'not yet', 'planned', 'manual', 'ad hoc',
   'no evidence', 'no process', 'gap', 'lacks', 'without', 'unknown', 'not tracked'
@@ -68,7 +39,7 @@ const CONTRADICTION_TERMS = [
 ];
 
 export const routingTermsForDomain = (domainId: string): string[] => [
-  ...(DOMAIN_ROUTING_TERMS[domainId] || DOMAIN_TERMS[domainId] || []),
+  ...(DOMAIN_ROUTING_TERMS[domainId] || []),
   ...GAP_TERMS,
   ...CONTRADICTION_TERMS
 ];
@@ -319,7 +290,7 @@ const tableRowChunks = (text: string): Array<{ rowNumber: number; text: string }
 };
 
 const scoreDomain = (haystack: string, domain: string): SourceChunkRoutingHint => {
-  const terms = DOMAIN_TERMS[domain] || [];
+  const terms = DOMAIN_ROUTING_TERMS[domain] || [];
   const reasons: string[] = [];
   let score = 0;
   for (const term of terms) {

@@ -33,15 +33,27 @@ const fAntiPath = 'Knowledge Base/GenAI & AI Cost Management/F - GenAI & AI Cost
 
 assert.deepEqual(expectedIdsFromPathname(maturityPath), {
   domainId: 'A',
-  domainName: 'Cost Visibility & Allocation',
+  domainName: 'Tenant, billing & organization construct',
   criterionId: 'A1',
   capabilityId: 'A1',
   stream: 'maturity',
 });
+assert.equal(normalizeCriterionId('H5'), 'H5');
+assert.equal(normalizeCriterionId('AP-H5'), 'AP-H5');
+assert.deepEqual(expectedIdsFromPathname(
+  'Knowledge Base/Platform automation & DevOps/H - Platform automation & DevOps - H5 - Platform vending.pdf'
+), {
+  domainId: 'H',
+  domainName: 'Platform automation & DevOps',
+  criterionId: 'H5',
+  capabilityId: 'H5',
+  stream: 'maturity',
+});
 
 assert.deepEqual(validateKbMetadata(baseMeta, maturityPath), []);
-assert.equal(normalizeDomainName('F', 'GenAI / Token Cost Management'), 'GenAI & AI Cost Management');
-assert.equal(normalizeDomainName('F', 'GenAI & AI Cost Management'), 'GenAI & AI Cost Management');
+assert.equal(normalizeDomainName('F', 'GenAI / Token Cost Management'), 'Management & observability');
+assert.equal(normalizeDomainName('F', 'GenAI & AI Cost Management'), 'Management & observability');
+assert.equal(normalizeDomainName('F', 'Management & observability'), 'Management & observability');
 
 const antiMeta = {
   ...baseMeta,
@@ -143,7 +155,7 @@ const fDoc = sanitizeKbDocument({
   uploadedAt: '2026-05-21T00:00:00.000Z',
   text: `${JSON.stringify(oldNameFMeta, null, 2)}\n\nF2 reference body.`,
 });
-assert.equal(fDoc.domain_name, 'GenAI & AI Cost Management');
+assert.equal(fDoc.domain_name, 'Management & observability');
 assert.equal(fDoc.stream, 'maturity');
 assert.equal(fDoc.criterion_id, 'F2');
 
@@ -221,10 +233,10 @@ assert.equal(apD1Doc.pdf_sha256, 'sha256_pdf');
 
 const status = buildKbStatus([apD1Doc], [], 'remote_blob', 'Knowledge Base/');
 assert.equal(status.delivery.sectioned_document_count, 1);
-assert.equal(status.delivery.missing_expected_document_count, 59);
+assert.equal(status.delivery.missing_expected_document_count, 79);
 assert.equal(status.delivery.shadow_ready, false);
 
-const completeDocuments = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(domainId => (
+const completeDocuments = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].flatMap(domainId => (
   Array.from({ length: 5 }, (_, index) => {
     const capabilityId = `${domainId}${index + 1}`;
     return [

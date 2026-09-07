@@ -18,7 +18,7 @@ const evidence = {
     },
     diagnosis: {
       primary_bottleneck: 'Ownership', root_causes: [],
-      domain_diagnosis: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E', F: 'F' },
+      domain_diagnosis: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', H: 'H' },
       confidence: 'medium', confidence_rationale: 'Evidence is mixed.',
     },
     visual_scorecard: { headline: 'Walk', maturity_score: 'Medium', burden_score: 'Medium' },
@@ -32,6 +32,16 @@ assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynth
 assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({ ...evidence, extra: true })), /INVALID_OUTPUT_CONTRACT/);
 assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({ phase_3_strategy: {} })), /INVALID_OUTPUT_CONTRACT/);
 assert.throws(() => authorizeOutputContract('roadmap_synthesis', OUTPUT_CONTRACT_IDS.evidenceSynthesis), /INVALID_OUTPUT_CONTRACT/);
+assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({
+  ...evidence,
+  phase_3_strategy: {
+    ...evidence.phase_3_strategy,
+    diagnosis: {
+      ...evidence.phase_3_strategy.diagnosis,
+      domain_diagnosis: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E', F: 'F' },
+    },
+  },
+})), /INVALID_OUTPUT_CONTRACT/, 'Landing Zone domain_diagnosis requires pack keys A–H, not A–F');
 
 const gapQuery = {
   schema_version: 'finops_evidence_gap_query_v1',
@@ -99,9 +109,14 @@ const roadmapFactCheck = {
     missing_material: 'Evidence that the do-not-use condition no longer applies.',
   }],
 };
-assert.equal(OUTPUT_CONTRACT_IDS.roadmapFactCheck, 'finops_roadmap_fact_check_v2');
+assert.equal(OUTPUT_CONTRACT_IDS.roadmapFactCheck, 'assessment_roadmap_fact_check_v2');
+assert.equal(OUTPUT_CONTRACT_IDS.evidenceGapQuery, 'assessment_evidence_gap_query_v1');
 assert.deepEqual(
   validateOutputContractText(OUTPUT_CONTRACT_IDS.roadmapFactCheck, JSON.stringify(roadmapFactCheck)),
+  roadmapFactCheck,
+);
+assert.deepEqual(
+  validateOutputContractText('finops_roadmap_fact_check_v2', JSON.stringify(roadmapFactCheck)),
   roadmapFactCheck,
 );
 assert.throws(
