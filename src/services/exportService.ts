@@ -272,7 +272,7 @@ const renderRunTraceAppendix = (result: DiagnosticResult): string => {
       <div class="evidence-check-stat"><span>Score Paths</span><strong>${summary.score_path_count}</strong></div>
       <div class="evidence-check-stat"><span>Tactic Paths</span><strong>${summary.tactic_path_count}</strong></div>
       <div class="evidence-check-stat"><span>Derived Evidence</span><strong>${trace.derived_analytical_evidence?.length || 0}</strong></div>
-      <div class="evidence-check-stat"><span>Signal Analyzers</span><strong>${trace.data_signal_coverage?.analyzer_available_count || 0}/${trace.data_signal_coverage?.total_object_count || 60}</strong></div>
+      <div class="evidence-check-stat"><span>Signal Analyzers</span><strong>${trace.data_signal_coverage?.analyzer_available_count || 0}/${trace.data_signal_coverage?.total_object_count || 0}</strong></div>
       <div class="evidence-check-stat"><span>Retrieval Passes</span><strong>${trace.bounded_retrieval?.domains.reduce((sum, domain) => sum + domain.passes.length, 0) || 0}</strong></div>
       <div class="evidence-check-stat"><span>DLP Chunks</span><strong>${trace.dlp.scanned_chunk_count}</strong></div>
       <div class="evidence-check-stat"><span>Gate</span><strong>${escapeHtml(summary.quality_gate_decision)}</strong></div>

@@ -14,9 +14,10 @@ import type {
   ShadowTelemetryPersistence,
   SourceRegistryRuntimeStatus
 } from '../types';
+import { expectedKnowledgeKeysFor } from '../knowledge_base';
 
 const EVIDENCE_CATEGORY_COUNT = 7;
-const EXPECTED_KB_DOCUMENT_COUNT = 60;
+const EXPECTED_KB_DOCUMENT_COUNT = Math.max(expectedKnowledgeKeysFor().length, 1);
 
 const clampPercent = (value: number): number => Math.min(100, Math.max(0, Math.round(value)));
 const normalizeEvidenceText = (value: string): string => value.toLowerCase().replace(/\s+/g, ' ').trim();
