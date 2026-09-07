@@ -73,7 +73,9 @@ assert.equal(registry.chunks[0].post_ocr_redaction_status, 'PASSED_WITH_REDACTIO
 assert.equal(registry.chunks[0].visual_interpretation_status, 'OCR_TEXT_ONLY');
 assert.equal(registry.chunks[0].withheld_visual_region_count, 1);
 assert.doesNotMatch(JSON.stringify(registry), /alice@example\.com/);
-const packet = buildDomainPackets(registry).A;
+const packets = buildDomainPackets(registry);
+const packet = Object.values(packets).find(item => item.text.includes('visual_unit_id='));
+assert.ok(packet, 'visual OCR chunks must route to at least one pack design area');
 assert.match(packet.text, /visual_unit_id=/);
 assert.match(packet.text, /region="0,0,800,600"/);
 assert.match(packet.text, /ocr_method="local_ocr"/);
@@ -82,7 +84,7 @@ assert.equal(packet.manifest[0].ocr_engine_version, 'tesseract.js@7.0.0');
 assert.equal(packet.manifest[0].withheld_visual_region_count, 1);
 assert.doesNotMatch(packet.text, /private-name\.png/, 'browser-local filename must not enter the model packet');
 assert.deepEqual(packet.images, [], 'raw customer image bytes must never enter the model packet');
-const packets = buildDomainPackets(registry);
+assert.equal(Object.values(packets).every(item => item.images.length === 0), true);
 const dlp = scanRegistryDlp(registry);
 const readiness = sourceRegistryRuntimeStatus(
   registry,
@@ -124,7 +126,7 @@ assert.equal(pdfRegistry.chunks[0].visual_unit_id, pendingPdfUnit.unit_id);
 assert.equal(pdfRegistry.chunks[0].ocr_confidence, 88);
 assert.equal(pdfRegistry.chunks[0].post_ocr_redaction_status, 'PASSED_WITH_REDACTIONS');
 assert.doesNotMatch(JSON.stringify(pdfRegistry), /alice@example\.com/);
-assert.deepEqual(buildDomainPackets(pdfRegistry).A.images, [], 'rendered PDF page bytes must remain outside model packets');
+assert.deepEqual(Object.values(buildDomainPackets(pdfRegistry)).flatMap(item => item.images), [], 'rendered PDF page bytes must remain outside model packets');
 
 assert.throws(() => buildSourceRegistry([{
   ...privacy.sources[0],

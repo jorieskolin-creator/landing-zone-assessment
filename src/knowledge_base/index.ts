@@ -5,6 +5,7 @@ import { CHARACTERIZATION_FINOPS_EVIDENCE_TAXONOMY } from './characterizationFix
 import {
   DOMAIN_ROUTING_TERMS,
   expectedBatchOutputIdsFor,
+  expectedKnowledgeKeysFor,
   expectedPhase1IdsForStream,
   getActivePack,
   landingZoneAntipatterns,
@@ -13,7 +14,9 @@ import {
   landingZoneCapabilities,
   landingZoneContentPendingMessage,
   landingZoneCriterionReferenceRegex,
+  landingZoneCriterionTokenRegex,
   landingZonePairRegistry,
+  landingZonePersistencePrefix,
   landingZonePreflightKeywords,
   landingZoneTacticActivityPlaybook,
   landingZoneTactics,
@@ -38,10 +41,13 @@ export {
 export {
   DOMAIN_ROUTING_TERMS,
   expectedBatchOutputIdsFor,
+  expectedKnowledgeKeysFor,
   expectedPhase1IdsForStream,
   getActivePack,
   landingZoneContentPendingMessage,
   landingZoneCriterionReferenceRegex,
+  landingZoneCriterionTokenRegex,
+  landingZonePersistencePrefix,
   mustNotFallbackToFinopsContent,
 };
 
@@ -60,6 +66,8 @@ export const FINOPS_VALIDATION_RULES = landingZoneValidationRules();
 export const FINOPS_TAXONOMY_REGISTRY = landingZoneTaxonomyRegistry();
 export const FINOPS_MATURITY_PAIR_REGISTRY = landingZonePairRegistry();
 export const CRITERION_REFERENCE_RX = landingZoneCriterionReferenceRegex();
+export const CRITERION_TOKEN_RX = landingZoneCriterionTokenRegex();
+export const persistencePrefix = landingZonePersistencePrefix;
 
 // Extract the primary case-study company from a tactic. The DB uses the
 // convention "COMPANY: prose..." for each case_study; we pull the leading
@@ -329,13 +337,7 @@ export const buildShadowKnowledgePacket = (
   let packetChars = 0;
   const documents: ShadowKnowledgePacket['documents'] = [];
 
-  const expectedDomains = options.batchId ? [options.batchId] : BATCH_IDS;
-  const expectedDocumentKeys = new Set(expectedDomains.flatMap(domainId => (
-    Array.from({ length: 5 }, (_, index) => [
-      `maturity:${domainId}${index + 1}`,
-      `antipattern:AP-${domainId}${index + 1}`
-    ]).flat()
-  )));
+  const expectedDocumentKeys = new Set(expectedKnowledgeKeysFor(options.batchId));
   const documentKeyCounts = new Map<string, number>();
   for (const doc of sourceDocuments) {
     const key = `${doc.stream}:${doc.criterion_id}`;

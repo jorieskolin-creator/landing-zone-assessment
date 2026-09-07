@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ts from '../node_modules/typescript/lib/typescript.js';
 
-const source = await readFile(new URL('../src/services/acquisitionQualityService.ts', import.meta.url), 'utf8');
+const source = (await readFile(new URL('../src/services/acquisitionQualityService.ts', import.meta.url), 'utf8'))
+  .replace(
+    "import { expectedKnowledgeKeysFor } from '../knowledge_base';",
+    "const expectedKnowledgeKeysFor = () => Array.from({ length: 60 }, (_, index) => `k${index}`);"
+  );
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,

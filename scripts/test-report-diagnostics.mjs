@@ -33,6 +33,7 @@ const normalWarning = 'Anti-pattern coverage 24% < 60% — low burden mostly mea
 const hygieneWarning = 'Strategy hygiene: 7 non-material wording or taxonomy issue(s) remain after fact-check. These do not invalidate the assessment score.';
 
 assert.equal(isScannerEvidenceCheckDisagreement(disagreement), true);
+assert.equal(isScannerEvidenceCheckDisagreement('Phase 1: maturity.H5: Score 0 but evidence does not indicate silence'), true);
 assert.equal(isScannerEvidenceCheckDisagreement(normalWarning), false);
 assert.equal(isStrategyHygieneDiagnostic(hygieneWarning), true);
 assert.equal(

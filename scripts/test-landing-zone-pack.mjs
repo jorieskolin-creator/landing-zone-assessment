@@ -30,6 +30,8 @@ assert.match(knowledgeIndex, /landingZonePairRegistry\(\)/);
 assert.match(knowledgeIndex, /mustNotFallbackToFinopsContent\(\)/);
 assert.doesNotMatch(knowledgeIndex, /VITE_FINOPS_TACTICS_URL/);
 assert.doesNotMatch(knowledgeIndex, /FALLBACK_TACTICS/);
+assert.match(knowledgeIndex, /expectedKnowledgeKeysFor/);
+assert.doesNotMatch(knowledgeIndex, /Array\.from\(\{ length: 5 \}/);
 
 const titles = Object.fromEntries(taxonomy.design_areas.map((area) => [area.id, area.name]));
 assert.equal(titles.H, "Platform automation & DevOps");

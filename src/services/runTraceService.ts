@@ -28,6 +28,7 @@ import {
   TacticPathTrace
 } from '../types';
 import {
+  CRITERION_TOKEN_RX,
   FINOPS_TACTIC_PLAYBOOK_URL,
   FINOPS_TACTIC_PLAYBOOK_VERSION,
   FINOPS_TACTIC_ACTIVITY_PLAYBOOK,
@@ -254,9 +255,10 @@ const traceFindings = (auditLogs: Phase1AuditLogs): TraceFinding[] => {
       && hasVerifiedSourceCoverage(item, 'antipattern');
     if (!evidenceGrounded && item.assessment_status !== 'not_assessed' && !item.verification_unresolved) continue;
     const definition = antipatternDefinitionById.get(criterionId);
+    const displayId = criterionId.startsWith('AP-') ? criterionId : `AP-${criterionId}`;
     findings.push({
-      criterionId: `AP-${criterionId}`,
-      snippet: safeSnippet(`[AP-${criterionId}] ${evidenceGrounded ? item.reasoning || item.evidence : `Assessment gap: ${item.reasoning || item.evidence || 'not assessed'}`}`, 220),
+      criterionId: displayId,
+      snippet: safeSnippet(`[${displayId}] ${evidenceGrounded ? item.reasoning || item.evidence : `Assessment gap: ${item.reasoning || item.evidence || 'not assessed'}`}`, 220),
       searchText: [definition?.title, definition?.description, item.reasoning, item.evidence].filter(Boolean).join(' '),
       evidenceGrounded,
     });
@@ -266,15 +268,24 @@ const traceFindings = (auditLogs: Phase1AuditLogs): TraceFinding[] => {
 
 const criterionIdsInAction = (action: string): Set<string> => {
   const ids = new Set<string>();
-  const criterionRx = /\b(AP-)?([A-Z]+)([0-9]+)(?:\s*-\s*(?:\2)?([0-9]+))?\b/g;
-  for (const match of action.matchAll(criterionRx)) {
+  const tokenFlags = CRITERION_TOKEN_RX.flags.includes('g') ? CRITERION_TOKEN_RX.flags : `${CRITERION_TOKEN_RX.flags}g`;
+  const tokenRx = new RegExp(CRITERION_TOKEN_RX.source, tokenFlags);
+  const knownId = (id: string): boolean => new RegExp(CRITERION_TOKEN_RX.source).test(id);
+  for (const match of action.matchAll(tokenRx)) {
+    if (match[0]) ids.add(match[0]);
+  }
+  const rangeRx = /\b((?:AP-)?)([A-Z]+)(\d+)\s*-\s*(?:\2)?(\d+)\b/g;
+  for (const match of action.matchAll(rangeRx)) {
     const prefix = match[1] || '';
     const category = match[2];
     const start = Number(match[3]);
-    const end = Number(match[4] || match[3]);
+    const end = Number(match[4]);
     const low = Math.min(start, end);
     const high = Math.max(start, end);
-    for (let index = low; index <= high; index++) ids.add(`${prefix}${category}${index}`);
+    for (let index = low; index <= high; index++) {
+      const id = `${prefix}${category}${index}`;
+      if (knownId(id)) ids.add(id);
+    }
   }
   return ids;
 };

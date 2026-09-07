@@ -40,6 +40,7 @@ export const FINOPS_CRITERIA = [
 export const FINOPS_ANTIPATTERNS = [{ id: 'A1', title: 'Missing tags', description: 'Resources are untagged.' }];
 export const FINOPS_TACTICS_LOCAL = [{ id: 'TAC-VIS-001' }, { id: 'TAC-OPT-001' }];
 export const FINOPS_TAXONOMY_REGISTRY = { version: 'test' };
+export const CRITERION_TOKEN_RX = /\\b(?:AP-)?[A-Z]+[0-9]+\\b/g;
 `, 'utf8');
 await writeFile(join(dir, 'helpers.mjs'), `
 export const inferAntiPatternAbsenceStatus = item => item?.antipattern_absence_status || (item?.count > 0 ? 'partially_present' : 'unknown_absent');

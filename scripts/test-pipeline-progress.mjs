@@ -16,8 +16,11 @@ for (const stage of orderedStages) {
   assert.ok(position > previous, `${stage} must appear in governed pipeline order`);
   previous = position;
 }
-for (const domain of ['A','B','C','D','E','F']) assert.match(loadingComponent, new RegExp(`id: '${domain}'`));
-assert.match(loadingComponent, /Six domains execute in parallel/);
+assert.match(loadingComponent, /Object\.entries\(BATCH_TITLES\)/, 'domain chips must iterate the pack registry rather than a hardcoded A–F list');
+assert.doesNotMatch(loadingComponent, /Six domains execute in parallel/);
+assert.match(loadingComponent, /design areas execute in parallel/);
+const taxonomy = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/taxonomy.json', import.meta.url), 'utf8'));
+assert.deepEqual(taxonomy.design_areas.map(area => area.id), [...'ABCDEFGH']);
 assert.doesNotMatch(loadingComponent, /Claude|GPT|Sonnet|Opus|model/i);
 assert.doesNotMatch(app, /Claude|GPT|Sonnet|Opus/);
 assert.doesNotMatch(app, /Assessment Suite v1\.0/);

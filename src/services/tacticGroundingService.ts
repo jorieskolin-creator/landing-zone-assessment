@@ -1,5 +1,5 @@
 import type { Phase1AuditLogs, Phase2Validation, RequiredTacticDisposition, StrategicTactic, StrategySanitationItem, TacticActivityPlaybookEntry } from '../types';
-import { FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TACTICS_LOCAL } from '../knowledge_base';
+import { CRITERION_REFERENCE_RX, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TACTICS_LOCAL } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { hasVerifiedSourceCoverage } from './metricsService';
 
@@ -44,7 +44,6 @@ interface UnsupportedActionRule {
 }
 
 const TACTIC_RX = /\[(TAC-[A-Z]+-\d+(?:-[A-Z]+)?)\]/g;
-const CRITERION_REFERENCE_RX = /\[(?:AP-)?[A-Z]+[0-9]+(?:\s*-\s*(?:AP-)?[A-Z]*[0-9]+)?\]/;
 
 const UNSUPPORTED_ACTION_RULES: UnsupportedActionRule[] = [
   {

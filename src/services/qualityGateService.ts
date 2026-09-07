@@ -1,6 +1,6 @@
 
 import { AuditItem, EvidenceCheckResult, FactCheckClaim, FactCheckResult, Phase1AuditLogs, Phase2Validation, QualityGateResult, QualityGateLlmExplanation, SourceRegistryRuntimeStatus, ValidationResult } from '../types';
-import { FINOPS_CRITERIA } from '../knowledge_base';
+import { BATCH_IDS, FINOPS_CRITERIA } from '../knowledge_base';
 import { runStage, RunContext } from './modelRouter';
 
 export const EVIDENCE_DENSITY_BLOCK = 30;
@@ -18,13 +18,29 @@ const THRESHOLDS = {
 };
 const maturityCriterionTotal = Math.max(FINOPS_CRITERIA.length, 1);
 const totalCriterionCount = maturityCriterionTotal * 2;
+const domainIdClass = BATCH_IDS.map(id => id.toLowerCase()).join('') || 'a-h';
+const domainScoreDenominator = (() => {
+  const perDomain = new Map<string, number>();
+  for (const criterion of FINOPS_CRITERIA) {
+    if (!criterion || typeof criterion !== 'object') continue;
+    const record = criterion as { id?: string; design_area_id?: string };
+    const domainId = record.design_area_id || String(record.id || '').replace(/\d+$/, '');
+    if (!domainId) continue;
+    perDomain.set(domainId, (perDomain.get(domainId) || 0) + 1);
+  }
+  const scores = [...perDomain.values()].map(count => count * 3);
+  return scores.length > 0 ? Math.max(...scores) : 15;
+})();
+const domainHygienePattern = new RegExp(
+  `\\bdomain\\s+[${domainIdClass}]\\b|\\b[${domainIdClass}]\\s*\\(\\s*\\d+\\s*\\/\\s*${domainScoreDenominator}\\s*\\)`
+);
 
 const claimBlob = (claim: FactCheckClaim): string =>
   `${claim.claim || ''}\n${claim.rationale || ''}\n${claim.missing_material || ''}`.toLowerCase();
 
 export const isDomainTaxonomyHygieneClaim = (claim: FactCheckClaim): boolean => {
   const blob = claimBlob(claim);
-  const mentionsDomain = /\bdomain\s+[a-f]\b/.test(blob) || /\b[a-f]\s*\(\s*\d+\s*\/\s*15\s*\)/.test(blob);
+  const mentionsDomain = domainHygienePattern.test(blob);
   if (!mentionsDomain) return false;
   return [
     'thematic names',

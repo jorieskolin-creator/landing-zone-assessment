@@ -1016,7 +1016,7 @@ export interface DataSignalCoverageReport {
   schema_version: 'data_signal_coverage_v1';
   registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2';
   mode: 'active';
-  total_object_count: 60;
+  total_object_count: number;
   analyzer_available_count: number;
   unsupported_count: number;
   objects: Array<{
