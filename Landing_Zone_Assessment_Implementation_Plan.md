@@ -4,17 +4,22 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Last updated | 2026-09-06 |
-| Target | Landing Zone Assessment based on the existing FinOps Engine kernel |
+| Current version | 1.4 |
+| Last updated | 2026-09-07 |
+| Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
 ## 1. Purpose
 
 This document defines how to build the Landing Zone Assessment solution described by the repository documentation. It is intended to remain in the repository as the shared plan for implementation, review, verification, and later adjustment.
 
-The solution will reuse the governed execution kernel of the [FinOps Engine](https://github.com/jorieskolin-creator/finops-engine-2026), while replacing and extending its domain-specific layer for Landing Zone assessment.
+The solution will reuse selected governed execution-kernel source from the [FinOps Engine](https://github.com/jorieskolin-creator/finops-engine-2026) by copying it into this repository as a versioned implementation baseline, then adapting and maintaining that copy for Landing Zone assessment.
 
-The objective is not to create a separate fork of the assessment engine. The target is one reusable assessment kernel with independently versioned FinOps and Landing Zone domain content.
+The Landing Zone Assessment is a fully independent solution. It must build, test, deploy, run, and evolve without access to the FinOps Engine repository or a running FinOps Engine service. It must not import, call, package, mount, synchronize, or otherwise depend on FinOps Engine code or infrastructure at runtime or during build and deployment.
+
+The FinOps Engine repository remains unchanged by this project. Kernel reuse is one-way source reuse: record the selected upstream revision, copy the required source into this repository, and make all Landing Zone adaptations here. This project must not open branches or pull requests against, or push commits to, the FinOps Engine repository.
+
+Where the source documents describe one shared kernel with FinOps and Landing Zone packs, or instruct the implementation not to copy the repository, this plan supersedes that guidance. “Reuse the kernel” in this plan always means “reuse by source copy into the independent Landing Zone Assessment repository.”
 
 ## 2. Source documents
 
@@ -36,7 +41,9 @@ The following assumptions are authoritative for this implementation:
 3. **A later live-collection capability is outside this plan.** The file-ingestion boundary should remain reusable, but no collector APIs, cloud authentication, or live inventory services need to be designed or implemented now.
 4. **The Landing Zone Knowledge Base and Tactic Playbook will be created during this project.** Their technical contracts are defined early, while their content can be added in parallel. They will be integrated before full pipeline verification and before the first real assessment test cases are used.
 5. **Testing and verification occur throughout implementation.** There is no separate experimental version of the solution with weaker criteria or quality expectations.
-6. **The existing FinOps Engine is the kernel baseline.** Kernel behavior is preserved unless a change is required to remove a FinOps-only assumption or support a documented Landing Zone requirement.
+6. **The existing FinOps Engine is a source baseline, not a dependency or modification target.** The required kernel source is copied into this repository at a recorded upstream revision. Kernel behavior is preserved unless a local change is required to remove a FinOps-only assumption or support a documented Landing Zone requirement.
+7. **The completed solution is operationally and developmentally independent.** A fresh clone of this repository must be sufficient to install, test, build, deploy, and run the Landing Zone Assessment without repository access, packages, services, APIs, credentials, or deployment resources from FinOps Engine.
+8. **Reuse is one-way and locally owned.** No Git submodule, subtree with an active synchronization process, remote source import, Git dependency, build-time download, shared deployment, or runtime call may connect this solution to FinOps Engine. A future upstream review, if explicitly approved, is a manual source comparison followed by reviewed commits only in this repository.
 
 ## 4. Target outcome
 
@@ -87,13 +94,15 @@ The completed solution allows a user to:
 - Cloud credentials or delegated authorization
 - Automatic tenant, organization, account, subscription, project, or resource discovery
 - Continuously synchronized cloud inventory
+- Any live, build-time, deployment-time, package, source-control, API, database, queue, cache, or infrastructure dependency on FinOps Engine
+- Changes, branches, commits, pushes, or pull requests in the FinOps Engine repository
 - The separate Implementation Model that selects accelerators or service options after findings are locked
 
 ## 6. Governing principles
 
-### 6.1 Reuse the kernel; replace the domain
+### 6.1 Copy the kernel baseline; own the Landing Zone implementation
 
-The following FinOps Engine capabilities should be retained:
+The following capabilities should be retained from the copied FinOps Engine baseline and maintained as Landing Zone Assessment source in this repository:
 
 - source parsing and deterministic privacy controls
 - source registry and stable locators
@@ -122,9 +131,19 @@ The following content must become Landing Zone-specific:
 - maturity terminology
 - report language and visual structure
 
+The source-copy boundary is governed:
+
+1. Record the exact FinOps Engine commit used as the baseline and retain source/license attribution.
+2. Copy only the source, tests, configuration, and assets required by the Landing Zone solution.
+3. Commit the copied files to this repository; they become locally owned implementation files.
+4. Remove FinOps production content and assumptions rather than loading them from the upstream repository.
+5. Prohibit Git submodules, Git/package dependencies, remote imports, build-time downloads, shared data stores, and runtime calls to FinOps Engine.
+6. Apply all parameterization, Landing Zone behavior, fixes, tests, and releases only in this repository.
+7. Treat any future upstream comparison as an explicit manual review. It must never create automatic or bidirectional synchronization.
+
 ### 6.2 Evidence authority is independent of file transport
 
-All initial evidence reaches the engine through file upload or questionnaire import, but its authority still depends on its source:
+All initial evidence reaches the Landing Zone Assessment engine through file upload or questionnaire import, but its authority still depends on its source:
 
 | Evidence class | Meaning | Examples |
 |---|---|---|
@@ -144,7 +163,7 @@ An uploaded control-plane export remains Class 1 evidence even though it was not
 
 ### 6.4 Providers remain separate
 
-The engine can share canonical intent IDs and pair definitions across providers, but evaluation and reporting remain provider-specific. For example, the output may show `Azure Identity: GO` and `AWS Identity: WARN`; it must not create a blended cross-cloud maturity score.
+The Landing Zone Assessment engine can share canonical intent IDs and pair definitions across providers, but evaluation and reporting remain provider-specific. For example, the output may show `Azure Identity: GO` and `AWS Identity: WARN`; it must not create a blended cross-cloud maturity score.
 
 ### 6.5 Knowledge and tactics are not evidence
 
@@ -161,8 +180,7 @@ Browser / Vercel UI
                 │
                 ▼
 Railway assessment control plane
-  ├── Shared assessment kernel
-  │     ├── FinOps domain pack
+  ├── Landing Zone assessment kernel
   │     └── Landing Zone domain pack
   ├── Governed model dispatch
   ├── Evidence verification and rescans
@@ -174,13 +192,15 @@ Railway assessment control plane
                 └── Redis: leases, fences, dispatch state
 ```
 
-Only kernel changes required to support domain parameterization, provider context, evidence authority, scope, or documented human checkpoints should be introduced.
+Every component shown above belongs to the Landing Zone Assessment solution and is built and deployed from this repository. No component calls or loads a FinOps Engine deployment, repository, package, data store, queue, cache, or domain pack.
+
+Only changes to the copied kernel required to support domain parameterization, provider context, evidence authority, scope, or documented human checkpoints should be introduced in this repository.
 
 ## 8. Core data contracts
 
 ### 8.1 Assessment domain pack
 
-The kernel should load a typed `AssessmentDomainPack` rather than import FinOps constants directly.
+The copied and locally maintained kernel should load a typed `AssessmentDomainPack` rather than import FinOps constants directly.
 
 ```ts
 interface AssessmentDomainPack {
@@ -250,22 +270,33 @@ The implementation requires explicit records for:
 - expert calibration event
 - customer decision
 
-The original engine result and later expert annotation must remain separately visible in lineage.
+The original automated Landing Zone assessment result and later expert annotation must remain separately visible in lineage.
 
 ## 9. Implementation work plan
 
 The work is ordered by technical dependency, not by separate release classifications.
 
-### Work 1 — Establish the reusable domain boundary
+Current implementation status at version 1.3:
 
-1. Introduce the `AssessmentDomainPack` loader and registry.
-2. Place the current FinOps content behind a FinOps pack adapter.
-3. Replace direct knowledge-base imports with pack access.
-4. Preserve current FinOps behavior with characterization tests.
+- The Landing Zone pack contract, loader, frozen catalogue, validation, and pack-taxonomy helpers exist in this repository.
+- The complete execution kernel has not yet been copied into this repository.
+- The current repository has no live or build-time dependency on FinOps Engine.
+- Exploratory kernel changes made in any external working copy are not part of this solution and must not be pushed to FinOps Engine. Required changes must be applied after the baseline source is copied here.
+
+### Work 1 — Establish the independent copied kernel and domain boundary
+
+1. Record the exact FinOps Engine source commit selected as the baseline and review source/license attribution.
+2. Inventory the kernel files, local tests, configuration, and assets required by Landing Zone Assessment.
+3. Copy those files into this repository without a Git, package, build, deployment, or runtime link to FinOps Engine.
+4. Integrate the existing `AssessmentDomainPack` loader and registry with the copied kernel.
+5. Replace direct FinOps knowledge-base and domain-content imports with local Landing Zone pack access.
+6. Remove FinOps production content that is not required by the independent Landing Zone solution.
+7. Preserve domain-neutral kernel behavior with characterization tests stored and executed in this repository.
+8. Add an independence check proving that a fresh clone can install, test, build, and run without access to FinOps Engine.
 
 ### Work 2 — Remove FinOps structural assumptions
 
-Replace:
+Inside the copied kernel in this repository, replace:
 
 - `A–F` type unions
 - `[A-F]` criterion regular expressions
@@ -276,7 +307,7 @@ Replace:
 - FinOps-only routing terms
 - FinOps-only report and persistence prefixes where they cross the domain boundary
 
-Domain and criterion iteration must come from the pack registry. The Landing Zone catalogue remains fixed at five pairs per design area, but the kernel should not infer this from string patterns.
+Domain and criterion iteration must come from the local pack registry. The Landing Zone catalogue remains fixed at five pairs per design area, but the kernel should not infer this from string patterns. No Work 2 change is made in the FinOps Engine repository.
 
 ### Work 3 — Build the Landing Zone domain pack
 
@@ -326,7 +357,7 @@ Scoring must not begin without a valid scope object.
 
 ### Work 5 — Adapt file-based acquisition
 
-Reuse the existing supported inputs:
+Reuse the copied baseline implementations for these supported inputs:
 
 - PDF
 - HTML
@@ -365,7 +396,7 @@ Questionnaire observations support operating-model interpretation. Evidence lead
 
 ### Work 7 — Route and packetize A–H evidence
 
-1. Replace FinOps `DOMAIN_TERMS` with Landing Zone routing vocabulary.
+1. Replace the copied baseline's FinOps `DOMAIN_TERMS` with Landing Zone routing vocabulary.
 2. Route sources by provider, design area, criterion, and evidence class.
 3. Build one bounded packet for each applicable assessment batch.
 4. Preserve weak-coverage and expansion behavior.
@@ -390,7 +421,7 @@ Models may explain approved evidence and metrics; they may not invent provider c
 
 ### Work 9 — Adapt pair scoring and gates
 
-Retain the ADR-002 resolution-based pair model, including:
+Retain the copied ADR-002 resolution-based pair model, including:
 
 - explicit pair registry
 - unknown values represented as unresolved rather than zero
@@ -411,7 +442,7 @@ Adapt it so:
 
 ### Work 10 — Integrate the Knowledge Base
 
-The Knowledge Base content is developed in parallel with the engine adaptation.
+The Knowledge Base content is developed in parallel with adaptation of the locally copied kernel.
 
 Define its contract early:
 
@@ -429,7 +460,7 @@ When content becomes available:
 2. Build the Landing Zone knowledge index.
 3. Include the selected Knowledge Base version in governed packets and RunTrace.
 4. Test retrieval relevance and clean-room separation.
-5. Fail visibly if required knowledge content cannot be loaded; do not silently replace it with unrelated FinOps content.
+5. Fail visibly if required Landing Zone knowledge content cannot be loaded; do not substitute any non-Landing Zone content, including material retained from the copied FinOps baseline.
 
 ### Work 11 — Integrate the Tactic Playbook
 
@@ -469,7 +500,7 @@ Prompts must use Landing Zone language and explicitly prevent:
 - narrating excellence over a confirmed anti-pattern
 - producing tactics without sufficient evidence
 
-Replace FinOps personas with:
+Replace FinOps-origin personas retained in the copied baseline with:
 
 - CISO and leadership
 - Platform Owner and Cloud Foundation
@@ -494,11 +525,11 @@ The report must present:
 
 ### Work 13 — Add expert calibration and customer decisions
 
-After engine analysis and deterministic gates:
+After local Landing Zone engine analysis and deterministic gates:
 
 1. Present verified findings, contradictions, and unknowns.
 2. Allow an expert to confirm, annotate, or return a finding for evidence review.
-3. Preserve the original engine output.
+3. Preserve the original automated assessment output.
 4. Record the reason and actor for each calibration event.
 5. Re-run publication checks after calibration.
 6. Record customer disposition such as action approved, more evidence required, accepted exception, deferred, no action, or out of scope.
@@ -508,11 +539,12 @@ After engine analysis and deterministic gates:
 
 Verification is performed continuously as each relevant component changes.
 
-### 10.1 Kernel regression
+### 10.1 Copied-kernel regression
 
-- Existing FinOps focused tests continue to pass.
-- Existing packet, governance, scoring, Quality Gate, and RunTrace behavior remains stable unless deliberately parameterized.
-- FinOps and Landing Zone packs can be loaded independently.
+- Domain-neutral characterization tests copied or recreated in this repository continue to pass.
+- Packet, governance, scoring, Quality Gate, and RunTrace behavior remains stable unless deliberately adapted for Landing Zone.
+- Landing Zone tests use only local source, fixtures, domain content, and services.
+- FinOps-shaped fixtures may verify that the kernel does not infer A–H, but no production FinOps pack or live FinOps dependency is required.
 
 ### 10.2 Domain-pack validation
 
@@ -568,13 +600,25 @@ Step 0 scope
 
 The real test cases then validate the same flow with representative customer material; they do not introduce a different execution path.
 
+### 10.6 Repository and runtime independence
+
+Automated and release verification must confirm:
+
+- no Git submodule, Git dependency, package dependency, remote import, or source path references the FinOps Engine repository
+- install, test, build, and deployment scripts do not clone, fetch, download, or mount FinOps Engine
+- the deployed solution does not call a FinOps Engine API or share its PostgreSQL database, Redis instance, queues, storage, credentials, or deployment
+- all required kernel source, tests, configuration, assets, Landing Zone content, and migrations are versioned in this repository
+- a fresh clone succeeds when network access to the FinOps Engine repository and services is unavailable
+- source provenance records the copied baseline revision without creating an executable link
+- this project creates no branch, commit, push, or pull request in the FinOps Engine repository
+
 ## 11. Completion criteria
 
 The Landing Zone Assessment implementation is complete when:
 
 1. The frozen A–H catalogue is represented in a validated, versioned domain pack.
 2. The kernel obtains domains, criteria, pairs, providers, prompts, and output vocabulary from the selected pack.
-3. Existing FinOps behavior remains operational.
+3. The required kernel source is copied, attributed, adapted, tested, and maintained entirely in this repository.
 4. Step 0 prevents assessment of an unnamed or incorrectly scoped estate.
 5. User-supplied files and questionnaire exports can be parsed, sanitized, classified, and traced.
 6. Every selected criterion is evaluated for every applicable selected provider.
@@ -585,14 +629,15 @@ The Landing Zone Assessment implementation is complete when:
 11. The complete Knowledge Base and Tactic Playbook are integrated and version-traced.
 12. Expert calibration and customer decisions are preserved in the assessment lineage.
 13. The exported Master Data Summary contains traceable findings, uncertainties, tactics, decisions, and Quality Gate information.
-14. Kernel regression, domain validation, golden evidence, security, and end-to-end tests pass.
+14. Copied-kernel regression, domain validation, golden evidence, security, independence, and end-to-end tests pass.
+15. A fresh clone can install, test, build, deploy, and run without access to FinOps Engine, and no FinOps Engine repository or deployment was changed.
 
 ## 12. Maintaining this plan
 
 This is a living plan. Update it when:
 
 - a source document changes an architectural or behavioral requirement
-- a kernel constraint changes the implementation approach
+- a copied-kernel constraint changes the implementation approach
 - the Knowledge Base or Tactic Playbook introduces a new contract requirement
 - testing identifies a missing reliability control
 - report or workflow behavior is deliberately changed
@@ -604,4 +649,6 @@ Material changes should update the date and append a short entry below.
 | Date | Version | Change |
 |---|---|---|
 | 2026-09-06 | 1.0 | Initial repository plan. Treats criteria as frozen, defines file-based first implementation, and schedules Knowledge Base and Tactic Playbook integration before full pipeline and real-case verification. |
-| 2026-09-06 | 1.1 | Started Work 1 and Work 3 only: pack contract, loader/registry, frozen A–H JSON catalogue, and pack validation. FinOps kernel import replacement remains a later increment in the engine repository. |
+| 2026-09-06 | 1.1 | Started the domain boundary and Work 3: pack contract, loader/registry, frozen A–H JSON catalogue, and pack validation. Applying the boundary to a complete copied kernel remains pending. |
+| 2026-09-06 | 1.2 | Added Work 2 pack-driven taxonomy helpers and tests for A–F unions, `[A-F][1-5]` regular expressions, fixed domain loops, and five-wide criterion generation. Applying them to the complete copied kernel remains pending. |
+| 2026-09-07 | 1.4 | Work 1: copied FinOps Engine kernel baseline `d671a38723d76398f683ee7362acf12343a796bd` into this repository, wired production knowledge access to the Landing Zone pack, retained FinOps JSON as characterization fixtures only, and added independence checks. Missing Landing Zone Knowledge Base and Tactic Playbook content fails visibly and does not fall back to FinOps content. |

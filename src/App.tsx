@@ -1,0 +1,1895 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { analyzeDocument } from './services/analysisService';
+import { scanInputText, sanitizeInput } from './services/preFlightService';
+import { extractPagesFromPdf } from './services/pdfService';
+import type { PdfParseQuality } from './services/pdfService';
+import { renderDelimitedTableForAnalysis } from './services/tableService';
+import { inspectEvidenceFile } from './services/evidenceFileService';
+import { extractXlsx } from './services/xlsxService';
+import { extractImageOcr } from './services/ocrService';
+import { downloadMasterDataReport, downloadRunTraceJson, downloadSummaryReport } from './services/exportService';
+import { forensicSanitizeImport } from './services/securityService';
+import { extractDiagnosticResultFromHtmlReport, isDiagnosticResultPayload, parseDiagnosticResultJson, serializeDiagnosticResultForHtml } from './services/reportImportService';
+import { findGeneratedReportPrivacyFindings, scrubDiagnosticResultForPrivacy } from './services/privacyService';
+import { PerformanceMonitor } from './services/debugService';
+import { DiagnosticResult, EvidenceSourceAcquisition, ScanResult, PersonaId, PERSONA_IDS, PERSONA_LABELS, PipelineProgressStage, PipelineProgressUpdate, SourcePage, SourceRecord, StructuredTableData, VisualEvidenceUnit } from './types';
+import { METRIC_DESCRIPTIONS } from './constants';
+import { GaugeCard, AuditGrid, StrategicRoadmap, ComparisonChart, ReferenceLibrary, QualityGateBanner, BenchmarkingChart, TransferProtocol, MarkdownRenderer, NeuralLoadingGrid } from './components/DashboardComponents';
+import { ReportView } from './components/ReportView';
+import { LoginModal } from './components/LoginModal';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { checkSession, logout } from './services/authService';
+import { acknowledgeRun, deleteRun, getRun } from './services/runLifecycleService';
+import { recoverCheckpointResult } from './services/checkpointRecoveryService';
+import { buildReportViewModel } from './services/reportViewModel';
+import tier1GovernancePolicy from '../test/tier1-governance-policy.txt?raw';
+import tier1TaggingPolicy from '../test/tier1-tagging-policy.txt?raw';
+import tier1CoeCharter from '../test/tier1-coe-charter.txt?raw';
+import tier1CloudStrategy from '../test/tier1-cloud-strategy.txt?raw';
+import tier1RiSpStrategy from '../test/tier1-ri-sp-strategy.txt?raw';
+import tier1CostOptReview from '../test/tier1-cost-optimization-review.txt?raw';
+import demoSimulation from '../test/demo-simulation.txt?raw';
+
+const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Demo Pack';
+const SAVED_ASSESSMENT_KEY = 'finops:last-assessment:v1';
+const SAVED_ASSESSMENT_META_KEY = 'finops:last-assessment-meta:v1';
+const LAST_CRASH_KEY = 'finops:last-crash:v1';
+const ACTIVE_RUN_KEY = 'finops:recoverable-run:v1';
+
+interface SavedAssessmentMeta {
+  savedAt: string;
+  source: 'completed_assessment' | 'html_import' | 'json_import';
+  documentAnalyzed?: string;
+}
+
+const readSavedAssessment = (): DiagnosticResult | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(SAVED_ASSESSMENT_KEY);
+    if (!raw) return null;
+    const parsed = parseDiagnosticResultJson(raw);
+    return parsed.kind === 'report' ? parsed.result : null;
+  } catch {
+    return null;
+  }
+};
+
+const readSavedAssessmentMeta = (): SavedAssessmentMeta | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(SAVED_ASSESSMENT_META_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveAssessmentToSession = (result: DiagnosticResult, source: SavedAssessmentMeta['source'] = 'completed_assessment') => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(SAVED_ASSESSMENT_KEY, serializeDiagnosticResultForHtml(result));
+    window.sessionStorage.setItem(SAVED_ASSESSMENT_META_KEY, JSON.stringify({
+      savedAt: new Date().toISOString(),
+      source,
+      documentAnalyzed: result.meta?.document_analyzed
+    } satisfies SavedAssessmentMeta));
+  } catch (error) {
+    console.warn('[FinOps] Could not save assessment recovery payload (error_code=RECOVERY_SAVE_FAILED).');
+  }
+};
+
+const clearSavedAssessment = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(SAVED_ASSESSMENT_KEY);
+    window.sessionStorage.removeItem(SAVED_ASSESSMENT_META_KEY);
+    window.sessionStorage.removeItem(LAST_CRASH_KEY);
+  } catch {
+    // Ignore unavailable browser storage.
+  }
+};
+
+const saveLastCrash = (message: string, componentStack?: string) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(LAST_CRASH_KEY, JSON.stringify({
+      at: new Date().toISOString(),
+      message,
+      componentStack: componentStack?.slice(0, 4000)
+    }));
+  } catch {
+    // Ignore unavailable browser storage.
+  }
+};
+
+const readLastCrash = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(LAST_CRASH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.message === 'string' ? parsed.message : null;
+  } catch {
+    return null;
+  }
+};
+
+const clearLastCrash = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(LAST_CRASH_KEY);
+  } catch {
+    // Ignore unavailable browser storage.
+  }
+};
+
+const cloneResult = (result: DiagnosticResult): DiagnosticResult =>
+  typeof structuredClone === 'function'
+    ? structuredClone(result)
+    : JSON.parse(JSON.stringify(result));
+
+const arrayToText = (items?: string[]): string => (items || []).join('\n');
+
+const textToArray = (text: string): string[] =>
+  text.split('\n').map(line => line.trim()).filter(Boolean);
+
+const TIER1_FIXTURES: Array<{ pack_id: string; name: string; label: string; text: string }> = [
+  { pack_id: 'tier1-governance-policy', name: 'tier1-governance-policy.txt', label: 'Cloud Governance / FinOps Policy', text: tier1GovernancePolicy },
+  { pack_id: 'tier1-tagging-policy', name: 'tier1-tagging-policy.txt', label: 'Tagging & Cost Allocation Policy', text: tier1TaggingPolicy },
+  { pack_id: 'tier1-coe-charter', name: 'tier1-coe-charter.txt', label: 'FinOps CoE Charter', text: tier1CoeCharter },
+  { pack_id: 'tier1-cloud-strategy', name: 'tier1-cloud-strategy.txt', label: 'Cloud Strategy (3-Year Plan)', text: tier1CloudStrategy },
+  { pack_id: 'tier1-ri-sp-strategy', name: 'tier1-ri-sp-strategy.txt', label: 'RI / Savings Plan Strategy', text: tier1RiSpStrategy },
+  { pack_id: 'tier1-cost-optimization-review', name: 'tier1-cost-optimization-review.txt', label: 'Quarterly Cost Optimization Review', text: tier1CostOptReview }
+];
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  text: string;
+  pages?: SourcePage[];
+  structuredTable?: StructuredTableData;
+  structuredTables?: StructuredTableData[];
+  acquisition?: EvidenceSourceAcquisition;
+  visualUnits?: VisualEvidenceUnit[];
+  kind?: 'pdf' | 'html' | 'csv' | 'tsv' | 'json' | 'xlsx' | 'image';
+  status: 'parsed' | 'error';
+  scan?: ScanResult;
+  parseMetadata?: {
+    totalPages?: number;
+    parsedTextPages?: number;
+    rowCount?: number;
+    renderedRowCount?: number;
+    analyzedRowCount?: number;
+    analysisComplete?: boolean;
+    clippedCellCount?: number;
+    cellCharacterCoverageRatio?: number;
+    parseQuality?: PdfParseQuality;
+    warnings: string[];
+  };
+}
+
+const extractTextFromHtml = (html: string): string => {
+  const cleanHtml = forensicSanitizeImport(html);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(cleanHtml, 'text/html');
+  doc.querySelectorAll('script, style').forEach(s => s.remove());
+  return doc.body.textContent || "";
+};
+
+const acquisitionErrorCode = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : '';
+  return message.match(/\b[A-Z][A-Z0-9_]{2,}\b/)?.[0] || 'EVIDENCE_FILE_REJECTED';
+};
+
+const PrivacyProtocolCard = () => (
+  <div className="max-w-[85rem] mx-auto mt-12 mb-20 animate-fade-in relative z-10 px-4">
+    <div className="flex items-center justify-center gap-2 mb-8 opacity-90">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400">Data Handling Overview</span>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {[
+        { icon: 'M13 10V3L4 14h7v7l9-11h-7z', title: "Browser Parsing", desc: "Files parsed on this device" },
+        { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', title: "Provider Processing", desc: "Parsed content sent to configured LLMs" },
+        { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', title: "Session Recovery", desc: "Report saved in this browser tab" },
+        { icon: 'M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88', title: "Deterministic Privacy", desc: "Complete acquired content checked before AI" }
+      ].map((item, idx) => (
+        <div key={idx} className="bg-slate-900/70 backdrop-blur-sm p-4 rounded-2xl border border-white/10 flex items-center gap-4 shadow-sm hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all hover:bg-slate-800/70">
+          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 border border-white/5">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+          </div>
+          <div>
+            <h5 className="text-xs font-bold text-slate-200 uppercase tracking-wide">{item.title}</h5>
+            <p className="text-[10px] text-slate-400 font-medium">{item.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+    <p className="mt-5 text-center text-[11px] leading-relaxed text-slate-400 max-w-4xl mx-auto">
+      Files, full tables, images and sparse PDF pages are processed locally. Images and sparse pages use local OCR; OCR does not interpret graph structure or other non-text visual semantics, which remain explicitly withheld. Deterministic privacy controls scan and redact acquired content before governed packets are assembled. The first generative-model call occurs only after that boundary passes. Provider retention depends on the configured account terms. Canonical governed packet bodies remain temporarily in PostgreSQL, while accepted analysis checkpoints may remain temporarily in Redis for interruption recovery. Packet bodies and Redis transient content are deleted after the browser acknowledges final report delivery, on explicit deletion, or at expiry; content-free PostgreSQL metadata and hashes remain for audit retention.
+    </p>
+  </div>
+);
+
+const PrivacyReviewPanel: React.FC<{
+  result: DiagnosticResult;
+  edited: boolean;
+  notice: string | null;
+  organizationRedactionTerm: string;
+  onOrganizationRedactionTermChange: (value: string) => void;
+  onApplyPersonRedaction: () => void;
+  onApplyOrganizationRedaction: () => void;
+  onPreview: () => void;
+  onChange: (updater: (draft: DiagnosticResult) => void) => void;
+}> = ({
+  result,
+  edited,
+  notice,
+  organizationRedactionTerm,
+  onOrganizationRedactionTermChange,
+  onApplyPersonRedaction,
+  onApplyOrganizationRedaction,
+  onPreview,
+  onChange
+}) => {
+  const strategy = result.phase_3_strategy;
+  const evidence = strategy.evidence_summary;
+  const diagnosis = strategy.diagnosis;
+  const planning = strategy.planning_decision;
+  const roadmap = strategy.remediation_roadmap || [];
+
+  const textareaClass = 'w-full min-h-[90px] rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none';
+  const labelClass = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block';
+
+  return (
+    <div className="glass-panel p-6 md:p-8 rounded-[2rem] bg-slate-900/50 border border-emerald-500/20">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <h3 className="text-xl font-display font-bold text-white">Privacy Review / Edit Report</h3>
+            {edited && <span className="px-2 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest text-emerald-300">Edited locally</span>}
+          </div>
+          <p className="text-sm text-slate-400 max-w-3xl">
+            These edits apply only to generated report wording and exported HTML/JSON. Raw source evidence remains unchanged inside this browser session for audit traceability.
+          </p>
+          {notice && <p className="mt-3 text-sm text-amber-200">{notice}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={onPreview}
+          className="px-4 py-2 rounded-xl bg-white text-slate-950 text-xs font-bold uppercase tracking-widest hover:bg-emerald-100 transition-colors"
+        >
+          Preview exported report
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+        <button
+          type="button"
+          onClick={onApplyPersonRedaction}
+          className="px-4 py-3 rounded-xl bg-slate-800 text-slate-100 text-xs font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors"
+        >
+          Redact detected person names
+        </button>
+        <input
+          value={organizationRedactionTerm}
+          onChange={(e) => onOrganizationRedactionTermChange(e.target.value)}
+          placeholder="Organization name to redact"
+          className="rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={onApplyOrganizationRedaction}
+          disabled={!organizationRedactionTerm.trim()}
+          className="px-4 py-3 rounded-xl bg-slate-800 text-slate-100 text-xs font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Redact organization name
+        </button>
+      </div>
+
+      <div className="space-y-8">
+        <section>
+          <h4 className="text-sm font-bold uppercase tracking-widest text-emerald-300 mb-4">Executive summaries</h4>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {PERSONA_IDS.map(persona => (
+              <label key={persona} className="block">
+                <span className={labelClass}>{PERSONA_LABELS[persona]}</span>
+                <textarea
+                  className={textareaClass}
+                  value={strategy.executive_summaries?.[persona] || (persona === 'finops_lead' ? strategy.executive_summary || '' : '')}
+                  onChange={(e) => onChange(draft => {
+                    draft.phase_3_strategy.executive_summaries = {
+                      ...(draft.phase_3_strategy.executive_summaries || {}),
+                      [persona]: e.target.value
+                    } as any;
+                    if (persona === 'finops_lead') draft.phase_3_strategy.executive_summary = e.target.value;
+                  })}
+                />
+              </label>
+            ))}
+          </div>
+        </section>
+
+        {evidence && (
+          <section>
+            <h4 className="text-sm font-bold uppercase tracking-widest text-emerald-300 mb-4">Evidence summary</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <label className="block">
+                <span className={labelClass}>Headline</span>
+                <textarea
+                  className={textareaClass}
+                  value={evidence.headline || ''}
+                  onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.evidence_summary) draft.phase_3_strategy.evidence_summary.headline = e.target.value; })}
+                />
+              </label>
+              {(['key_metrics', 'confirmed_strengths', 'confirmed_gaps', 'confirmed_antipatterns', 'silent_or_missing_evidence'] as const).map(field => (
+                <label key={field} className="block">
+                  <span className={labelClass}>{field.replace(/_/g, ' ')}</span>
+                  <textarea
+                    className={textareaClass}
+                    value={arrayToText(evidence[field])}
+                    onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.evidence_summary) (draft.phase_3_strategy.evidence_summary as any)[field] = textToArray(e.target.value); })}
+                  />
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {diagnosis && (
+          <section>
+            <h4 className="text-sm font-bold uppercase tracking-widest text-emerald-300 mb-4">Diagnosis</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <label className="block">
+                <span className={labelClass}>Primary bottleneck</span>
+                <textarea
+                  className={textareaClass}
+                  value={diagnosis.primary_bottleneck || ''}
+                  onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.diagnosis) draft.phase_3_strategy.diagnosis.primary_bottleneck = e.target.value; })}
+                />
+              </label>
+              <label className="block">
+                <span className={labelClass}>Root causes</span>
+                <textarea
+                  className={textareaClass}
+                  value={arrayToText(diagnosis.root_causes)}
+                  onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.diagnosis) draft.phase_3_strategy.diagnosis.root_causes = textToArray(e.target.value); })}
+                />
+              </label>
+              <label className="block lg:col-span-2">
+                <span className={labelClass}>Domain diagnosis</span>
+                <textarea
+                  className={`${textareaClass} min-h-[140px]`}
+                  value={Object.entries(diagnosis.domain_diagnosis || {}).map(([domain, text]) => `${domain}: ${text}`).join('\n')}
+                  onChange={(e) => onChange(draft => {
+                    if (!draft.phase_3_strategy.diagnosis) return;
+                    draft.phase_3_strategy.diagnosis.domain_diagnosis = Object.fromEntries(
+                      e.target.value.split('\n')
+                        .map(line => line.trim())
+                        .filter(Boolean)
+                        .map(line => {
+                          const idx = line.indexOf(':');
+                          return idx >= 0 ? [line.slice(0, idx).trim(), line.slice(idx + 1).trim()] : [line, ''];
+                        })
+                    );
+                  })}
+                />
+              </label>
+            </div>
+          </section>
+        )}
+
+        {planning && (
+          <section>
+            <h4 className="text-sm font-bold uppercase tracking-widest text-emerald-300 mb-4">Planning decision</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <label className="block lg:col-span-3">
+                <span className={labelClass}>Rationale</span>
+                <textarea
+                  className={textareaClass}
+                  value={planning.rationale || ''}
+                  onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.planning_decision) draft.phase_3_strategy.planning_decision.rationale = e.target.value; })}
+                />
+              </label>
+              <label className="block">
+                <span className={labelClass}>Safe to act on</span>
+                <textarea
+                  className={textareaClass}
+                  value={arrayToText(planning.safe_to_act_on)}
+                  onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.planning_decision) draft.phase_3_strategy.planning_decision.safe_to_act_on = textToArray(e.target.value); })}
+                />
+              </label>
+              <label className="block lg:col-span-2">
+                <span className={labelClass}>Evidence needed before action</span>
+                <textarea
+                  className={textareaClass}
+                  value={arrayToText(planning.evidence_needed_before_action)}
+                  onChange={(e) => onChange(draft => { if (draft.phase_3_strategy.planning_decision) draft.phase_3_strategy.planning_decision.evidence_needed_before_action = textToArray(e.target.value); })}
+                />
+              </label>
+            </div>
+          </section>
+        )}
+
+        {roadmap.length > 0 && (
+          <section>
+            <h4 className="text-sm font-bold uppercase tracking-widest text-emerald-300 mb-4">Roadmap</h4>
+            <div className="space-y-4">
+              {roadmap.map((step, index) => (
+                <div key={index} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className={labelClass}>Phase title</span>
+                      <input
+                        value={step.phase || ''}
+                        onChange={(e) => onChange(draft => { draft.phase_3_strategy.remediation_roadmap[index].phase = e.target.value; })}
+                        className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400 focus:outline-none"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>Confidence</span>
+                      <input
+                        value={step.confidence || ''}
+                        onChange={(e) => onChange(draft => { draft.phase_3_strategy.remediation_roadmap[index].confidence = e.target.value as any; })}
+                        className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400 focus:outline-none"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>Why</span>
+                      <textarea
+                        className={textareaClass}
+                        value={step.why || ''}
+                        onChange={(e) => onChange(draft => { draft.phase_3_strategy.remediation_roadmap[index].why = e.target.value; })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>What</span>
+                      <textarea
+                        className={textareaClass}
+                        value={step.what || ''}
+                        onChange={(e) => onChange(draft => { draft.phase_3_strategy.remediation_roadmap[index].what = e.target.value; })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>How / actions</span>
+                      <textarea
+                        className={textareaClass}
+                        value={arrayToText(step.actions)}
+                        onChange={(e) => onChange(draft => { draft.phase_3_strategy.remediation_roadmap[index].actions = textToArray(e.target.value); })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>Assumptions</span>
+                      <textarea
+                        className={textareaClass}
+                        value={arrayToText(step.assumptions)}
+                        onChange={(e) => onChange(draft => { draft.phase_3_strategy.remediation_roadmap[index].assumptions = textToArray(e.target.value); })}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [parsing, setParsing] = useState(false);
+  const [aggregatedText, setAggregatedText] = useState('');
+  const [result, setResult] = useState<DiagnosticResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pipelineProgress, setPipelineProgress] = useState<Partial<Record<PipelineProgressStage, PipelineProgressUpdate>>>({});
+  const [completedDomains, setCompletedDomains] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'audit' | 'strategy' | 'reference'>('overview');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'report'>('dashboard');
+  const [scanResult, setScanResult] = useState<ScanResult>({ score: 0, status: 'Insufficient', message: 'Waiting...', details: [], canRun: false });
+  const [authenticated, setAuthenticated] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [activePersona, setActivePersona] = useState<PersonaId>('finops_lead');
+  const [deepMode, setDeepMode] = useState(false);
+  const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null);
+  const [hasSavedAssessment, setHasSavedAssessment] = useState(false);
+  const [safeRecoveryResult, setSafeRecoveryResult] = useState<DiagnosticResult | null>(null);
+  const [safeRecoveryMeta, setSafeRecoveryMeta] = useState<SavedAssessmentMeta | null>(null);
+  const [lastCrashMessage, setLastCrashMessage] = useState<string | null>(null);
+  const [errorBoundaryResetKey, setErrorBoundaryResetKey] = useState(0);
+  const [privacyPanelOpen, setPrivacyPanelOpen] = useState(false);
+  const [privacyEdited, setPrivacyEdited] = useState(false);
+  const [privacyNotice, setPrivacyNotice] = useState<string | null>(null);
+  const [organizationRedactionTerm, setOrganizationRedactionTerm] = useState('');
+  const pendingAnalyzeRef = useRef(false);
+  const pendingSimulationRef = useRef(false);
+  const nextRecoverySourceRef = useRef<SavedAssessmentMeta['source']>('completed_assessment');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const clearFileInput = () => {
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const prepareResultForDisplay = (
+    next: DiagnosticResult,
+    source: SavedAssessmentMeta['source'] = 'completed_assessment'
+  ): DiagnosticResult => {
+    const scrubbed = scrubDiagnosticResultForPrivacy(next, { redactPersonNames: true });
+    nextRecoverySourceRef.current = source;
+    setPrivacyEdited(prev => prev || scrubbed.changed);
+    if (scrubbed.replacements > 0) {
+      setPrivacyNotice(`Privacy scrubber redacted ${scrubbed.replacements} item(s) in generated report text. Review before sharing.`);
+    } else if (scrubbed.potentialNames.length > 0) {
+      setPrivacyNotice('Potential names detected in generated report text. Review before sharing.');
+    }
+    return scrubbed.result;
+  };
+
+  const setPreparedResult = (
+    next: DiagnosticResult,
+    source: SavedAssessmentMeta['source'] = 'completed_assessment'
+  ) => {
+    setSafeRecoveryResult(null);
+    setResult(prepareResultForDisplay(next, source));
+  };
+
+  const clearTraceAfterLocalEdit = (draft: DiagnosticResult) => {
+    delete draft.meta.run_trace;
+    delete draft.meta.run_trace_summary;
+  };
+
+  const updateCurrentResult = (updater: (draft: DiagnosticResult) => void) => {
+    setResult(prev => {
+      if (!prev) return prev;
+      const draft = cloneResult(prev);
+      updater(draft);
+      clearTraceAfterLocalEdit(draft);
+      setPrivacyEdited(true);
+      setPrivacyNotice('Report text edited locally. Exports will use this edited version; RunTrace was removed because provenance no longer matches the edited wording.');
+      return draft;
+    });
+  };
+
+  const applyPersonRedaction = () => {
+    if (!result) return;
+    const scrubbed = scrubDiagnosticResultForPrivacy(result, { redactPersonNames: true });
+    clearTraceAfterLocalEdit(scrubbed.result);
+    setResult(scrubbed.result);
+    setPrivacyEdited(prev => prev || scrubbed.changed);
+    setPrivacyNotice(scrubbed.replacements > 0
+      ? `Redacted ${scrubbed.replacements} detected item(s) in generated report text. RunTrace was removed because provenance no longer matches the redacted wording.`
+      : 'No additional deterministic person-name patterns were found. RunTrace was removed because privacy review was applied.');
+  };
+
+  const applyOrganizationRedaction = () => {
+    if (!result || !organizationRedactionTerm.trim()) return;
+    const scrubbed = scrubDiagnosticResultForPrivacy(result, {
+      redactPersonNames: false,
+      redactOrganizationName: organizationRedactionTerm.trim()
+    });
+    clearTraceAfterLocalEdit(scrubbed.result);
+    setResult(scrubbed.result);
+    setPrivacyEdited(prev => prev || scrubbed.changed);
+    setPrivacyNotice(scrubbed.replacements > 0
+      ? `Redacted ${scrubbed.replacements} organization-name occurrence(s) in generated report text. RunTrace was removed because provenance no longer matches the redacted wording.`
+      : 'That organization name was not found in generated report text. RunTrace was removed because privacy review was applied.');
+  };
+
+  useEffect(() => {
+    checkSession().then(setAuthenticated);
+    const saved = readSavedAssessment();
+    setHasSavedAssessment(Boolean(saved));
+    if (saved) {
+      const crashMessage = readLastCrash();
+      if (crashMessage) {
+        setSafeRecoveryResult(saved);
+        setSafeRecoveryMeta(readSavedAssessmentMeta());
+        setLastCrashMessage(crashMessage);
+        setRecoveryNotice('A saved assessment was found after a view crash. Opened recovery mode so you can download or retry safely.');
+      } else {
+        setResult(saved);
+        if (findGeneratedReportPrivacyFindings(saved).length > 0) {
+          setPrivacyNotice('Potential names detected in generated report text. Review before sharing.');
+        }
+        setRecoveryNotice('Restored the last completed assessment from this browser session.');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated || result || safeRecoveryResult || loading || typeof window === 'undefined') return;
+    const runId = window.localStorage.getItem(ACTIVE_RUN_KEY);
+    if (!runId) return;
+    void (async () => {
+      try {
+        const run = await getRun(runId);
+        const recoverable = ['recovery_required', 'ready_for_delivery'].includes(run.state)
+          || (run.state === 'completed' && run.cleanup_status !== 'verified');
+        if (!recoverable) {
+          window.localStorage.removeItem(ACTIVE_RUN_KEY);
+          return;
+        }
+        const recovered = await recoverCheckpointResult(runId);
+        if (!recovered) return;
+        saveAssessmentToSession(recovered.result, 'completed_assessment');
+        setPreparedResult(recovered.result, 'completed_assessment');
+        setViewMode('dashboard');
+        setRecoveryNotice(recovered.complete
+          ? 'Recovered the completed assessment from temporary storage after interruption.'
+          : 'Recovered accepted analysis checkpoints. The run did not finish verification, so the report is BLOCK / NO_GO and contains no roadmap.');
+        if (['ready_for_delivery', 'completed'].includes(run.state) && recovered.complete) {
+          await acknowledgeRun(runId);
+          window.localStorage.removeItem(ACTIVE_RUN_KEY);
+        }
+      } catch {
+        setRecoveryNotice('A recoverable run was found, but its temporary checkpoint is currently unavailable. It will remain available until expiry.');
+      }
+    })();
+  }, [authenticated, loading, result, safeRecoveryResult]);
+
+  useEffect(() => {
+    if (!authenticated || loading || !result?.meta?.run_id || typeof window === 'undefined') return;
+    const runId = window.localStorage.getItem(ACTIVE_RUN_KEY);
+    if (runId !== result.meta.run_id) return;
+    void getRun(runId).then(async run => {
+      if (run.state === 'ready_for_delivery' || (run.state === 'completed' && run.cleanup_status !== 'verified')) {
+        await acknowledgeRun(runId);
+      }
+      if (run.state !== 'recovery_required') window.localStorage.removeItem(ACTIVE_RUN_KEY);
+    }).catch(() => undefined);
+  }, [authenticated, loading, result]);
+
+  useEffect(() => {
+    if (!result) return;
+    saveAssessmentToSession(result, nextRecoverySourceRef.current);
+    nextRecoverySourceRef.current = 'completed_assessment';
+    setHasSavedAssessment(true);
+  }, [result]);
+
+  const MIN_FILES = 2;
+  const MAX_FILES = 20;
+  const MAX_TOTAL_UPLOAD_MB = 25;
+  const MAX_TOTAL_UPLOAD_BYTES = MAX_TOTAL_UPLOAD_MB * 1024 * 1024;
+
+  const makeLowRelevanceWarning = (scan: ScanResult, kind?: UploadedFile['kind']): ScanResult => ({
+    ...scan,
+    status: 'PassWithWarning',
+    message: kind === 'csv' || kind === 'tsv' || kind === 'xlsx' ? 'Tabular input accepted' : 'Low relevance warning',
+    canRun: true,
+    confidence_warning: scan.confidence_warning || 'This file has weak FinOps keyword signal. The assessment will run, but unsupported areas should be treated as insufficient evidence.',
+    details: [
+      ...scan.details,
+      'Accepted as parseable source material; evidence gates will determine whether it supports FinOps findings.'
+    ]
+  });
+
+  const scanParseableFile = (text: string, kind?: UploadedFile['kind'], hasImages = false): ScanResult => {
+    const scan = scanInputText(text);
+    if (scan.canRun) return scan;
+    if (hasImages || text.trim().length > 0) return makeLowRelevanceWarning(scan, kind);
+    return scan;
+  };
+
+  const parseQualityLabel = (quality?: PdfParseQuality['quality']): string | null => {
+    if (quality === 'good') return 'Complete text/OCR acquisition';
+    if (quality === 'mixed') return 'Acquired with declared sparse/visual limitations';
+    if (quality === 'poor') return 'Blocked: required page acquisition incomplete';
+    return null;
+  };
+
+  const sourceParseWarningsForFiles = (sourceFiles: UploadedFile[]): string[] => {
+    return sourceFiles
+      .map((file, index) => ({ file, sourceLabel: `Document ${String(index + 1).padStart(3, '0')}` }))
+      .filter(({ file }) => file.parseMetadata?.parseQuality && file.parseMetadata.parseQuality.quality !== 'good')
+      .flatMap(({ file, sourceLabel }) => {
+        const parseQuality = file.parseMetadata!.parseQuality!;
+        const warnings = parseQuality.warnings.length > 0
+          ? parseQuality.warnings
+          : ['PDF text extraction may be incomplete.'];
+        return warnings.map(warning => `${sourceLabel}: ${warning}`);
+      });
+  };
+
+  useEffect(() => {
+    const combined = files
+      .filter(f => f.text && f.text.length > 0)
+      .map(f => f.text)
+      .join('\n');
+    setAggregatedText(combined);
+  }, [files]);
+
+  useEffect(() => {
+    if (!aggregatedText) {
+      setScanResult({ score: 0, status: 'Insufficient', message: 'Upload Required', details: [], canRun: false });
+      return;
+    }
+    const timer = setTimeout(() => {
+      PerformanceMonitor.start('GlobalScan');
+      const globalScan = scanInputText(aggregatedText);
+      if (!globalScan.canRun && files.length > 0) {
+        globalScan.canRun = true;
+        globalScan.status = 'PassWithWarning';
+        globalScan.message = 'Low relevance warning';
+        globalScan.confidence_warning = globalScan.confidence_warning || 'Input appears weak or generic. The engine will run and evidence gates should classify unsupported areas as insufficient evidence.';
+        globalScan.details = [
+          ...globalScan.details,
+          'Parseable source material is accepted; low relevance is handled by Phase 1 evidence checks and Phase 2 quality gates.'
+        ];
+      }
+      const fileCountValid = files.length >= MIN_FILES && files.length <= MAX_FILES;
+      if (!fileCountValid) {
+        globalScan.canRun = false;
+        globalScan.message = files.length < MIN_FILES ? "Need more files" : "Too many files";
+      }
+      const lowSignalFiles = files.filter(f => f.scan && (f.scan.status === 'Insufficient' || f.scan.status === 'PassWithWarning'));
+      if (lowSignalFiles.length > 0) {
+        globalScan.status = globalScan.status === 'Ready' ? 'PassWithWarning' : globalScan.status;
+        globalScan.details.push(`${lowSignalFiles.length} file(s) have low FinOps keyword signal and will be assessed with evidence-gated confidence.`);
+      }
+      setScanResult(globalScan);
+      PerformanceMonitor.end('GlobalScan');
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [aggregatedText, files]);
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files) return;
+    const newFiles = Array.from(event.target.files);
+
+    if (newFiles.length === 1) {
+      const file = newFiles[0];
+      if (file.type === 'text/html' || file.name.endsWith('.html')) {
+        const text = await file.text();
+        const imported = extractDiagnosticResultFromHtmlReport(text);
+        if (imported.kind === 'report') {
+          setPreparedResult(imported.result, 'html_import');
+          setViewMode('dashboard');
+          setRecoveryNotice('Imported a saved FinOps report from HTML.');
+          setError(null);
+          clearFileInput();
+          return;
+        }
+        if (imported.kind === 'invalid_report') {
+          setError(imported.error);
+          clearFileInput();
+          return;
+        }
+      } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+        try {
+          const text = await file.text();
+          const imported = parseDiagnosticResultJson(text);
+          if (imported.kind === 'report' && isDiagnosticResultPayload(imported.result)) {
+            setPreparedResult(imported.result, 'json_import');
+            setViewMode('dashboard');
+            setRecoveryNotice('Imported a saved FinOps report from JSON.');
+            setError(null);
+            clearFileInput();
+            return;
+          }
+          if (imported.kind === 'invalid_report') {
+            setError(imported.error);
+            clearFileInput();
+            return;
+          }
+        } catch (e) { console.error("Failed to parse JSON file (error_code=JSON_IMPORT_FAILED); filename and error content omitted."); }
+      }
+    }
+
+    if (result) {
+      setError('A completed assessment is currently open. Use Reset Session before uploading new source material; the current report is preserved.');
+      clearFileInput();
+      return;
+    }
+
+    if (files.length + newFiles.length > MAX_FILES) {
+      setError(`Maximum ${MAX_FILES} documents allowed.`);
+      return;
+    }
+
+    const totalUploadBytes = files.reduce((sum, file) => sum + file.size, 0) + newFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalUploadBytes > MAX_TOTAL_UPLOAD_BYTES) {
+      setError(`Maximum ${MAX_TOTAL_UPLOAD_MB} MB total upload set allowed.`);
+      return;
+    }
+
+    setParsing(true);
+    setError(null);
+    const processedFiles: UploadedFile[] = [];
+    const rejectedFiles: Array<{ name: string; code: string }> = [];
+    for (const file of newFiles) {
+      try {
+        let text = "";
+        let kind: UploadedFile['kind'] = undefined;
+        let parseMetadata: UploadedFile['parseMetadata'] | undefined;
+        let pages: SourcePage[] | undefined;
+        let structuredTable: StructuredTableData | undefined;
+        let structuredTables: StructuredTableData[] | undefined;
+        let visualUnits: VisualEvidenceUnit[] | undefined;
+        const lowerName = file.name.toLowerCase();
+        let acquisition = await inspectEvidenceFile(file);
+        if (acquisition.validation_status !== 'PASS') {
+          throw new Error(`File ${file.name} failed deterministic type validation (${acquisition.validation_codes.join(', ')}).`);
+        }
+
+        if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
+          const { text: pdfText, pages: extractedPages, visualUnits: extractedVisualUnits, metadata } = await extractPagesFromPdf(file, { sourceHash: acquisition.original_sha256 });
+          text = pdfText;
+          parseMetadata = {
+            totalPages: metadata.totalPages,
+            parsedTextPages: metadata.parsedTextPages,
+            parseQuality: metadata.parseQuality,
+            warnings: metadata.warnings
+          };
+          pages = extractedPages;
+          visualUnits = extractedVisualUnits;
+          kind = 'pdf';
+        } else if (file.type === 'text/html' || lowerName.endsWith('.html')) {
+          const rawHtml = await file.text();
+          text = extractTextFromHtml(rawHtml);
+          kind = 'html';
+        } else if (file.type === 'text/csv' || lowerName.endsWith('.csv')) {
+          const raw = await file.text();
+          const rendered = renderDelimitedTableForAnalysis(raw, { fileName: file.name, delimiter: 'auto', sourceHash: acquisition.original_sha256 });
+          text = rendered.text;
+          kind = 'csv';
+          parseMetadata = { rowCount: rendered.rowCount, renderedRowCount: rendered.renderedRowCount, analyzedRowCount: rendered.structuredTable.analysis_rows?.length || 0, analysisComplete: rendered.structuredTable.analysis_complete, clippedCellCount: rendered.clippedCellCount, cellCharacterCoverageRatio: rendered.cellCharacterCoverageRatio, warnings: rendered.warnings };
+          structuredTable = rendered.structuredTable;
+        } else if (file.type === 'text/tab-separated-values' || lowerName.endsWith('.tsv')) {
+          const raw = await file.text();
+          const rendered = renderDelimitedTableForAnalysis(raw, { fileName: file.name, delimiter: '\t', sourceHash: acquisition.original_sha256 });
+          text = rendered.text;
+          kind = 'tsv';
+          parseMetadata = { rowCount: rendered.rowCount, renderedRowCount: rendered.renderedRowCount, analyzedRowCount: rendered.structuredTable.analysis_rows?.length || 0, analysisComplete: rendered.structuredTable.analysis_complete, clippedCellCount: rendered.clippedCellCount, cellCharacterCoverageRatio: rendered.cellCharacterCoverageRatio, warnings: rendered.warnings };
+          structuredTable = rendered.structuredTable;
+        } else if (lowerName.endsWith('.xlsx')) {
+          const extracted = await extractXlsx(file, acquisition.original_sha256);
+          text = extracted.text;
+          kind = 'xlsx';
+          parseMetadata = {
+            rowCount: extracted.tables.reduce((sum, table) => sum + table.total_row_count, 0),
+            renderedRowCount: extracted.tables.filter(table => table.model_eligible).reduce((sum, table) => sum + table.rows.length, 0),
+            analyzedRowCount: extracted.tables.reduce((sum, table) => sum + (table.analysis_rows?.length || 0), 0),
+            analysisComplete: extracted.tables.every(table => table.analysis_complete),
+            clippedCellCount: 0,
+            cellCharacterCoverageRatio: extracted.tables.some(table => table.truncated) ? undefined : 1,
+            warnings: extracted.warnings
+          };
+          structuredTables = extracted.tables;
+        } else if (file.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(lowerName)) {
+          const visualUnit = await extractImageOcr(file, acquisition.original_sha256);
+          text = `Format: IMAGE_OCR\nOCR confidence: ${visualUnit.confidence}\nVisual interpretation: OCR text only; non-text visual semantics withheld.\n\n${visualUnit.text}`;
+          kind = 'image';
+          parseMetadata = {
+            warnings: [
+              'Local OCR extracted text only. Graph structure, spatial relationships, colors, shapes and other non-text visual semantics remain UNINSPECTED_VISUAL_REGION.',
+              ...(visualUnit.confidence < 70 ? [`OCR confidence ${visualUnit.confidence.toFixed(1)} is observationally low; extracted text requires cautious interpretation.`] : [])
+            ]
+          };
+          visualUnits = [visualUnit];
+        } else if (file.type === 'application/json' || lowerName.endsWith('.json')) {
+          const raw = await file.text();
+          text = `Format: JSON\n\n${raw}`;
+          kind = 'json';
+        } else {
+          throw new Error(`File ${file.name} is not a supported format (PDF, HTML, CSV, TSV, XLSX, PNG, JPEG, WEBP, JSON).`);
+        }
+
+        const extraction = kind === 'pdf'
+          ? { extraction_method: 'browser_pdfjs' as const, extraction_version: 'pdfjs-dist@4' }
+          : kind === 'html'
+            ? { extraction_method: 'browser_dom' as const, extraction_version: 'dompurify@3' }
+            : kind === 'csv' || kind === 'tsv'
+              ? { extraction_method: 'browser_delimited' as const, extraction_version: 'delimited_parser_v3' }
+              : kind === 'xlsx'
+                ? { extraction_method: 'browser_xlsx_worker' as const, extraction_version: 'sheetjs-ce@0.20.3+zipjs@2.8.49' }
+                : kind === 'image'
+                  ? { extraction_method: 'local_ocr' as const, extraction_version: 'tesseract.js@7.0.0' }
+                : { extraction_method: 'browser_json' as const, extraction_version: 'json_parse_v1' };
+        acquisition = { ...acquisition, ...extraction, extraction_status: 'PASS' };
+
+        processedFiles.push({
+          id: Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          size: file.size,
+          text,
+          pages,
+          structuredTable,
+          structuredTables,
+          acquisition,
+          visualUnits,
+          kind,
+          status: 'parsed',
+          scan: scanParseableFile(text, kind, false),
+          parseMetadata
+        });
+      } catch (error) {
+        rejectedFiles.push({ name: file.name, code: acquisitionErrorCode(error) });
+      }
+    }
+    if (processedFiles.length > 0) {
+      setFiles(prev => [...prev, ...processedFiles]);
+    }
+    if (rejectedFiles.length > 0) {
+      setError(`Rejected ${rejectedFiles.length} file(s): ${rejectedFiles.map(file => `${file.name} (${file.code})`).join('; ')}. Other valid files were retained.`);
+    }
+    setParsing(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (id: string) => setFiles(files.filter(f => f.id !== id));
+
+  const runAnalyze = async (opts?: { textOverride?: string; sourcesOverride?: SourceRecord[]; label?: string }) => {
+    setLoading(true);
+    setPipelineProgress({});
+    setCompletedDomains([]);
+    setError(null);
+    PerformanceMonitor.start('FullAnalysis');
+    try {
+      const sources: SourceRecord[] = opts?.sourcesOverride ?? (opts?.textOverride !== undefined
+        ? [{ schema_version:'source_record_v1', source_id:'src-001', source_name:'Document 001', kind:'text', text:opts.textOverride }]
+        : files.map((file,index) => ({
+            schema_version:'source_record_v1' as const,
+            source_id:`src-${String(index+1).padStart(3,'0')}`,
+            source_name:`Document ${String(index+1).padStart(3,'0')}`,
+            kind:file.kind || 'text',
+            acquisition:file.acquisition,
+            visual_units:file.visualUnits?.map(unit => ({
+              ...unit,
+              source_id:`src-${String(index+1).padStart(3,'0')}`
+            })),
+            parse_warnings:file.parseMetadata?.warnings || file.parseMetadata?.parseQuality?.warnings,
+            extraction: file.kind === 'pdf' && file.parseMetadata
+              ? {
+                  unit: 'page' as const,
+                  total_units: file.parseMetadata.totalPages || file.pages?.length || 0,
+                  processed_units: file.parseMetadata.parsedTextPages || file.pages?.length || 0,
+                  text_coverage_ratio: file.parseMetadata.parseQuality?.textCoverageRatio,
+                  sparse_units: file.parseMetadata.parseQuality?.sparseTextPages,
+                  truncated: (file.parseMetadata.parsedTextPages || 0) < (file.parseMetadata.totalPages || 0),
+                  quality: file.parseMetadata.parseQuality?.quality
+                }
+              : (file.kind === 'csv' || file.kind === 'tsv' || file.kind === 'xlsx') && file.parseMetadata
+                ? {
+                    unit: 'row' as const,
+                    total_units: file.parseMetadata.rowCount || 0,
+                    processed_units: file.parseMetadata.analyzedRowCount || 0,
+                    text_coverage_ratio: file.parseMetadata.analysisComplete ? 1 : 0,
+                    truncated: !file.parseMetadata.analysisComplete
+                  }
+                : { unit: 'document' as const, total_units: 1, processed_units: 1, truncated: false },
+            structured_table:file.structuredTable,
+            structured_tables:file.structuredTables,
+            ...(file.kind === 'image' ? {} : file.pages?.length ? {pages:file.pages} : {text:file.text})
+          })));
+      const data = await analyzeDocument(sources, update => {
+        setPipelineProgress(current => ({ ...current, [update.stage]: update }));
+        if (update.stage === 'analysis' && update.domain_id) {
+          setCompletedDomains(current => current.includes(update.domain_id!) ? current : [...current, update.domain_id!]);
+        }
+      }, {
+        deepMode,
+        onRunStarted: runId => {
+          if (typeof window !== 'undefined') window.localStorage.setItem(ACTIVE_RUN_KEY, runId);
+        }
+      });
+      if (!data.phase_2_validation?.metrics) throw new Error("Analysis returned incomplete data.");
+      if (opts?.label) {
+        data.meta = { ...data.meta, document_analyzed: opts.label };
+      }
+      const source_parse_warnings = [...new Set([
+        ...(data.meta.source_parse_warnings || []),
+        ...sourceParseWarningsForFiles(files)
+      ])];
+      if (source_parse_warnings.length > 0) {
+        data.meta = { ...data.meta, source_parse_warnings };
+      }
+      saveAssessmentToSession(data, 'completed_assessment');
+      setPreparedResult(data, 'completed_assessment');
+      if (data.meta.run_id) {
+        try {
+          await acknowledgeRun(data.meta.run_id);
+          if (typeof window !== 'undefined') window.localStorage.removeItem(ACTIVE_RUN_KEY);
+        } catch {
+          setRecoveryNotice('The report is safely stored in this browser, but backend delivery acknowledgement is pending and will be retried by expiry cleanup.');
+        }
+      }
+    } catch (e: any) {
+      setError(e.message || "Analysis failed.");
+    } finally {
+      setLoading(false);
+      PerformanceMonitor.end('FullAnalysis');
+    }
+  };
+
+  const startTier1Fixture = (packId: string) => {
+    if (loading) return;
+    const fixture = TIER1_FIXTURES.find(f => f.pack_id === packId);
+    if (!fixture) return;
+    const source: SourceRecord = { schema_version:'source_record_v1', source_id:'src-001', source_name:'Document 001', kind:'text', text:sanitizeInput(fixture.text) };
+    runAnalyze({ sourcesOverride:[source], label: `Tier 1 Fixture — ${fixture.label}` });
+  };
+
+  const handleAnalyze = async () => {
+    if (!aggregatedText || !scanResult.canRun) return;
+    if (!authenticated) {
+      pendingAnalyzeRef.current = true;
+      setShowLogin(true);
+      return;
+    }
+    await runAnalyze();
+  };
+
+  const startEngineSimulation = () => {
+    runAnalyze({
+      textOverride: sanitizeInput(demoSimulation),
+      label: DEMO_SIMULATION_LABEL
+    });
+  };
+
+  const handleEngineSimulation = () => {
+    if (loading) return;
+    if (!authenticated) {
+      pendingSimulationRef.current = true;
+      setShowLogin(true);
+      return;
+    }
+    startEngineSimulation();
+  };
+
+  const reset = () => {
+    const runId = result?.meta?.run_id || safeRecoveryResult?.meta?.run_id || readSavedAssessment()?.meta?.run_id;
+    if (runId) void deleteRun(runId).catch(() => setRecoveryNotice('Browser data was cleared; backend deletion will be retried by expiry cleanup.'));
+    setResult(null);
+    setFiles([]);
+    setAggregatedText('');
+    setError(null);
+    setPipelineProgress({});
+    setCompletedDomains([]);
+    setActiveTab('overview');
+    setViewMode('dashboard');
+    setRecoveryNotice(null);
+    setSafeRecoveryResult(null);
+    setSafeRecoveryMeta(null);
+    setLastCrashMessage(null);
+    setHasSavedAssessment(false);
+    setPrivacyPanelOpen(false);
+    setPrivacyEdited(false);
+    setPrivacyNotice(null);
+    setOrganizationRedactionTerm('');
+    clearSavedAssessment();
+    if (typeof window !== 'undefined') window.localStorage.removeItem(ACTIVE_RUN_KEY);
+  };
+
+  const restoreSavedAssessment = () => {
+    const saved = readSavedAssessment();
+    if (!saved) {
+      setHasSavedAssessment(false);
+      setError('No saved assessment was found in this browser session.');
+      return;
+    }
+    setSafeRecoveryResult(saved);
+    setSafeRecoveryMeta(readSavedAssessmentMeta());
+    setLastCrashMessage(readLastCrash());
+    setResult(null);
+    setViewMode('dashboard');
+    setActiveTab('overview');
+    setRecoveryNotice('Opened recovery mode for the last completed assessment. You can download reports before retrying the dashboard.');
+    if (findGeneratedReportPrivacyFindings(saved).length > 0) {
+      setPrivacyNotice('Potential names detected in generated report text. Review before sharing.');
+    }
+    setError(null);
+    setHasSavedAssessment(true);
+    setErrorBoundaryResetKey(key => key + 1);
+  };
+
+  const clearSavedAssessmentAndRestart = () => {
+    // reset captures the saved/recovery run before browser storage is removed.
+    setHasSavedAssessment(false);
+    setRecoveryNotice(null);
+    setSafeRecoveryResult(null);
+    setSafeRecoveryMeta(null);
+    setLastCrashMessage(null);
+    reset();
+  };
+
+  const downloadResultJson = (saved: DiagnosticResult | null) => {
+    if (!saved) {
+      setHasSavedAssessment(false);
+      return;
+    }
+    const blob = new Blob([JSON.stringify(saved, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `FinOps_Recovered_Assessment_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadSavedAssessment = () => {
+    downloadResultJson(safeRecoveryResult || readSavedAssessment());
+  };
+
+  const openRecoveredDashboard = () => {
+    if (!safeRecoveryResult) return;
+    setResult(safeRecoveryResult);
+    setSafeRecoveryResult(null);
+    setSafeRecoveryMeta(null);
+    setLastCrashMessage(null);
+    clearLastCrash();
+    setViewMode('dashboard');
+    setActiveTab('overview');
+    setRecoveryNotice('Recovered assessment opened. If the view fails again, use recovery mode to download the report.');
+    if (findGeneratedReportPrivacyFindings(safeRecoveryResult).length > 0) {
+      setPrivacyNotice('Potential names detected in generated report text. Review before sharing.');
+    }
+    setErrorBoundaryResetKey(key => key + 1);
+  };
+
+  const downloadRecoveredSummaryReport = () => {
+    const saved = safeRecoveryResult || readSavedAssessment();
+    if (!saved) {
+      setHasSavedAssessment(false);
+      return;
+    }
+    downloadSummaryReport(saved);
+  };
+
+  const downloadRecoveredMasterReport = () => {
+    const saved = safeRecoveryResult || readSavedAssessment();
+    if (!saved) {
+      setHasSavedAssessment(false);
+      return;
+    }
+    downloadMasterDataReport(saved);
+  };
+
+  const downloadRecoveredRunTrace = () => {
+    const saved = safeRecoveryResult || readSavedAssessment();
+    if (!saved) {
+      setHasSavedAssessment(false);
+      return;
+    }
+    downloadRunTraceJson(saved);
+  };
+
+  const recordUiCrash = (error: Error, info: React.ErrorInfo) => {
+    const message = error?.message || 'Unknown render error';
+    saveLastCrash(message, info.componentStack || undefined);
+    setLastCrashMessage(message);
+    setHasSavedAssessment(Boolean(readSavedAssessment()));
+  };
+
+  const showReference = !result && activeTab === 'reference';
+
+  if (safeRecoveryResult) {
+    const savedAt = safeRecoveryMeta?.savedAt ? new Date(safeRecoveryMeta.savedAt).toLocaleString() : 'this browser session';
+    const source = safeRecoveryMeta?.source?.replace(/_/g, ' ') || 'saved assessment';
+    const analyzed = safeRecoveryMeta?.documentAnalyzed || safeRecoveryResult.meta?.document_analyzed || 'Recovered assessment';
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6 py-12">
+        <div className="max-w-3xl w-full rounded-3xl border border-white/10 bg-slate-900 p-8 md:p-10 shadow-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300 mb-3">Assessment Recovery</p>
+          <h1 className="text-3xl md:text-4xl font-display font-black mb-4">Your assessment data is still available.</h1>
+          <p className="text-slate-300 leading-relaxed">
+            This safe view avoids rendering the dashboard or report components that may have crashed. Download the recovered files first, then retry the dashboard when you are ready.
+          </p>
+          <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-5 text-sm text-slate-300 space-y-2">
+            <div><span className="text-slate-500 font-bold uppercase tracking-wider text-xs">Source:</span> {source}</div>
+            <div><span className="text-slate-500 font-bold uppercase tracking-wider text-xs">Saved:</span> {savedAt}</div>
+            <div><span className="text-slate-500 font-bold uppercase tracking-wider text-xs">Assessment:</span> {analyzed}</div>
+            {lastCrashMessage && (
+              <div className="pt-2 text-amber-200">
+                <span className="text-amber-400 font-bold uppercase tracking-wider text-xs">Last render error:</span> {lastCrashMessage}
+              </div>
+            )}
+          </div>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={downloadRecoveredSummaryReport}
+              className="px-5 py-3 rounded-xl font-bold bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-colors"
+            >
+              Download Summary Report
+            </button>
+            <button
+              type="button"
+              onClick={downloadRecoveredMasterReport}
+              className="px-5 py-3 rounded-xl font-bold bg-white text-slate-950 hover:bg-emerald-50 transition-colors"
+            >
+              Download Master Data Report
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadResultJson(safeRecoveryResult)}
+              className="px-5 py-3 rounded-xl font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
+            >
+              Download Recovered JSON
+            </button>
+            {safeRecoveryResult.meta.run_trace && (
+              <button
+                type="button"
+                onClick={downloadRecoveredRunTrace}
+                className="px-5 py-3 rounded-xl font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
+              >
+                Download RunTrace JSON
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={openRecoveredDashboard}
+              className="px-5 py-3 rounded-xl font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
+            >
+              Open Dashboard
+            </button>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setSafeRecoveryResult(null);
+                setSafeRecoveryMeta(null);
+                setLastCrashMessage(null);
+                clearLastCrash();
+                setErrorBoundaryResetKey(key => key + 1);
+              }}
+              className="text-sm font-bold text-slate-400 hover:text-white transition-colors"
+            >
+              Return to start screen
+            </button>
+            <button
+              type="button"
+              onClick={clearSavedAssessmentAndRestart}
+              className="text-sm font-bold text-rose-300 hover:text-rose-200 transition-colors"
+            >
+              Clear saved assessment
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (result && viewMode === 'report') {
+    return (
+      <AppErrorBoundary
+        hasSavedAssessment={hasSavedAssessment}
+        resetKey={errorBoundaryResetKey}
+        onRestoreSaved={restoreSavedAssessment}
+        onDownloadSaved={downloadSavedAssessment}
+        onClearSaved={clearSavedAssessmentAndRestart}
+        onError={recordUiCrash}
+      >
+        <ReportView
+          result={result}
+          onBack={() => setViewMode('dashboard')}
+          onDownloadSummary={() => downloadSummaryReport(result)}
+          onDownloadMaster={() => downloadMasterDataReport(result)}
+          onDownloadTrace={() => downloadRunTraceJson(result)}
+        />
+      </AppErrorBoundary>
+    );
+  }
+
+  return (
+    <AppErrorBoundary
+      hasSavedAssessment={hasSavedAssessment}
+      resetKey={errorBoundaryResetKey}
+      onRestoreSaved={restoreSavedAssessment}
+      onDownloadSaved={downloadSavedAssessment}
+      onClearSaved={clearSavedAssessmentAndRestart}
+      onError={recordUiCrash}
+    >
+    <div className="min-h-screen font-sans relative overflow-x-hidden selection:bg-emerald-500/30 selection:text-white flex flex-col">
+      <header className="sticky top-0 z-50 glass-panel border-b border-white/5 transition-all duration-300 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setActiveTab('overview')}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 border border-white/10 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-900/20 text-xl transition-all duration-300 group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-emerald-500/20 group-hover:border-emerald-500/50">
+              F
+            </div>
+            <div className="leading-tight">
+              <h1 className="text-lg font-display font-bold tracking-tight text-white group-hover:text-emerald-400 transition-colors">FinOps Engine</h1>
+              <span className="text-[10px] uppercase tracking-widest text-emerald-200 font-semibold group-hover:text-white transition-colors">FinOps Engine v.2.0.0</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/30 border border-emerald-900/50 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">System Online</span>
+            </div>
+
+            <button
+              onClick={async () => {
+                if (authenticated) {
+                  await logout();
+                  setAuthenticated(false);
+                } else {
+                  pendingAnalyzeRef.current = false;
+                  setShowLogin(true);
+                }
+              }}
+              className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                authenticated
+                  ? 'bg-emerald-950/30 border-emerald-900/50 text-emerald-400 hover:text-white hover:border-emerald-500'
+                  : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:text-white hover:border-amber-500'
+              }`}
+              title={authenticated ? 'Click to log out' : 'Click to log in'}
+            >
+              <span>{authenticated ? '🔓' : '🔒'}</span>
+              <span>{authenticated ? 'Unlocked' : 'Locked'}</span>
+            </button>
+
+            {!result && (
+              <button onClick={() => setActiveTab(activeTab === 'reference' ? 'overview' : 'reference')} className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5">
+                {activeTab === 'reference' ? 'Close Reference' : 'View Criteria'}
+              </button>
+            )}
+
+            {authenticated && !loading && !result && (
+              <select
+                onChange={(e) => { if (e.target.value) { startTier1Fixture(e.target.value); e.target.value = ''; } }}
+                defaultValue=""
+                className="text-xs font-bold uppercase tracking-widest text-sky-300 hover:text-white bg-sky-950/30 hover:bg-sky-700/40 border border-sky-700/40 hover:border-sky-400 transition-colors px-4 py-2 rounded-lg cursor-pointer"
+                title="Run the assessment against a single Tier 1 document-type fixture to test narrow-doc behavior"
+              >
+                <option value="" disabled>Tier 1 Fixture…</option>
+                {TIER1_FIXTURES.map(f => (
+                  <option key={f.pack_id} value={f.pack_id}>{f.label}</option>
+                ))}
+              </select>
+            )}
+
+            {(result || files.length > 0) && (
+              <button onClick={reset} disabled={loading} className={`text-sm font-bold transition-all duration-300 flex items-center gap-2 group px-4 py-2 rounded-full border shadow-lg ${loading ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900 border-white hover:border-rose-500 hover:bg-rose-500 hover:text-white hover:shadow-rose-500/40'}`}>
+                <span className={`transition-transform duration-500 ${!loading && 'group-hover:-rotate-180'}`}>&#8635;</span>
+                {loading ? 'Analyzing...' : 'Reset Session'}
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {recoveryNotice && (
+        <div className="relative z-30 mx-auto mt-4 w-[calc(100%-2rem)] max-w-7xl rounded-2xl border border-emerald-500/30 bg-emerald-950/80 px-5 py-3 text-sm text-emerald-100 shadow-lg shadow-emerald-950/20 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <span>{recoveryNotice}</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setRecoveryNotice(null)}
+              className="rounded-lg border border-emerald-400/30 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-100 hover:bg-emerald-400/10"
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                clearSavedAssessment();
+                setHasSavedAssessment(false);
+                setRecoveryNotice(null);
+              }}
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-300 hover:bg-white/10"
+            >
+              Clear saved assessment
+            </button>
+          </div>
+        </div>
+      )}
+
+      <main className="max-w-7xl mx-auto px-6 pt-12 flex-grow w-full relative z-20">
+        {!result && !showReference && (
+          <div className="max-w-5xl mx-auto mt-8 transition-all duration-500 ease-in-out animate-fade-in-up">
+            {!loading ? (
+              <>
+                <div className="text-center mb-16 relative">
+                  <h2 className="text-6xl md:text-8xl font-display font-black text-white mb-6 tracking-tight leading-[0.9] drop-shadow-xl">
+                    FinOps <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 animate-gradient-x drop-shadow-none filter brightness-110">Assessment Engine</span>
+                  </h2>
+                  <p className="text-lg md:text-xl text-slate-300 font-light max-w-3xl mx-auto leading-relaxed">
+                    Your cloud spend is either a strategic asset or a hidden liability. This <strong>forensic assessment tool</strong> interrogates your FinOps documentation against <strong>30 maturity vectors and 30 anti-pattern indicators</strong> to determine your Crawl-Walk-Run classification.
+                  </p>
+                  <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3">
+                      <a
+                        href="https://evidence-driven-finops-assessment.vercel.app/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300 hover:text-white bg-emerald-950/30 hover:bg-emerald-700/40 border border-emerald-700/40 hover:border-emerald-400 transition-colors px-5 py-2.5 rounded-full"
+                      >
+                        <span>How the Landing Zone Assessment thinks</span>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleEngineSimulation}
+                        disabled={loading}
+                        className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-300 hover:text-white bg-cyan-950/30 hover:bg-cyan-700/40 border border-cyan-700/40 hover:border-cyan-400 transition-colors px-5 py-2.5 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Run the real engine against a bundled synthetic FinOps demo pack"
+                      >
+                        <span>Engine - Simulation</span>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </button>
+                    </div>
+                </div>
+
+                <div className={`glass-panel rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] border relative overflow-hidden group transition-all duration-500 ${files.length >= MIN_FILES ? 'border-emerald-500/50 ring-2 ring-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]' : 'border-white/10'}`}>
+                  <div className="p-12 min-h-[320px] flex flex-col relative bg-gradient-to-b from-slate-900/60 to-slate-900/40">
+                    {files.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-20">
+                        {files.map((file) => (
+                          <div key={file.id} className={`bg-slate-800/60 backdrop-blur-md p-5 rounded-2xl border flex items-center justify-between group/file transition-all animate-fade-in ${file.scan?.status === 'Insufficient' ? 'border-rose-900/50 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'border-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]'}`}>
+                            <div className="flex items-center gap-4 overflow-hidden">
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner text-xl border border-white/5 ${file.scan?.status === 'Insufficient' ? 'bg-rose-950/50' : 'bg-slate-900'}`}>
+                                {file.scan?.status === 'Insufficient' ? '⚠️' : '📄'}
+                              </div>
+                              <div className="truncate">
+                                <div className={`text-sm font-bold truncate max-w-[180px] ${file.scan?.status === 'Insufficient' ? 'text-rose-400' : 'text-slate-200'}`}>{file.name}</div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${file.scan?.status === 'Insufficient' ? 'bg-rose-500' : file.scan?.status === 'Weak' || file.scan?.status === 'PassWithWarning' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                  <div className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">
+                                    {file.scan?.status === 'Insufficient' ? 'Unreadable / Empty' : file.scan?.status === 'PassWithWarning' ? 'Low Relevance Warning' : file.scan?.status === 'Weak' ? 'Weak Signal' : 'Ready'} &bull; {(file.size / 1024).toFixed(0)} KB
+                                  </div>
+                                </div>
+                                {file.parseMetadata && (
+                                  <div className="text-[10px] text-slate-500 mt-1 truncate max-w-[240px]">
+                                    {file.kind === 'pdf' && `${file.parseMetadata.parsedTextPages}/${file.parseMetadata.totalPages} pages acquired · ${file.parseMetadata.parseQuality?.visualPagesIncluded || 0} locally OCR'd`}
+                                    {(file.kind === 'csv' || file.kind === 'tsv') && `${file.parseMetadata.rowCount} table rows parsed`}
+                                    {file.parseMetadata.warnings.length > 0 && ` · ${file.parseMetadata.warnings[0]}`}
+                                  </div>
+                                )}
+                                {file.parseMetadata?.parseQuality && (
+                                  <div className={`text-[10px] mt-1 font-bold uppercase tracking-wide ${
+                                    file.parseMetadata.parseQuality.quality === 'poor'
+                                      ? 'text-rose-300'
+                                      : file.parseMetadata.parseQuality.quality === 'mixed'
+                                        ? 'text-amber-300'
+                                        : 'text-emerald-300'
+                                  }`}>
+                                    {parseQualityLabel(file.parseMetadata.parseQuality.quality)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <button onClick={() => removeFile(file.id)} className="p-2 text-slate-500 hover:text-rose-400 transition-colors rounded-full hover:bg-rose-950/30">&times;</button>
+                          </div>
+                        ))}
+                        {parsing && (
+                          <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700 border-dashed flex items-center justify-center animate-pulse">
+                            <span className="text-xs font-bold text-emerald-400">Extracting text...</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div onClick={() => fileInputRef.current?.click()} className="flex-1 flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-700/50 rounded-[2rem] bg-slate-900/30 py-16 hover:bg-slate-900/50 hover:scale-[1.01] transition-all duration-300 hover:border-emerald-500/30 group/drop cursor-pointer relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover/drop:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                        <div className="w-24 h-24 rounded-full bg-slate-800/80 border-4 border-slate-700 flex items-center justify-center mb-6 shadow-xl shadow-black/20 group-hover/drop:scale-110 group-hover/drop:shadow-emerald-500/20 group-hover/drop:border-emerald-500/30 transition-all duration-300 z-10 relative">
+                          <div className="absolute inset-0 rounded-full border border-emerald-400 opacity-0 group-hover/drop:opacity-100 group-hover/drop:animate-ping"></div>
+                          <svg className="w-10 h-10 text-slate-400 group-hover/drop:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                        </div>
+                        <h3 className="text-xl font-display font-bold text-slate-200 mb-2 z-10 group-hover/drop:text-white transition-colors">Drop FinOps Artifacts</h3>
+                        <p className="text-sm font-medium text-slate-400 z-10 group-hover/drop:text-emerald-200/70 transition-colors text-center max-w-md">
+                          Upload Cloud Cost Reports, FinOps Policies, Optimization Plans, Governance Docs, Architecture Reviews.
+                        </p>
+                        <div className="z-10 mt-4 flex flex-wrap justify-center gap-1.5 max-w-md">
+                          {['PDF', 'HTML', 'CSV', 'TSV', 'XLSX', 'PNG/JPEG', 'JSON'].map(fmt => (
+                            <span key={fmt} className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">
+                              {fmt}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="z-10 text-xs text-slate-500 mt-3 text-center max-w-md">
+                          {MAX_TOTAL_UPLOAD_MB} MB total set · {MIN_FILES}–{MAX_FILES} artifacts · PDFs parsed as extracted text up to 100 pages
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center px-10 py-6 bg-slate-900/60 backdrop-blur-xl relative z-10 border-t border-white/5">
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => fileInputRef.current?.click()} disabled={files.length >= MAX_FILES} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-2 hover:bg-white/5 px-4 py-2 rounded-lg">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        Add Files (PDF, HTML, CSV, TSV, XLSX, images, JSON)
+                      </button>
+                      <label
+                        title="Uses the deeper synthesis route for roadmap reasoning. It can be slower and is also selected automatically for assessments that meet escalation rules."
+                        className="flex items-center gap-2 text-xs text-slate-400 hover:text-white cursor-pointer select-none px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={deepMode}
+                          onChange={(e) => setDeepMode(e.target.checked)}
+                          className="accent-emerald-500 cursor-pointer"
+                        />
+                        <span className="font-bold">Deep analysis</span>
+                      </label>
+                    </div>
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept=".pdf,.html,.csv,.tsv,.xlsx,.png,.jpg,.jpeg,.webp,.json,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp" multiple />
+                    <button onClick={handleAnalyze} disabled={!scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES} className={`px-8 py-4 rounded-xl font-bold shadow-2xl transition-all transform active:scale-[0.98] flex items-center gap-3 border ${!scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed shadow-none' : 'text-slate-900 bg-white border-white hover:bg-emerald-400 hover:border-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]'}`}>
+                      {!scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES ? (
+                        <span>{files.length < MIN_FILES ? `Add ${MIN_FILES - files.length} more files` : files.length > MAX_FILES ? "Limit Exceeded" : "Checks Failed"}</span>
+                      ) : (
+                        <>
+                          <span>Run Landing Zone Assessment</span>
+                          <svg className="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <PrivacyProtocolCard />
+                {error && (
+                  <div className="mt-6 p-6 rounded-2xl border flex items-start gap-4 shadow-sm animate-fade-in bg-rose-950/20 border-rose-900/50 text-rose-300">
+                    <h4 className="font-bold">Error</h4>
+                    <p>{error}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <NeuralLoadingGrid progress={pipelineProgress} completedDomains={completedDomains} />
+            )}
+          </div>
+        )}
+
+        {result && viewMode === 'dashboard' && (
+          <div className="animate-fade-in space-y-12 mb-20">
+            <div className="flex justify-center mb-8">
+              <div className="glass-panel p-1.5 rounded-2xl flex gap-1 bg-slate-900/60">
+                {[
+                  { id: 'overview', label: 'Summary & Diagnosis' },
+                  { id: 'audit', label: 'Forensic Audit' },
+                  { id: 'strategy', label: 'Optimization Roadmap' }
+                ].map(tab => (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>{tab.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {activeTab === 'overview' && (
+              <div className="animate-fade-in space-y-8">
+                <div className="glass-panel p-10 md:p-14 rounded-[2rem] hover:bg-slate-900/60 transition-all duration-500">
+                  <div className="flex items-start gap-6 mb-8">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold font-display text-lg shadow-[0_0_15px_rgba(16,185,129,0.2)] flex-shrink-0">01</div>
+                    <div>
+                      <h3 className="text-2xl font-display font-bold text-white mb-2">Evidence Summary</h3>
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                        Classification: <span className={`${result.phase_2_validation.crawl_walk_run.includes('Insufficient') || result.phase_2_validation.crawl_walk_run.includes('Crawl') ? 'text-rose-400' : result.phase_2_validation.crawl_walk_run.includes('Run') ? 'text-emerald-400' : 'text-amber-400'}`}>{result.phase_2_validation.crawl_walk_run}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-4 md:pl-20 border-l-2 border-emerald-500/20">
+                    <div className="mb-6 flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-2">Persona Lens:</span>
+                      {PERSONA_IDS.map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setActivePersona(p)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${activePersona === p ? 'bg-emerald-500 text-slate-900 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'}`}
+                        >
+                          {PERSONA_LABELS[p]}
+                        </button>
+                      ))}
+                    </div>
+                    <MarkdownRenderer content={result.phase_3_strategy.executive_summaries?.[activePersona] || result.phase_3_strategy.executive_summary} />
+                    {result.phase_3_strategy.evidence_summary && (
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {result.phase_3_strategy.evidence_summary.key_metrics?.map((metric, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300">{metric}</div>
+                        ))}
+                      </div>
+                    )}
+                    {(() => {
+                      const claims = result.quality_gate?.fact_check?.unsupported_claims || [];
+                      const personaClaims = claims.filter(c => c.source_location === activePersona);
+                      if (personaClaims.length === 0) return null;
+                      return (
+                        <div className="mt-6 p-5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                          <div className="flex items-center gap-2 mb-3">
+                            <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M4.93 19h14.14a2 2 0 001.74-3l-7.07-12a2 2 0 00-3.48 0L3.2 16a2 2 0 001.73 3z" /></svg>
+                            <span className="text-xs font-bold uppercase tracking-widest text-amber-300">Confidence Notes — Unverified Claims</span>
+                          </div>
+                          <p className="text-xs text-amber-100/80 mb-3">The following statements in this summary could not be verified against your source after {result.quality_gate?.fact_check?.attempts || 0} regenerate pass(es). Treat with caution.</p>
+                          <ul className="space-y-2">
+                            {personaClaims.map((c, i) => (
+                              <li key={i} className="text-sm text-amber-50">
+                                <span className="italic">&ldquo;{c.claim}&rdquo;</span>
+                                <span className="block text-xs text-amber-200/70 mt-0.5">{c.rationale}{c.failure_type ? ` · ${c.failure_type.replace(/_/g, ' ')}` : ''}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <TransferProtocol />
+                  <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-5">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">Privacy Review</p>
+                          {privacyEdited && <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest text-emerald-200">Edited locally</span>}
+                        </div>
+                        <p className="text-sm text-slate-300">
+                          Review generated wording before sharing. Manual edits and redactions are applied to the dashboard and exported HTML payload.
+                        </p>
+                        {privacyNotice && <p className="mt-2 text-xs text-amber-200">{privacyNotice}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPrivacyPanelOpen(open => !open)}
+                        className="px-5 py-3 rounded-xl bg-slate-900 text-emerald-200 border border-emerald-500/30 text-xs font-bold uppercase tracking-widest hover:bg-emerald-500 hover:text-slate-950 transition-colors"
+                      >
+                        {privacyPanelOpen ? 'Close editor' : 'Privacy Review / Edit Report'}
+                      </button>
+                    </div>
+                  </div>
+                  {privacyPanelOpen && (
+                    <div className="mt-6">
+                      <PrivacyReviewPanel
+                        result={result}
+                        edited={privacyEdited}
+                        notice={privacyNotice}
+                        organizationRedactionTerm={organizationRedactionTerm}
+                        onOrganizationRedactionTermChange={setOrganizationRedactionTerm}
+                        onApplyPersonRedaction={applyPersonRedaction}
+                        onApplyOrganizationRedaction={applyOrganizationRedaction}
+                        onPreview={() => setViewMode('report')}
+                        onChange={updateCurrentResult}
+                      />
+                    </div>
+                  )}
+                  <div className="mt-12 flex flex-col md:flex-row justify-center items-center gap-6 w-full">
+                    <button onClick={() => setViewMode('report')} className="group relative px-8 py-4 rounded-2xl bg-white hover:bg-emerald-50 border border-white shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all duration-300">
+                      <div className="relative flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-inner group-hover:bg-emerald-500 transition-colors">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <div className="text-left">
+                          <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 group-hover:text-emerald-600">Final Artifact</span>
+                          <span className="block text-sm font-bold text-slate-900">Review & Download Report</span>
+                        </div>
+                      </div>
+                    </button>
+                    {result.meta.run_trace && (
+                      <button onClick={() => downloadRunTraceJson(result)} className="group relative px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-white/10 shadow-[0_0_20px_rgba(15,23,42,0.2)] transition-all duration-300">
+                        <div className="relative flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/15 text-emerald-300 flex items-center justify-center border border-emerald-500/30 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-colors">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707v13a2 2 0 01-2 2z" /></svg>
+                          </div>
+                          <div className="text-left">
+                            <span className="block text-[10px] font-bold uppercase tracking-widest text-emerald-300">Provenance</span>
+                            <span className="block text-sm font-bold text-white">Download RunTrace JSON</span>
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <QualityGateBanner gate={result.quality_gate} />
+
+                {(() => {
+                  const claims = result.quality_gate?.fact_check?.unsupported_claims || [];
+                  const withMaterial = claims.filter(c => c.missing_material);
+                  if (withMaterial.length === 0) return null;
+                  const byType: Record<string, string[]> = {};
+                  for (const c of withMaterial) {
+                    const key = c.failure_type ? c.failure_type.replace(/_/g, ' ') : 'other';
+                    (byType[key] ||= []).push(c.missing_material!);
+                  }
+                  return (
+                    <div className="glass-panel p-8 md:p-10 rounded-[2rem] bg-slate-900/40 border border-amber-500/20">
+                      <div className="flex items-start gap-4 mb-5">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-sm flex-shrink-0">!</div>
+                        <div>
+                          <h3 className="text-lg font-display font-bold text-white">Source Coverage Gaps</h3>
+                          <p className="text-xs text-slate-400 mt-1">To strengthen the next assessment cycle, include the following kinds of evidence in the source document.</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4 pl-14">
+                        {Object.entries(byType).map(([type, materials]) => (
+                          <div key={type}>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-2">{type}</p>
+                            <ul className="space-y-1.5">
+                              {Array.from(new Set(materials)).map((m, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                                  <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-400 shrink-0"></span>
+                                  <span>{m}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {result.phase_3_strategy.diagnosis && (
+                  <div className="glass-panel p-8 md:p-10 rounded-[2rem] bg-slate-900/40 border border-white/10">
+                    <div className="flex items-start gap-4 mb-5">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold text-sm flex-shrink-0">02</div>
+                      <div>
+                        <h3 className="text-lg font-display font-bold text-white">Diagnosis</h3>
+                        <p className="text-xs text-slate-400 mt-1">Interpretation of the evidence. Recommendations remain separated in the roadmap tab.</p>
+                      </div>
+                    </div>
+                    <div className="pl-14 space-y-4">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 mb-2">Primary bottleneck</p>
+                        <p className="text-sm text-slate-200">{result.phase_3_strategy.diagnosis.primary_bottleneck}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 mb-2">Root causes</p>
+                        <ul className="space-y-1.5">
+                          {result.phase_3_strategy.diagnosis.root_causes?.map((cause, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300"><span className="mt-1.5 w-1 h-1 rounded-full bg-cyan-400 shrink-0"></span><span>{cause}</span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {result.phase_3_strategy.planning_decision && (
+                  <div className="glass-panel p-8 md:p-10 rounded-[2rem] bg-slate-900/40 border border-emerald-500/20">
+                    <div className="flex items-start gap-4 mb-5">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-sm flex-shrink-0">03</div>
+                      <div>
+                        <h3 className="text-lg font-display font-bold text-white">Planning Decision: {result.phase_3_strategy.planning_decision.decision?.replace('_', ' ')}</h3>
+                        <p className="text-xs text-slate-400 mt-1">{result.phase_3_strategy.planning_decision.rationale}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+
+                {(() => {
+                  const reportView = buildReportViewModel(result);
+                  return <>
+                    <div className={`rounded-2xl border p-5 ${reportView.sufficiency.decision === 'PASS' ? 'border-emerald-500/30 bg-emerald-950/20' : 'border-amber-500/30 bg-amber-950/20'}`}>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-300">Assessment Sufficiency: {reportView.sufficiency.decision}</p>
+                      <p className="mt-1 text-sm text-slate-400">{reportView.sufficiency.statement}</p>
+                      {reportView.sufficiency.reasons.length > 0 && <ul className="mt-2 list-disc pl-5 text-xs text-slate-500">{reportView.sufficiency.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>}
+                      {reportView.sufficiency.warnings.length > 0 && <ul className="mt-2 list-disc pl-5 text-xs text-slate-500">{reportView.sufficiency.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul>}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {reportView.metrics.map(metric => (
+                    <div key={metric.label} className="md:col-span-1">
+                      <GaugeCard
+                        value={metric.value}
+                        label={metric.label}
+                        color={metric.color}
+                        trend={metric.trend}
+                        subLabel={metric.denominator}
+                        description={metric.description}
+                      />
+                    </div>
+                  ))}
+                    </div>
+                  </>;
+                })()}
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-full items-stretch">
+                  <div className="h-full lg:col-span-3">
+                    <BenchmarkingChart
+                      x={result.phase_2_validation.metrics.maturity_depth}
+                      y={result.phase_2_validation.metrics.antipattern_burden}
+                      evidenceDensity={result.phase_2_validation.metrics.evidence_density}
+                      antipatternCoverage={result.phase_2_validation.metrics.antipattern_coverage}
+                      qualityGateDecision={result.quality_gate.decision}
+                    />
+                  </div>
+                  <div className="glass-panel p-8 rounded-[2rem] bg-slate-900/50 flex flex-col lg:col-span-2 border-white/5">
+                    <h3 className="text-xl font-display font-bold text-white mb-6">Domain Balance</h3>
+                    <div className="flex-1 min-h-[300px]">
+                      <ComparisonChart maturity={result.phase_1_audit_logs.maturity} antipattern={result.phase_1_audit_logs.antipattern} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'audit' && (
+              <div className="animate-fade-in grid grid-cols-1 gap-8">
+                <AuditGrid title="Landing Zone Capability Audit" data={result.phase_1_audit_logs.maturity} isAntipattern={false} />
+                <AuditGrid title="Anti-Pattern Detection" data={result.phase_1_audit_logs.antipattern} isAntipattern={true} />
+              </div>
+            )}
+
+            {activeTab === 'strategy' && (
+              <div className="animate-fade-in">
+                {!result.phase_3_strategy.remediation_roadmap.length ? (
+                  <div className="text-center py-24 glass-panel rounded-[3rem]">
+                    <h3 className="text-2xl font-bold text-slate-400">Strategy Aborted</h3>
+                    <p className="text-slate-500 mt-2">Insufficient data to generate roadmap.</p>
+                  </div>
+                ) : (
+                  <div className="glass-panel p-10 md:p-16 rounded-[3rem] bg-slate-900/40">
+                    <div className="text-center mb-16 max-w-2xl mx-auto">
+                      <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-3 block">Phase 3</span>
+                      <h2 className="text-4xl font-display font-bold text-white mb-4">Optimization Roadmap</h2>
+                      <p className="text-slate-400">A structured Crawl-Walk-Run path to FinOps excellence.</p>
+                    </div>
+                    <StrategicRoadmap steps={result.phase_3_strategy.remediation_roadmap} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {showReference && (
+          <div className="mt-8 mb-20">
+            <ReferenceLibrary />
+          </div>
+        )}
+      </main>
+
+      <footer className="border-t border-white/5 bg-slate-900/50 backdrop-blur-md mt-auto relative z-10">
+        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
+          <div className="space-y-4">
+            <div className="flex items-center justify-center md:justify-start gap-3 opacity-60 hover:opacity-100 transition-opacity">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-sm">LZ</div>
+              <span className="font-display font-bold text-slate-300">Landing Zone Assessment</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto md:mx-0">
+              FinOps Engine v.2.0.0<br />Governed multi-stage architecture
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <a href="https://www.linkedin.com/in/jori-santeri-eskolin-571055312/" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 p-4 rounded-2xl bg-slate-800/50 border border-white/5 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] transition-all duration-300">
+              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-slate-500 group-hover:bg-[#0077b5] group-hover:text-white transition-colors border border-white/5">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              </div>
+              <div className="text-left">
+                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 group-hover:text-emerald-400 transition-colors">Architect</span>
+                <span className="text-sm font-bold text-slate-300 group-hover:text-white">Strategic Architecture by Jori Santeri Eskolin</span>
+              </div>
+            </a>
+          </div>
+
+          <div className="flex flex-col items-center md:items-end gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-900/60 text-[10px] font-bold text-emerald-400 uppercase tracking-widest cursor-default">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]"></span>
+              Provider-Backed Processing
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      <LoginModal
+        open={showLogin}
+        onClose={() => {
+          setShowLogin(false);
+          pendingAnalyzeRef.current = false;
+          pendingSimulationRef.current = false;
+        }}
+        onSuccess={() => {
+          setShowLogin(false);
+          setAuthenticated(true);
+          if (pendingAnalyzeRef.current) {
+            pendingAnalyzeRef.current = false;
+            runAnalyze();
+          } else if (pendingSimulationRef.current) {
+            pendingSimulationRef.current = false;
+            startEngineSimulation();
+          }
+        }}
+      />
+    </div>
+    </AppErrorBoundary>
+  );
+};
+
+export default App;

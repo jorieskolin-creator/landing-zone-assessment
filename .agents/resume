@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+echo "[resume] Checking persisted Node.js dependencies"
+command -v node >/dev/null 2>&1 || {
+  echo "[resume] Node.js is unavailable; create a fresh orb to rerun .agents/setup" >&2
+  exit 1
+}
+command -v npm >/dev/null 2>&1 || {
+  echo "[resume] npm is unavailable; create a fresh orb to rerun .agents/setup" >&2
+  exit 1
+}
+command -v pg_isready >/dev/null 2>&1 || {
+  echo "[resume] PostgreSQL is unavailable; create a fresh orb to rerun .agents/setup" >&2
+  exit 1
+}
+command -v redis-cli >/dev/null 2>&1 || {
+  echo "[resume] Redis is unavailable; create a fresh orb to rerun .agents/setup" >&2
+  exit 1
+}
+[[ -d node_modules ]] || {
+  echo "[resume] node_modules is missing; create a fresh orb to rerun .agents/setup" >&2
+  exit 1
+}
+
+echo "[resume] Verifying the installed dependency tree"
+npm ls --depth=0 --silent >/dev/null || {
+  echo "[resume] node_modules is stale or incomplete; create a fresh orb to rerun .agents/setup" >&2
+  exit 1
+}
+
+echo "[resume] Ensuring local backing services are running"
+sudo service postgresql start >/dev/null
+sudo service redis-server start >/dev/null
+pg_isready -q -h localhost -p 5432 || {
+  echo "[resume] PostgreSQL did not become ready" >&2
+  exit 1
+}
+[[ "$(redis-cli -h localhost -p 6379 ping)" == "PONG" ]] || {
+  echo "[resume] Redis did not become ready" >&2
+  exit 1
+}
+
+echo "[resume] Ready (npm dependencies, PostgreSQL, and Redis verified)"

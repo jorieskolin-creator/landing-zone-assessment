@@ -1,0 +1,281 @@
+import type { AuditItem, EvidenceCategory, Phase1AuditLogs, Phase2Validation } from '../types';
+import { BATCH_TITLES, FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';
+import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
+import { calculateResolutionBasedMaturity, evaluateAssessmentSufficiency } from './maturityModelService';
+
+export const EVIDENCE_DENSITY_BLOCK = 30;
+export const EVIDENCE_DENSITY_WARN = 60;
+
+const clampPercent = (value: number): number => Math.min(Math.max(value, 0), 100);
+const maturityCriterionTotal = Math.max(FINOPS_CRITERIA.length, 1);
+const antipatternCriterionTotal = Math.max(FINOPS_ANTIPATTERNS.length, 1);
+const totalCriterionCount = maturityCriterionTotal + antipatternCriterionTotal;
+
+const hasSourceQuote = (item: AuditItem): boolean =>
+  Array.isArray(item.evidence_quotes) &&
+  item.evidence_quotes.some(q =>
+    typeof q?.quote === 'string' &&
+    q.quote.trim().length > 0 &&
+    (q.evidence_source === undefined || q.evidence_source === 'text' || q.evidence_source === 'image')
+  );
+
+export const hasVerifiedSourceCoverage = (item: AuditItem, stream: 'maturity' | 'antipattern'): boolean => {
+  if (item.verification_unresolved) return false;
+  if (item.assessment_status !== 'not_assessed' && hasSourceQuote(item)) return true;
+  if (item.evidence_check_status === 'unsupported' || item.evidence_check_status === 'missing') return false;
+  if (stream === 'antipattern') {
+    return inferAntiPatternAbsenceStatus(item) === 'tested_absent' && Boolean(item.coverage_reason);
+  }
+  return false;
+};
+
+export const calculateMetrics = (
+  logs: Phase1AuditLogs,
+  options: { evidencePacketReady?: boolean } = {},
+): Phase2Validation => {
+  let maturityCount = 0; let maturitySum = 0; const maturityGaps: string[] = [];
+  let antipatternCount = 0; let antipatternSum = 0; const antipatternFindings: string[] = [];
+  let testedAbsentCount = 0;
+  let assessedMaturityItemCount = 0;
+  let assessedAntipatternCount = 0;
+  let scoreEligibleAntipatternCount = 0;
+  let scoreEligibleAntipatternFindingCount = 0;
+  let maturityFull = 0;
+  let maturityPartial = 0;
+  let maturityLowOrAbsent = 0;
+  let maturityNotDemonstrated = 0;
+  let antipatternTestedAbsent = 0;
+  let antipatternPartialControl = 0;
+  let antipatternUncontrolled = 0;
+  let antipatternNotAssessed = 0;
+  let maturityVerificationUnresolved = 0;
+  let antipatternVerificationUnresolved = 0;
+  let maturityZeroCount = 0;
+  const verifiedAntipatternAbsences: string[] = [];
+  const unknownAntipatternAbsences: string[] = [];
+  const scoreEvidenceGaps: string[] = [];
+  const verificationUnresolved: string[] = [];
+  let deliveredItems = 0;
+  let itemsWithEvidence = 0;
+  const silentAreas: string[] = [];
+  const categoryScores: Record<string, number> = Object.fromEntries(
+    Object.keys(BATCH_TITLES).map(batch => [batch, 0])
+  ) as Record<string, number>;
+  const evidenceCategoryTotals: Partial<Record<EvidenceCategory, number>> = {};
+
+  const tally = (item: AuditItem, stream: 'maturity' | 'antipattern') => {
+    if (item.count !== -1) deliveredItems++;
+    if (hasVerifiedSourceCoverage(item, stream)) {
+      itemsWithEvidence++;
+    }
+    if (item.category_footprint && !item.verification_unresolved) {
+      for (const [cat, n] of Object.entries(item.category_footprint)) {
+        const c = cat as EvidenceCategory;
+        evidenceCategoryTotals[c] = (evidenceCategoryTotals[c] || 0) + (n as number);
+      }
+    }
+  };
+
+  Object.entries(logs.maturity).forEach(([key, rawItem]) => {
+    const item = rawItem as AuditItem;
+    tally(item, 'maturity');
+    if (item.verification_unresolved) {
+      maturityVerificationUnresolved++;
+      verificationUnresolved.push(`[${key}] Maturity verification unavailable; scanner candidate score ${item.original_count ?? item.count}/3 was excluded from validated scoring.`);
+      return;
+    }
+    if (item.status === 'OK') maturityCount++;
+    const hasCapabilityEvidence = hasVerifiedSourceCoverage(item, 'maturity');
+    if (!hasCapabilityEvidence) {
+      maturityNotDemonstrated++;
+      scoreEvidenceGaps.push(
+        `[${key}] Not demonstrated by the supplied material. This contributes zero to the score but is not proof that the capability is absent. Evidence needed: ${item.reasoning || item.evidence || 'current-state capability evidence.'}`
+      );
+    } else if (item.count === 3) {
+      assessedMaturityItemCount++;
+      maturitySum += item.count;
+      maturityFull++;
+    } else if (item.count === 2) {
+      assessedMaturityItemCount++;
+      maturitySum += item.count;
+      maturityPartial++;
+    } else {
+      assessedMaturityItemCount++;
+      maturitySum += Math.max(item.count, 0);
+      if (item.count === 0) maturityZeroCount++;
+      maturityLowOrAbsent++;
+    }
+    const catPrefix = key.charAt(0);
+    if (categoryScores[catPrefix] !== undefined) categoryScores[catPrefix] += Math.max(item.count, 0);
+    if (item.count === 0) {
+      const hasGapEvidence = hasVerifiedSourceCoverage(item, 'maturity');
+      if (!hasGapEvidence) silentAreas.push(`Capability not demonstrated by supplied material: ${key}`);
+      maturityGaps.push(`[${key}] ${hasGapEvidence ? 'Confirmed gap' : 'Not demonstrated by supplied material (not proof the capability is absent)'}: ${item.reasoning}`);
+    }
+  });
+
+  Object.entries(logs.antipattern).forEach(([key, rawItem]) => {
+    const item = rawItem as AuditItem;
+    tally(item, 'antipattern');
+    if (item.verification_unresolved) {
+      antipatternVerificationUnresolved++;
+      verificationUnresolved.push(`[${key}] Anti-pattern verification unavailable; scanner candidate score ${item.original_count ?? item.count}/3 was excluded from validated scoring.`);
+      return;
+    }
+    const absenceStatus = inferAntiPatternAbsenceStatus(item);
+    const effectiveBurdenCount =
+      absenceStatus === 'confirmed_present'
+        ? Math.max(item.count, 3)
+        : absenceStatus === 'partially_present'
+          ? Math.max(item.count, 1)
+          : Math.max(item.count, 0);
+    const hasAntipatternCoverage = hasVerifiedSourceCoverage(item, 'antipattern');
+    const scoreEligible = hasAntipatternCoverage && absenceStatus !== 'unknown_absent';
+    if (hasAntipatternCoverage) assessedAntipatternCount++;
+    if (scoreEligible) {
+      scoreEligibleAntipatternCount++;
+      antipatternSum += effectiveBurdenCount;
+      if (absenceStatus === 'confirmed_present' || absenceStatus === 'partially_present') {
+        scoreEligibleAntipatternFindingCount++;
+      }
+      if (absenceStatus === 'partially_present') antipatternPartialControl++;
+    }
+    if (absenceStatus === 'tested_absent') {
+      testedAbsentCount++;
+      antipatternTestedAbsent++;
+      verifiedAntipatternAbsences.push(`[${key}] Tested absent: ${item.coverage_reason || item.reasoning || item.evidence}`);
+    }
+    if (absenceStatus === 'unknown_absent') {
+      antipatternNotAssessed++;
+      unknownAntipatternAbsences.push(`[${key}] Not assessed: ${item.coverage_reason || item.reasoning || item.evidence || 'Source coverage was insufficient to verify absence.'}`);
+      scoreEvidenceGaps.push(
+        `[${key}] Anti-pattern control was not assessed. This contributes zero to the score, and no finding must be interpreted as tested absence. Evidence needed: ${item.coverage_reason || item.reasoning || 'material covering this anti-pattern.'}`
+      );
+    }
+    if (absenceStatus === 'partially_present') {
+      antipatternUncontrolled++;
+    }
+    if (absenceStatus === 'confirmed_present') {
+      antipatternUncontrolled++;
+    }
+    if (absenceStatus === 'confirmed_present' || absenceStatus === 'partially_present') antipatternCount++;
+    if (absenceStatus === 'confirmed_present' || absenceStatus === 'partially_present' || item.count > 0) {
+      const findingLabel = absenceStatus === 'partially_present' ? 'Partial finding' : 'Finding';
+      antipatternFindings.push(`[${key}] ${findingLabel}: ${item.evidence.substring(0, 100)}...`);
+    }
+  });
+
+  const delivery_integrity = Math.round((deliveredItems / totalCriterionCount) * 100);
+  const evidence_density = Math.round((itemsWithEvidence / totalCriterionCount) * 100);
+
+  // Both headline dimensions use their complete 30-criterion surfaces. Unknown
+  // capability and anti-pattern criteria earn no points without being reported
+  // as confirmed gaps or findings. Only tested absence earns anti-pattern control;
+  // harmful findings are reported separately as burden and do not erase control
+  // demonstrated for other criteria.
+  const assessedAntipatternScoreCount = Math.max(scoreEligibleAntipatternCount, 1);
+  const maturity_ratio = (maturityCount / maturityCriterionTotal) * 100;
+  const maturity_depth = (maturitySum / (maturityCriterionTotal * 3)) * 100;
+  const antipattern_ratio = scoreEligibleAntipatternCount > 0
+    ? (scoreEligibleAntipatternFindingCount / assessedAntipatternScoreCount) * 100
+    : 0;
+  const antipattern_burden = scoreEligibleAntipatternCount > 0
+    ? (antipatternSum / (assessedAntipatternScoreCount * 3)) * 100
+    : 0;
+  const antipattern_clearance = clampPercent((testedAbsentCount / antipatternCriterionTotal) * 100);
+  const antipattern_coverage = Math.round((assessedAntipatternCount / antipatternCriterionTotal) * 100);
+  const antipattern_burden_confidence =
+    antipatternSum > 0 || antipattern_coverage >= EVIDENCE_DENSITY_WARN
+      ? 'confirmed'
+      : 'unknown';
+
+  const capability_attainment = clampPercent(maturity_depth);
+  const antipattern_control = antipattern_clearance;
+  const resolution_maturity = calculateResolutionBasedMaturity(logs);
+  const assessment_sufficiency = evaluateAssessmentSufficiency(resolution_maturity, options);
+  const corroborated_maturity = resolution_maturity.overall.corroborated_maturity;
+  const observed_maturity = resolution_maturity.overall.observed_maturity;
+  const assessment_resolution = resolution_maturity.overall.resolution;
+  const adjusted_maturity = resolution_maturity.overall.adjusted_maturity;
+  const raw_finops_maturity_score = adjusted_maturity ?? 0;
+  const finops_readiness = raw_finops_maturity_score;
+
+  let crawl_walk_run: Phase2Validation['crawl_walk_run'];
+  if (assessment_sufficiency.decision === 'BLOCK' || adjusted_maturity === null) {
+    crawl_walk_run = 'Insufficient evidence';
+  } else if (finops_readiness < 33) {
+    crawl_walk_run = 'Crawl';
+  } else if (finops_readiness < 66) {
+    crawl_walk_run = 'Walk';
+  } else {
+    crawl_walk_run = 'Run';
+  }
+
+  return {
+    resolution_maturity,
+    assessment_sufficiency,
+    metrics: {
+      maturity_ratio,
+      antipattern_ratio,
+      maturity_depth,
+      antipattern_burden,
+      antipattern_clearance,
+      antipattern_coverage,
+      capability_attainment,
+      antipattern_control,
+      raw_finops_maturity_score,
+      finops_readiness,
+      corroborated_maturity,
+      observed_maturity,
+      assessment_resolution,
+      adjusted_maturity,
+      uncapped_readiness: raw_finops_maturity_score,
+      score_gap_breakdown: {
+        maturity_full: maturityFull,
+        maturity_partial: maturityPartial,
+        maturity_low_or_absent: maturityLowOrAbsent,
+        maturity_not_demonstrated: maturityNotDemonstrated,
+        maturity_verification_unresolved: maturityVerificationUnresolved,
+        antipattern_tested_absent: antipatternTestedAbsent,
+        antipattern_partial_control: antipatternPartialControl,
+        antipattern_uncontrolled: antipatternUncontrolled,
+        antipattern_not_assessed: antipatternNotAssessed,
+        antipattern_verification_unresolved: antipatternVerificationUnresolved,
+      },
+      maturity_assessed_count: assessedMaturityItemCount,
+      maturity_zero_count: maturityZeroCount,
+      maturity_zero_ratio: assessedMaturityItemCount > 0
+        ? clampPercent((maturityZeroCount / assessedMaturityItemCount) * 100)
+        : 0,
+      antipattern_assessed_count: assessedAntipatternCount,
+      antipattern_score_eligible_count: scoreEligibleAntipatternCount,
+      antipattern_finding_count: antipatternCount,
+      antipattern_finding_ratio: antipatternCriterionTotal > 0
+        ? clampPercent((antipatternCount / antipatternCriterionTotal) * 100)
+        : 0,
+      // Compatibility aliases now describe maturity only. Anti-pattern 0/3 is
+      // low burden, so pooling it with capability gaps inverted its meaning.
+      assessed_zero_count: maturityZeroCount,
+      assessed_zero_ratio: assessedMaturityItemCount > 0
+        ? clampPercent((maturityZeroCount / assessedMaturityItemCount) * 100)
+        : 0,
+      antipattern_burden_confidence,
+      delivery_integrity,
+      evidence_density
+    },
+    raw_counts: {
+      maturity_sub_criteria_met: maturitySum,
+      antipattern_sub_criteria_met: antipatternSum
+    },
+    maturity_gaps: maturityGaps,
+    antipattern_findings: antipatternFindings,
+    verified_antipattern_absences: verifiedAntipatternAbsences,
+    unknown_antipattern_absences: unknownAntipatternAbsences,
+    silent_areas: silentAreas,
+    score_evidence_gaps: scoreEvidenceGaps,
+    verification_unresolved: verificationUnresolved,
+    category_scores: categoryScores,
+    evidence_category_totals: evidenceCategoryTotals,
+    crawl_walk_run
+  };
+};

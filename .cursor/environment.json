@@ -1,6 +1,6 @@
 {
-  "name": "Landing Zone Assessment Docs",
-  "install": "python3 --version && echo 'Static documentation set — no dependencies to install.'",
+  "name": "Landing Zone Assessment",
+  "install": "bash .cursor/install.sh",
   "terminals": [
     {
       "name": "docs-server",
