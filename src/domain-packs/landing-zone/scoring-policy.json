@@ -6,6 +6,8 @@
   "provider_blending": "forbidden",
   "scoring_surface": "provider_scoped_criterion_instance",
   "maturity_labels": ["Foundation", "Pilot", "Rollout", "Operate"],
+  "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+  "referenced_criterion_ids": [],
   "exclude_from_denominator": ["out_of_scope", "not_applicable"],
   "anti_pattern_clearance_requires_tested_absence": true,
   "capability_cannot_conceal_confirmed_paired_antipattern": true,

@@ -232,11 +232,98 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def main() -> int:
+def extract_catalogue() -> dict:
     batches = extract_batches(CRITERIA_HTML.read_text(encoding="utf-8"))
     questionnaire = extract_questionnaire(QUESTIONNAIRE_HTML.read_text(encoding="utf-8"))
     capabilities = [item for batch in batches for item in batch["capabilities"]]
     antipatterns = [item for batch in batches for item in batch["antipatterns"]]
+    return {
+        "batches": batches,
+        "capabilities": capabilities,
+        "antipatterns": antipatterns,
+        "questionnaire": questionnaire,
+    }
+
+
+def catalogue_fidelity_errors(out_dir: Path | None = None) -> list[str]:
+    """Compare frozen HTML to committed pack JSON. Pair rationale wording is derived and ignored."""
+    pack_dir = out_dir or OUT_DIR
+    catalogue = extract_catalogue()
+    errors: list[str] = []
+
+    def load(name: str) -> dict:
+        return json.loads((pack_dir / name).read_text(encoding="utf-8"))
+
+    taxonomy = load("taxonomy.json")["design_areas"]
+    criteria = load("criteria.json")["criteria"]
+    antipatterns = load("antipatterns.json")["criteria"]
+    providers = {record["id"]: record["providers"] for record in load("provider-evidence.json")["records"]}
+    pairs = load("pair-registry.json")["pairs"]
+    questions = load("questionnaire-mapping.json")["questions"]
+    routing = load("routing-keywords.json")
+
+    html_tax = [
+        {
+            "id": batch["id"],
+            "name": batch["name"],
+            "slug": batch["slug"],
+            "capabilities": [item["id"] for item in batch["capabilities"]],
+            "antipatterns": [item["id"] for item in batch["antipatterns"]],
+            "workshop_themes": batch["workshop_themes"],
+        }
+        for batch in catalogue["batches"]
+    ]
+    if taxonomy != html_tax:
+        errors.append("taxonomy.json does not match the frozen HTML design areas")
+
+    html_caps = [strip_providers(item) for item in catalogue["capabilities"]]
+    html_antis = [strip_providers(item) for item in catalogue["antipatterns"]]
+    if criteria != html_caps:
+        errors.append("criteria.json does not match the frozen HTML capabilities")
+    if antipatterns != html_antis:
+        errors.append("antipatterns.json does not match the frozen HTML anti-patterns")
+
+    html_providers = {item["id"]: item["providers"] for item in catalogue["capabilities"] + catalogue["antipatterns"]}
+    if providers != html_providers:
+        errors.append("provider-evidence.json does not match the frozen HTML provider contracts")
+
+    html_pairs = [
+        (cap["id"], anti["id"], cap["batch"], cap["intent_id"])
+        for cap, anti in zip(catalogue["capabilities"], catalogue["antipatterns"])
+    ]
+    json_pairs = [
+        (pair["capability_id"], pair["antipattern_id"], pair["design_area_id"], pair["intent_id"])
+        for pair in pairs
+    ]
+    if html_pairs != json_pairs:
+        errors.append("pair-registry.json identities do not match the frozen HTML pairs")
+
+    if questions != catalogue["questionnaire"]:
+        errors.append("questionnaire-mapping.json does not match the frozen questionnaire HTML")
+
+    if routing != build_routing_keywords(catalogue["batches"]):
+        errors.append("routing-keywords.json does not match keywords derived from the frozen HTML")
+
+    return errors
+
+
+def main() -> int:
+    check_only = "--check" in sys.argv
+    if check_only:
+        errors = catalogue_fidelity_errors()
+        if errors:
+            print("INVALID: frozen HTML and pack JSON have drifted", file=sys.stderr)
+            for error in errors:
+                print(f" - {error}", file=sys.stderr)
+            return 1
+        print("OK: frozen HTML and pack JSON match")
+        return 0
+
+    catalogue = extract_catalogue()
+    batches = catalogue["batches"]
+    questionnaire = catalogue["questionnaire"]
+    capabilities = catalogue["capabilities"]
+    antipatterns = catalogue["antipatterns"]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     write_json(

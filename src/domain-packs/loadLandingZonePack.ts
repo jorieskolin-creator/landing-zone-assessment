@@ -20,8 +20,11 @@ import scoringPolicy from "./landing-zone/scoring-policy.json";
 import qualityGatePolicy from "./landing-zone/quality-gate-policy.json";
 import reportVocabulary from "./landing-zone/report-vocabulary.json";
 import questionnaire from "./landing-zone/questionnaire-mapping.json";
+import prompts from "./landing-zone/prompts.json";
 
 export const LANDING_ZONE_PACK_ID = "landing-zone";
+
+const personaRecords = (personas as { personas?: Record<string, unknown> }).personas ?? personas;
 
 export const loadLandingZonePack = (): AssessmentDomainPack => ({
   packId: packManifest.packId,
@@ -34,13 +37,15 @@ export const loadLandingZonePack = (): AssessmentDomainPack => ({
   evidenceTaxonomy,
   routingPolicy,
   validationRules,
-  personas,
+  personas: personaRecords,
   knowledgeBase,
   tactics: tactics.tactics,
   tacticBindings: tacticBindings.bindings,
   scoringPolicy,
   qualityGatePolicy,
   reportVocabulary,
+  questionnaire: questionnaire.questions,
+  prompts: prompts.templates,
 } as unknown as AssessmentDomainPack);
 
 export const LANDING_ZONE_QUESTIONNAIRE = questionnaire.questions;

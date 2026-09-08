@@ -4,8 +4,8 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.5 |
-| Last updated | 2026-09-07 |
+| Current version | 1.6 |
+| Last updated | 2026-09-08 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
@@ -276,9 +276,9 @@ The original automated Landing Zone assessment result and later expert annotatio
 
 The work is ordered by technical dependency, not by separate release classifications.
 
-Current implementation status at version 1.5:
+Current implementation status at version 1.6:
 
-- The Landing Zone pack contract, loader, frozen catalogue, validation, and pack-taxonomy helpers exist in this repository.
+- Work 3 built the versioned Landing Zone domain pack from the frozen HTML catalogue: 8 design areas A–H, 80 unique criteria, 40 reciprocal pairs, 240 sub-criteria, provider evidence contracts, questionnaire mapping, prompt/report vocabulary contracts, and automated ID-reference validation. Knowledge Base and Tactic Playbook files remain empty contracts and must not fall back to FinOps content.
 - Work 1 copied the FinOps Engine kernel baseline into this repository and wired production knowledge access to the Landing Zone pack.
 - Work 2 applied those pack-taxonomy helpers to the copied kernel: domain and criterion iteration, output-contract IDs, routing terms, Knowledge Base expected keys, and persistence prefixes come from the local pack rather than A–F / five-wide FinOps literals.
 - The current repository has no live or build-time dependency on FinOps Engine.
@@ -316,6 +316,7 @@ Create a versioned directory such as:
 
 ```text
 src/domain-packs/landing-zone/
+  pack.json
   taxonomy.json
   criteria.json
   antipatterns.json
@@ -328,11 +329,14 @@ src/domain-packs/landing-zone/
   knowledge-base-manifest.json
   tactics.json
   tactic-bindings.json
+  scoring-policy.json
+  quality-gate-policy.json
   report-vocabulary.json
   questionnaire-mapping.json
+  prompts.json
 ```
 
-Normalize the frozen HTML criteria into these machine-readable records. Conversion to JSON is an implementation task, not another criteria-definition activity.
+Normalize the frozen HTML criteria into these machine-readable records. Conversion to JSON is an implementation task, not another criteria-definition activity. Knowledge Base topics and tactic playbook bodies stay empty until later work; missing content must fail visibly and must not fall back to FinOps content.
 
 Automated pack validation must confirm:
 
@@ -654,3 +658,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-06 | 1.2 | Added Work 2 pack-driven taxonomy helpers and tests for A–F unions, `[A-F][1-5]` regular expressions, fixed domain loops, and five-wide criterion generation. Applying them to the complete copied kernel remains pending. |
 | 2026-09-07 | 1.4 | Work 1: copied FinOps Engine kernel baseline `d671a38723d76398f683ee7362acf12343a796bd` into this repository, wired production knowledge access to the Landing Zone pack, retained FinOps JSON as characterization fixtures only, and added independence checks. Missing Landing Zone Knowledge Base and Tactic Playbook content fails visibly and does not fall back to FinOps content. |
 | 2026-09-07 | 1.5 | Work 2: applied pack-driven taxonomy to the copied kernel in this repository. Replaced A–F unions, `[A-F][1-5]` regular expressions, fixed six-domain loops, five-wide criterion generation, hard-coded expected keys and batch titles, FinOps-only routing fallbacks, and FinOps persistence prefixes. Characterization tests keep FinOps-shaped stubs and aliases. |
+| 2026-09-08 | 1.6 | Work 3: completed the Landing Zone domain pack. Frozen HTML catalogue converts to versioned JSON with 80 unique IDs, 40 reciprocal pairs, three sub-criteria each, A–H coverage, and valid provider mappings. Questionnaire, Knowledge Base, tactics, prompt, and report references resolve to pack IDs or remain empty pending-content contracts. |

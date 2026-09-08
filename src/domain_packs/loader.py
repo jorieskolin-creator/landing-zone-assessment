@@ -26,6 +26,9 @@ def load_pack(directory: str | Path, *, validate: bool = True) -> AssessmentDoma
     tactics_doc = _read_json(pack_dir / files["tactics"])
     bindings_doc = _read_json(pack_dir / files["tacticBindings"])
     questionnaire_doc = _read_json(pack_dir / files["questionnaire"]) if "questionnaire" in files else {"questions": []}
+    prompts_doc = _read_json(pack_dir / files["prompts"]) if "prompts" in files else {"templates": []}
+    personas_doc = _read_json(pack_dir / files["personas"])
+    personas = personas_doc.get("personas", personas_doc) if isinstance(personas_doc, dict) else personas_doc
     pack: AssessmentDomainPack = {
         "packId": manifest["packId"],
         "version": manifest["version"],
@@ -38,7 +41,7 @@ def load_pack(directory: str | Path, *, validate: bool = True) -> AssessmentDoma
         "evidenceTaxonomy": _read_json(pack_dir / files["evidenceTaxonomy"]),
         "routingPolicy": _read_json(pack_dir / files["routingPolicy"]),
         "validationRules": _read_json(pack_dir / files["validationRules"]),
-        "personas": _read_json(pack_dir / files["personas"]),
+        "personas": personas,
         "knowledgeBase": _read_json(pack_dir / files["knowledgeBase"]),
         "tactics": tactics_doc.get("tactics", []),
         "tacticBindings": bindings_doc.get("bindings", []),
@@ -46,6 +49,7 @@ def load_pack(directory: str | Path, *, validate: bool = True) -> AssessmentDoma
         "qualityGatePolicy": _read_json(pack_dir / files["qualityGatePolicy"]),
         "reportVocabulary": _read_json(pack_dir / files["reportVocabulary"]),
         "questionnaire": questionnaire_doc.get("questions", []),
+        "prompts": prompts_doc.get("templates", prompts_doc.get("prompts", [])),
         "invariants": manifest.get("invariants", {}),
         "sourceDirectory": str(pack_dir),
     }

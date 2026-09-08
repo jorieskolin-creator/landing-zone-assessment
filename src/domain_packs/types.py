@@ -11,6 +11,7 @@ class PackInvariants(TypedDict, total=False):
     subCriteriaPerCriterion: int
     capabilityCount: int
     antipatternCount: int
+    criterionCount: int
     questionnaireCount: int
     providers: list[str]
 
@@ -34,5 +35,6 @@ class AssessmentDomainPack(TypedDict):
     qualityGatePolicy: dict[str, Any]
     reportVocabulary: dict[str, Any]
     questionnaire: list[dict[str, Any]]
+    prompts: list[dict[str, Any]]
     invariants: PackInvariants
     sourceDirectory: str

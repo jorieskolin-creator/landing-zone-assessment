@@ -112,6 +112,7 @@ def write_synthetic_pack(
                 "qualityGatePolicy": "quality-gate-policy.json",
                 "reportVocabulary": "report-vocabulary.json",
                 "questionnaire": "questionnaire-mapping.json",
+                "prompts": "prompts.json",
             },
             "invariants": {
                 "designAreaCount": len(area_list),
@@ -158,6 +159,7 @@ def write_synthetic_pack(
     _write_json(directory / "quality-gate-policy.json", {"publication_states": ["GO", "WARN", "BLOCK"]})
     _write_json(directory / "report-vocabulary.json", {"product_name": pack_id})
     _write_json(directory / "questionnaire-mapping.json", {"questions": questions})
+    _write_json(directory / "prompts.json", {"templates": []})
     return directory
 
 
