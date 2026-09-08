@@ -38,7 +38,9 @@ def main() -> int:
         "capabilityCount": len(capabilities),
         "antipatternCount": len(antipatterns),
         "pairCount": len(pack["pairs"]),
-        "questionnaireCount": len(pack["questionnaire"]),
+        "questionnaireCount": len(pack.get("questionnaire") or []),
+        "promptCount": len(pack.get("prompts") or []),
+        "uniqueCriterionIds": len({item["id"] for item in pack["criteria"]}),
         "status": "valid",
     }
     print(json.dumps(summary, indent=2))

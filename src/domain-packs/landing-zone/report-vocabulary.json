@@ -5,6 +5,8 @@
   "auditor_role": "Landing Zone Forensic Auditor",
   "maturity_labels": ["Foundation", "Pilot", "Rollout", "Operate"],
   "publication_states": ["GO", "WARN", "BLOCK"],
+  "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+  "referenced_criterion_ids": [],
   "required_report_sections": [
     "assessment_scope_and_pack_versions",
     "provider_by_design_area_results",

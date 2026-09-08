@@ -109,6 +109,25 @@ export interface ReportVocabulary {
   product_name: string;
   maturity_labels: string[];
   required_report_sections: string[];
+  referenced_criterion_ids?: string[];
+  referenced_design_area_ids?: string[];
+}
+
+export interface PromptTemplate {
+  id: string;
+  stage?: string;
+  status?: string;
+  description?: string;
+  referenced_criterion_ids?: string[];
+  referenced_design_area_ids?: string[];
+}
+
+export interface QuestionnaireQuestion {
+  id: string;
+  design_area_id: string;
+  prompt: string;
+  referenced_criterion_ids: string[];
+  evidence_class: "workshop";
 }
 
 export interface AssessmentDomainPack {
@@ -129,4 +148,6 @@ export interface AssessmentDomainPack {
   scoringPolicy: ScoringPolicy;
   qualityGatePolicy: QualityGatePolicy;
   reportVocabulary: ReportVocabulary;
+  questionnaire?: QuestionnaireQuestion[];
+  prompts?: PromptTemplate[];
 }

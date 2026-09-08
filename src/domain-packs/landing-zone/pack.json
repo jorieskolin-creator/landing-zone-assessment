@@ -27,7 +27,8 @@
     "scoringPolicy": "scoring-policy.json",
     "qualityGatePolicy": "quality-gate-policy.json",
     "reportVocabulary": "report-vocabulary.json",
-    "questionnaire": "questionnaire-mapping.json"
+    "questionnaire": "questionnaire-mapping.json",
+    "prompts": "prompts.json"
   },
   "invariants": {
     "designAreaCount": 8,
@@ -35,6 +36,7 @@
     "subCriteriaPerCriterion": 3,
     "capabilityCount": 40,
     "antipatternCount": 40,
+    "criterionCount": 80,
     "questionnaireCount": 48,
     "providers": ["azure", "aws", "gcp"]
   }

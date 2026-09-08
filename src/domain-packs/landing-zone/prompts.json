@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "schemaVersion": "lz_prompts_v1",
+  "status": "contract_defined_content_pending",
+  "description": "Landing Zone prompt contracts. Workshop prompts live in questionnaire-mapping.json. Kernel prompt prose is replaced in later work. Any criterion or design-area ID listed here must resolve to the frozen catalogue.",
+  "auditor_role": "Landing Zone Forensic Auditor",
+  "must_not_fallback_to_finops_prompts": true,
+  "workshop_prompts_source": "questionnaire-mapping.json",
+  "forbidden_behaviors": [
+    "treating_framework_guidance_as_proof",
+    "treating_workshop_confidence_as_platform_configuration",
+    "inferring_absence_from_missing_documentation",
+    "blending_providers",
+    "scoring_excluded_or_not_applicable_criteria",
+    "narrating_excellence_over_a_confirmed_antipattern",
+    "producing_tactics_without_sufficient_evidence"
+  ],
+  "templates": [
+    {
+      "id": "lz-batch-dual-stream-audit",
+      "stage": "phase1_batch_audit",
+      "status": "contract_defined_content_pending",
+      "description": "Evaluate in-scope capabilities and paired anti-patterns for one design area. Criterion IDs are bound from the pack at runtime.",
+      "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "referenced_criterion_ids": []
+    },
+    {
+      "id": "lz-independent-evidence-verification",
+      "stage": "phase2_evidence_check",
+      "status": "contract_defined_content_pending",
+      "description": "Verify material findings against traceable source locations without using Knowledge Base or tactics as customer evidence.",
+      "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "referenced_criterion_ids": []
+    },
+    {
+      "id": "lz-findings-synthesis",
+      "stage": "findings_synthesis",
+      "status": "contract_defined_content_pending",
+      "description": "Synthesize provider-scoped findings using Landing Zone report vocabulary.",
+      "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "referenced_criterion_ids": []
+    },
+    {
+      "id": "lz-roadmap-synthesis",
+      "stage": "roadmap_synthesis",
+      "status": "contract_defined_content_pending",
+      "description": "Permit tactics only from verified findings. Do not invent playbook content.",
+      "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "referenced_criterion_ids": []
+    },
+    {
+      "id": "lz-quality-check",
+      "stage": "quality_check",
+      "status": "contract_defined_content_pending",
+      "description": "Quality Gate language is GO / WARN / BLOCK for evidence sufficiency, not customer pass or fail.",
+      "referenced_design_area_ids": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "referenced_criterion_ids": []
+    }
+  ]
+}

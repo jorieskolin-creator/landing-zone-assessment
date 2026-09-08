@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 from .types import AssessmentDomainPack
 
@@ -10,6 +10,20 @@ VALID_PROVIDER_IDS = {"azure", "aws", "gcp"}
 VALID_KINDS = {"mapped", "native", "not_applicable"}
 VALID_APPLICABILITY = {"applicable", "not_applicable", "out_of_scope"}
 VALID_EVIDENCE_CLASSES = {"platform", "document", "workshop"}
+VALID_PUBLICATION_STATES = {"GO", "WARN", "BLOCK"}
+CRITERION_REF_KEYS = {
+    "referenced_criterion_ids",
+    "criterion_ids",
+    "antipattern_ids",
+    "capability_ids",
+    "capability_id",
+    "antipattern_id",
+    "pair",
+}
+DESIGN_AREA_REF_KEYS = {
+    "referenced_design_area_ids",
+    "design_area_id",
+}
 
 
 class PackValidationError(ValueError):
@@ -28,6 +42,23 @@ def _unique(values: Iterable[str], label: str) -> set[str]:
     return unique
 
 
+def _walk_string_refs(obj: Any, keys: set[str]) -> Iterator[tuple[str, str]]:
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key in keys:
+                if isinstance(value, str) and value:
+                    yield key, value
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, str) and item:
+                            yield key, item
+            else:
+                yield from _walk_string_refs(value, keys)
+    elif isinstance(obj, list):
+        for item in obj:
+            yield from _walk_string_refs(item, keys)
+
+
 def validate_pack(pack: AssessmentDomainPack) -> None:
     _require(bool(pack.get("packId")), "packId is required")
     _require(bool(pack.get("version")), "version is required")
@@ -40,6 +71,8 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
     capability_ids = _unique((item["id"] for item in capabilities), "capability ids")
     antipattern_ids = _unique((item["id"] for item in antipatterns), "anti-pattern ids")
     _require(capability_ids.isdisjoint(antipattern_ids), "Capability and anti-pattern ids must not overlap")
+    known_ids = capability_ids | antipattern_ids
+    _require(len(known_ids) == len(pack["criteria"]), "Every criterion id must be unique across both streams")
 
     for item in pack["criteria"]:
         subs = item.get("sub_criteria") or []
@@ -67,7 +100,7 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
 
     provider_records = pack["providers"].get("records", [])
     record_ids = _unique((record["id"] for record in provider_records), "provider evidence ids")
-    _require(record_ids == capability_ids | antipattern_ids, "Provider evidence records must cover every criterion")
+    _require(record_ids == known_ids, "Provider evidence records must cover every criterion")
     for record in provider_records:
         providers = record.get("providers") or {}
         _require(set(providers) == VALID_PROVIDER_IDS, f"{record['id']} providers must be azure, aws and gcp")
@@ -85,10 +118,12 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
     routing = pack["routingPolicy"].get("categories") or {}
     _require(set(routing.keys()) == design_area_ids, "Routing keywords must exist for every design area")
 
-    known_ids = capability_ids | antipattern_ids
     for question in pack.get("questionnaire") or []:
         _require(question.get("evidence_class") == "workshop", f"{question.get('id')} must be workshop evidence")
-        for ref in question.get("referenced_criterion_ids") or []:
+        _require(question.get("design_area_id") in design_area_ids, f"Questionnaire {question.get('id')} has unknown design area")
+        refs = question.get("referenced_criterion_ids") or []
+        _require(bool(refs), f"Questionnaire {question.get('id')} must reference at least one criterion")
+        for ref in refs:
             _require(ref in known_ids, f"Questionnaire {question.get('id')} references unknown criterion {ref}")
 
     for tactic in pack.get("tactics") or []:
@@ -97,14 +132,38 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
     for binding in pack.get("tacticBindings") or []:
         for ref in list(binding.get("criterion_ids") or []) + list(binding.get("antipattern_ids") or []):
             _require(ref in known_ids, f"Tactic binding {binding.get('tactic_id')} references unknown id {ref}")
-    for topic in pack.get("knowledgeBase", {}).get("topics") or []:
+    knowledge = pack.get("knowledgeBase") or {}
+    if "must_not_fallback_to_finops_content" in knowledge:
+        _require(
+            knowledge["must_not_fallback_to_finops_content"] is True,
+            "Knowledge Base must not fall back to FinOps content",
+        )
+    for topic in knowledge.get("topics") or []:
         for ref in topic.get("criterion_ids") or []:
             _require(ref in known_ids, f"Knowledge topic {topic.get('id')} references unknown criterion {ref}")
+
+    for template in pack.get("prompts") or []:
+        for ref in template.get("referenced_criterion_ids") or []:
+            _require(ref in known_ids, f"Prompt {template.get('id')} references unknown criterion {ref}")
+        for area_id in template.get("referenced_design_area_ids") or []:
+            _require(area_id in design_area_ids, f"Prompt {template.get('id')} references unknown design area {area_id}")
+
+    report = pack.get("reportVocabulary") or {}
+    for ref in report.get("referenced_criterion_ids") or []:
+        _require(ref in known_ids, f"Report vocabulary references unknown criterion {ref}")
+    for area_id in report.get("referenced_design_area_ids") or []:
+        _require(area_id in design_area_ids, f"Report vocabulary references unknown design area {area_id}")
+
+    for key, ref in _walk_string_refs(pack, CRITERION_REF_KEYS):
+        _require(ref in known_ids, f"{key} references unknown criterion {ref}")
+    for key, ref in _walk_string_refs(pack, DESIGN_AREA_REF_KEYS):
+        _require(ref in design_area_ids, f"{key} references unknown design area {ref}")
 
     invariants = pack.get("invariants") or {}
     _check_invariant(invariants, "designAreaCount", len(pack["designAreas"]))
     _check_invariant(invariants, "capabilityCount", len(capabilities))
     _check_invariant(invariants, "antipatternCount", len(antipatterns))
+    _check_invariant(invariants, "criterionCount", len(pack["criteria"]))
     _check_invariant(invariants, "questionnaireCount", len(pack.get("questionnaire") or []))
     if "pairsPerDesignArea" in invariants:
         for area in pack["designAreas"]:
@@ -116,6 +175,10 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
     scoring = pack["scoringPolicy"]
     _require(scoring.get("unknown_is_not_zero") is True, "Scoring policy must keep unknown-is-not-zero")
     _require(scoring.get("provider_blending") == "forbidden", "Scoring policy must forbid provider blending")
+    quality_gate = pack.get("qualityGatePolicy") or {}
+    states = quality_gate.get("publication_states")
+    if states:
+        _require(set(states) == VALID_PUBLICATION_STATES, "Quality Gate publication states must be GO, WARN and BLOCK")
 
 
 def _check_invariant(invariants: dict[str, Any], key: str, actual: int) -> None:
