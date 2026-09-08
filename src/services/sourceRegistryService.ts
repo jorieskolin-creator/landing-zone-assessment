@@ -856,8 +856,12 @@ export const expandDomainPacket = (
   };
 };
 
-export const buildDomainPackets = (registry: SourceRegistry): Record<string, RoutedSourcePacket> => {
-  return Object.fromEntries(Object.keys(BATCH_TITLES).map(domain => [domain, buildDomainPacket(registry, domain)]));
+export const buildDomainPackets = (
+  registry: SourceRegistry,
+  domainIds: string[] = Object.keys(BATCH_TITLES),
+): Record<string, RoutedSourcePacket> => {
+  const ids = domainIds.length > 0 ? domainIds : Object.keys(BATCH_TITLES);
+  return Object.fromEntries(ids.map(domain => [domain, buildDomainPacket(registry, domain)]));
 };
 
 export const renderPseudonymousSourceContext = (registry: SourceRegistry, maxChars = 45000): string => {

@@ -14,6 +14,7 @@
     "test": "node scripts/run-tests.mjs",
     "test:independence": "node scripts/check-independence.mjs",
     "test:landing-zone-pack": "node scripts/test-landing-zone-pack.mjs",
+    "test:step0-scope": "node scripts/test-step0-scope.mjs",
     "test:work2-kernel": "node scripts/test-work2-structural-assumptions.mjs",
     "test:python-pack": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "test:evidence-check": "node scripts/test-evidence-check.mjs",

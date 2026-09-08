@@ -228,9 +228,10 @@ export const runPhase1Audit = async (
   images: ImageInput[],
   onProgress: (completed: number, total: number, batchId?: string) => void,
   ctx: RunContext,
-  sourcePackets?: Phase1SourcePackets
+  sourcePackets?: Phase1SourcePackets,
+  batchIds: string[] = BATCH_IDS,
 ): Promise<Phase1Result> => {
-  const batches = BATCH_IDS;
+  const batches = batchIds.length > 0 ? batchIds : BATCH_IDS;
   const totalBatches = batches.length;
 
   const aggregated: Phase1Result = {

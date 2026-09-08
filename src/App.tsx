@@ -18,6 +18,7 @@ import { GaugeCard, AuditGrid, StrategicRoadmap, ComparisonChart, ReferenceLibra
 import { ReportView } from './components/ReportView';
 import { LoginModal } from './components/LoginModal';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { Step0ScopeForm } from './components/Step0ScopeForm';
 import { checkSession, logout } from './services/authService';
 import { acknowledgeRun, deleteRun, getRun } from './services/runLifecycleService';
 import { recoverCheckpointResult } from './services/checkpointRecoveryService';
@@ -30,6 +31,8 @@ import tier1RiSpStrategy from '../test/tier1-ri-sp-strategy.txt?raw';
 import tier1CostOptReview from '../test/tier1-cost-optimization-review.txt?raw';
 import demoSimulation from '../test/demo-simulation.txt?raw';
 import { persistencePrefix } from './knowledge_base';
+import { LANDING_ZONE_PACK } from './domain-packs/loadLandingZonePack';
+import { demoAssessmentScopeDraft, lockScope, type AssessmentScope } from './scope/step0Scope';
 
 const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Demo Pack';
 const PERSISTENCE_PREFIX = persistencePrefix();
@@ -496,6 +499,7 @@ const App: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [activePersona, setActivePersona] = useState<PersonaId>('finops_lead');
   const [deepMode, setDeepMode] = useState(false);
+  const [lockedScope, setLockedScope] = useState<AssessmentScope | null>(null);
   const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null);
   const [hasSavedAssessment, setHasSavedAssessment] = useState(false);
   const [safeRecoveryResult, setSafeRecoveryResult] = useState<DiagnosticResult | null>(null);
@@ -785,6 +789,12 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!lockedScope) {
+      setError('Lock Step 0 scope before uploading source material. Scoring cannot begin against an unnamed estate.');
+      clearFileInput();
+      return;
+    }
+
     if (files.length + newFiles.length > MAX_FILES) {
       setError(`Maximum ${MAX_FILES} documents allowed.`);
       return;
@@ -922,7 +932,12 @@ const App: React.FC = () => {
 
   const removeFile = (id: string) => setFiles(files.filter(f => f.id !== id));
 
-  const runAnalyze = async (opts?: { textOverride?: string; sourcesOverride?: SourceRecord[]; label?: string }) => {
+  const runAnalyze = async (opts?: { textOverride?: string; sourcesOverride?: SourceRecord[]; label?: string; scope?: AssessmentScope }) => {
+    const scope = opts?.scope || lockedScope;
+    if (!scope) {
+      setError('Lock Step 0 scope before scoring. Scoring cannot begin against an unnamed estate.');
+      return;
+    }
     setLoading(true);
     setPipelineProgress({});
     setCompletedDomains([]);
@@ -972,6 +987,7 @@ const App: React.FC = () => {
         }
       }, {
         deepMode,
+        scope,
         onRunStarted: runId => {
           if (typeof window !== 'undefined') window.localStorage.setItem(ACTIVE_RUN_KEY, runId);
         }
@@ -1009,8 +1025,10 @@ const App: React.FC = () => {
     if (loading) return;
     const fixture = TIER1_FIXTURES.find(f => f.pack_id === packId);
     if (!fixture) return;
+    const scope = lockedScope || lockScope(demoAssessmentScopeDraft());
+    if (!lockedScope) setLockedScope(scope);
     const source: SourceRecord = { schema_version:'source_record_v1', source_id:'src-001', source_name:'Document 001', kind:'text', text:sanitizeInput(fixture.text) };
-    runAnalyze({ sourcesOverride:[source], label: `Tier 1 Fixture — ${fixture.label}` });
+    runAnalyze({ sourcesOverride:[source], label: `Tier 1 Fixture — ${fixture.label}`, scope });
   };
 
   const handleAnalyze = async () => {
@@ -1026,7 +1044,8 @@ const App: React.FC = () => {
   const startEngineSimulation = () => {
     runAnalyze({
       textOverride: sanitizeInput(demoSimulation),
-      label: DEMO_SIMULATION_LABEL
+      label: DEMO_SIMULATION_LABEL,
+      scope: lockScope(demoAssessmentScopeDraft()),
     });
   };
 
@@ -1061,6 +1080,7 @@ const App: React.FC = () => {
     setPrivacyNotice(null);
     setOrganizationRedactionTerm('');
     clearSavedAssessment();
+    setLockedScope(null);
     if (typeof window !== 'undefined') window.localStorage.removeItem(ACTIVE_RUN_KEY);
   };
 
@@ -1347,7 +1367,7 @@ const App: React.FC = () => {
               </select>
             )}
 
-            {(result || files.length > 0) && (
+            {(result || files.length > 0 || lockedScope) && (
               <button onClick={reset} disabled={loading} className={`text-sm font-bold transition-all duration-300 flex items-center gap-2 group px-4 py-2 rounded-full border shadow-lg ${loading ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-900 border-white hover:border-rose-500 hover:bg-rose-500 hover:text-white hover:shadow-rose-500/40'}`}>
                 <span className={`transition-transform duration-500 ${!loading && 'group-hover:-rotate-180'}`}>&#8635;</span>
                 {loading ? 'Analyzing...' : 'Reset Session'}
@@ -1423,7 +1443,17 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                <div className={`glass-panel rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] border relative overflow-hidden group transition-all duration-500 ${files.length >= MIN_FILES ? 'border-emerald-500/50 ring-2 ring-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]' : 'border-white/10'}`}>
+                <Step0ScopeForm
+                  pack={LANDING_ZONE_PACK}
+                  locked={lockedScope}
+                  onLock={(scope) => {
+                    setLockedScope(scope);
+                    setError(null);
+                  }}
+                  onUnlock={() => setLockedScope(null)}
+                />
+
+                <div className={`glass-panel rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] border relative overflow-hidden group transition-all duration-500 ${!lockedScope ? 'opacity-60' : files.length >= MIN_FILES ? 'border-emerald-500/50 ring-2 ring-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]' : 'border-white/10'}`}>
                   <div className="p-12 min-h-[320px] flex flex-col relative bg-gradient-to-b from-slate-900/60 to-slate-900/40">
                     {files.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-20">
@@ -1471,15 +1501,17 @@ const App: React.FC = () => {
                         )}
                       </div>
                     ) : (
-                      <div onClick={() => fileInputRef.current?.click()} className="flex-1 flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-700/50 rounded-[2rem] bg-slate-900/30 py-16 hover:bg-slate-900/50 hover:scale-[1.01] transition-all duration-300 hover:border-emerald-500/30 group/drop cursor-pointer relative overflow-hidden">
+                      <div onClick={() => lockedScope && fileInputRef.current?.click()} className={`flex-1 flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-700/50 rounded-[2rem] bg-slate-900/30 py-16 transition-all duration-300 group/drop relative overflow-hidden ${lockedScope ? 'hover:bg-slate-900/50 hover:scale-[1.01] hover:border-emerald-500/30 cursor-pointer' : 'cursor-not-allowed'}`}>
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover/drop:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                         <div className="w-24 h-24 rounded-full bg-slate-800/80 border-4 border-slate-700 flex items-center justify-center mb-6 shadow-xl shadow-black/20 group-hover/drop:scale-110 group-hover/drop:shadow-emerald-500/20 group-hover/drop:border-emerald-500/30 transition-all duration-300 z-10 relative">
                           <div className="absolute inset-0 rounded-full border border-emerald-400 opacity-0 group-hover/drop:opacity-100 group-hover/drop:animate-ping"></div>
                           <svg className="w-10 h-10 text-slate-400 group-hover/drop:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                         </div>
-                        <h3 className="text-xl font-display font-bold text-slate-200 mb-2 z-10 group-hover/drop:text-white transition-colors">Drop FinOps Artifacts</h3>
+                        <h3 className="text-xl font-display font-bold text-slate-200 mb-2 z-10 group-hover/drop:text-white transition-colors">{lockedScope ? 'Drop landing-zone evidence' : 'Lock Step 0 before intake'}</h3>
                         <p className="text-sm font-medium text-slate-400 z-10 group-hover/drop:text-emerald-200/70 transition-colors text-center max-w-md">
-                          Upload Cloud Cost Reports, FinOps Policies, Optimization Plans, Governance Docs, Architecture Reviews.
+                          {lockedScope
+                            ? 'Upload exports, questionnaires, architecture notes, or pasted text for the locked estate. The engine never talks to live cloud APIs.'
+                            : 'Name the estate, providers, roots, and design areas A–H before files can be scored.'}
                         </p>
                         <div className="z-10 mt-4 flex flex-wrap justify-center gap-1.5 max-w-md">
                           {['PDF', 'HTML', 'CSV', 'TSV', 'XLSX', 'PNG/JPEG', 'JSON'].map(fmt => (
@@ -1497,7 +1529,7 @@ const App: React.FC = () => {
 
                   <div className="flex justify-between items-center px-10 py-6 bg-slate-900/60 backdrop-blur-xl relative z-10 border-t border-white/5">
                     <div className="flex items-center gap-4">
-                      <button onClick={() => fileInputRef.current?.click()} disabled={files.length >= MAX_FILES} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-2 hover:bg-white/5 px-4 py-2 rounded-lg">
+                      <button onClick={() => fileInputRef.current?.click()} disabled={files.length >= MAX_FILES || !lockedScope} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-2 hover:bg-white/5 px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         Add Files (PDF, HTML, CSV, TSV, XLSX, images, JSON)
                       </button>
@@ -1514,9 +1546,11 @@ const App: React.FC = () => {
                         <span className="font-bold">Deep analysis</span>
                       </label>
                     </div>
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept=".pdf,.html,.csv,.tsv,.xlsx,.png,.jpg,.jpeg,.webp,.json,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp" multiple />
-                    <button onClick={handleAnalyze} disabled={!scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES} className={`px-8 py-4 rounded-xl font-bold shadow-2xl transition-all transform active:scale-[0.98] flex items-center gap-3 border ${!scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed shadow-none' : 'text-slate-900 bg-white border-white hover:bg-emerald-400 hover:border-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]'}`}>
-                      {!scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES ? (
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept=".pdf,.html,.csv,.tsv,.xlsx,.png,.jpg,.jpeg,.webp,.json,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp" multiple disabled={!lockedScope} />
+                    <button onClick={handleAnalyze} disabled={!lockedScope || !scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES} className={`px-8 py-4 rounded-xl font-bold shadow-2xl transition-all transform active:scale-[0.98] flex items-center gap-3 border ${!lockedScope || !scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed shadow-none' : 'text-slate-900 bg-white border-white hover:bg-emerald-400 hover:border-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]'}`}>
+                      {!lockedScope ? (
+                        <span>Lock Step 0 first</span>
+                      ) : !scanResult.canRun || files.length < MIN_FILES || files.length > MAX_FILES ? (
                         <span>{files.length < MIN_FILES ? `Add ${MIN_FILES - files.length} more files` : files.length > MAX_FILES ? "Limit Exceeded" : "Checks Failed"}</span>
                       ) : (
                         <>

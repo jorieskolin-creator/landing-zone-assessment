@@ -346,6 +346,8 @@ export interface AnalysisMeta {
   document_analyzed: string;
   timestamp: string;
   engine_version: string;
+  assessment_scope?: import('./scope/step0Scope').AssessmentScope;
+  scoring_surface?: ReturnType<typeof import('./scope/step0Scope').scoringSurfaceSummary>;
   source_parse_warnings?: string[];
   source_registry?: SourceRegistryRuntimeStatus;
   knowledge_base?: KnowledgeBaseRuntimeStatus;

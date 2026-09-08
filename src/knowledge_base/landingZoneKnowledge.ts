@@ -129,7 +129,7 @@ export const landingZoneValidationRules = () => {
     description: "Landing Zone pack validation rules. Criterion iteration comes from the pack registry.",
     phase1: {
       ...(packRules.phase1 || {}),
-      required_streams: packRules.phase1?.required_streams || ["maturity", "antipattern"],
+      required_streams: ["maturity", "antipattern"],
       criteria_ids_per_batch: Object.fromEntries(
         landingZoneBatchIds().map((id) => [id, criterionIds(LANDING_ZONE_PACK, "maturity", id)]),
       ),

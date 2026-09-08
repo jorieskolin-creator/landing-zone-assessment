@@ -9,7 +9,7 @@ import {
 } from "../constants";
 import { bracketFromValidation, explainBracket } from "./confidenceBracket";
 import { runPhase1Audit } from "../orchestrator";
-import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TAXONOMY_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
+import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TAXONOMY_REGISTRY, FINOPS_MATURITY_PAIR_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
 import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
 import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
 import { EVIDENCE_DENSITY_BLOCK, runQualityGate, runQualityGateExplanation } from "./qualityGateService";
@@ -63,6 +63,14 @@ import { scrubDiagnosticResultForPrivacy } from "./privacyService";
 import { parseGovernedJsonObject, validateFindingsModePayload } from "./jsonResponseService";
 import { reconcileEvidenceProvenance } from "./evidenceCheckService";
 import { maturityRunTraceProjection } from "./maturityModelService";
+import {
+  lockScope,
+  loadScoringSurface,
+  scoringSurfaceSummary,
+  type AssessmentScope,
+  type AssessmentScopeDraft,
+} from "../scope/step0Scope";
+import { LANDING_ZONE_PACK } from "../domain-packs/loadLandingZonePack";
 // @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
 import { OUTPUT_CONTRACT_IDS, withOneOutputRegeneration } from "../../lib/outputContracts.js";
 import {
@@ -146,7 +154,10 @@ const parseAiResponse = (text: string): any => {
 // resolves stage → primary+fallbacks from src/models.ts and dispatches to the
 // right provider endpoint.
 
-const validateAndSanitizeLogs = (rawData: any): Phase1AuditLogs => {
+const validateAndSanitizeLogs = (
+  rawData: any,
+  options?: { maturityIds?: string[]; antipatternIds?: string[] },
+): Phase1AuditLogs => {
   const safeLog: Phase1AuditLogs = { maturity: {}, antipattern: {} };
 
   const validateItem = (item: any, isAntipattern: boolean): AuditItem => {
@@ -245,10 +256,26 @@ const validateAndSanitizeLogs = (rawData: any): Phase1AuditLogs => {
   };
 
   const rawMaturity = rawData?.phase_1_audit_logs?.maturity || {};
-  MATURITY_CRITERIA_IDS.forEach(id => safeLog.maturity[id] = validateItem(rawMaturity[id], false));
-
   const rawAntipattern = rawData?.phase_1_audit_logs?.antipattern || {};
-  ANTIPATTERN_CRITERIA_IDS.forEach(id => safeLog.antipattern[id] = validateItem(rawAntipattern[id], true));
+  const inScopeMaturity = new Set(options?.maturityIds || MATURITY_CRITERIA_IDS);
+  const inScopeAntipattern = new Set(options?.antipatternIds || ANTIPATTERN_CRITERIA_IDS);
+  const outOfScopeItem = (): AuditItem => ({
+    count: 0,
+    status: "NOK",
+    evidence: "Out of Step 0 scope.",
+    evidence_quotes: [],
+    is_silent: true,
+    reasoning: "Excluded by the locked assessment scope before scoring.",
+    assessment_status: "not_assessed",
+    question_results: ["unknown", "unknown", "unknown"],
+    coverage_reason: "step0_out_of_scope",
+  });
+  MATURITY_CRITERIA_IDS.forEach((id) => {
+    safeLog.maturity[id] = inScopeMaturity.has(id) ? validateItem(rawMaturity[id], false) : outOfScopeItem();
+  });
+  ANTIPATTERN_CRITERIA_IDS.forEach((id) => {
+    safeLog.antipattern[id] = inScopeAntipattern.has(id) ? validateItem(rawAntipattern[id], true) : outOfScopeItem();
+  });
 
   return safeLog;
 };
@@ -258,6 +285,7 @@ export interface AnalyzeOptions {
   // auto-rules wouldn't fire. Use for high-stakes / board-level assessments.
   deepMode?: boolean;
   onRunStarted?: (runId: string) => void;
+  scope?: AssessmentScope | AssessmentScopeDraft;
 }
 
 export const analyzeDocument = async (
@@ -265,6 +293,15 @@ export const analyzeDocument = async (
   onProgress: (update: PipelineProgressUpdate) => void,
   options: AnalyzeOptions = {}
 ): Promise<DiagnosticResult> => {
+  const lockedScope = lockScope(options.scope || {}, LANDING_ZONE_PACK);
+  const scoringSurface = loadScoringSurface(lockedScope, LANDING_ZONE_PACK);
+  const scopedBatchIds = scoringSurface.design_area_ids;
+  const scopedMaturityIds = [...new Set(
+    scoringSurface.instances.filter((item) => item.stream === "capability").map((item) => item.criterion_id),
+  )];
+  const scopedAntipatternIds = [...new Set(
+    scoringSurface.instances.filter((item) => item.stream === "antipattern").map((item) => item.criterion_id),
+  )];
   const images: never[] = [];
   const modelRouting = await getModelRoutingConfig();
   const modelRoutingMode = modelRouting.label;
@@ -507,14 +544,14 @@ export const analyzeDocument = async (
       || referenceKbIndex.status.document_count === 0;
     emitProgress({ stage: 'knowledge', status: knowledgeWarnings ? 'completed_with_warnings' : 'completed' });
 
-    console.log(`[FinOps] [${runId}] Running Phase 1 Parallel Audit (${Object.keys(BATCH_DEFINITIONS).length} batches)...`);
-    emitProgress({ stage: 'analysis', status: 'in_progress', completed: 0, total: Object.keys(BATCH_DEFINITIONS).length });
-    emitProgress({ stage: 'evidence', status: 'in_progress', completed: 0, total: Object.keys(BATCH_DEFINITIONS).length });
+    console.log(`[Landing Zone] [${runId}] Running Phase 1 Parallel Audit (${scopedBatchIds.length} in-scope batches)...`);
+    emitProgress({ stage: 'analysis', status: 'in_progress', completed: 0, total: scopedBatchIds.length });
+    emitProgress({ stage: 'evidence', status: 'in_progress', completed: 0, total: scopedBatchIds.length });
     const phase1Started = Date.now();
     let aggregatedRawData = await runPhase1Audit(text, images, (completed, total, batchId) => {
       emitProgress({ stage: 'analysis', status: 'in_progress', completed, total, domain_id: batchId });
       emitProgress({ stage: 'evidence', status: 'in_progress', completed, total, domain_id: batchId });
-    }, { runId }, { packets: evidenceStagePackets, expandWeakEvidence });
+    }, { runId }, { packets: evidenceStagePackets, expandWeakEvidence }, scopedBatchIds);
     if (aggregatedRawData.models_used.length > 0) {
       actuals.forensic_audit = aggregatedRawData.models_used.join(',');
     }
@@ -582,7 +619,10 @@ export const analyzeDocument = async (
       knowledge_hash: knowledgeIntegrity.index_hash,
     });
 
-    const auditLogs = validateAndSanitizeLogs(aggregatedRawData);
+    const auditLogs = validateAndSanitizeLogs(aggregatedRawData, {
+      maturityIds: scopedMaturityIds,
+      antipatternIds: scopedAntipatternIds,
+    });
     const phase1Validation = validatePhase1Output({ phase_1_audit_logs: auditLogs });
     if (!phase1Validation.valid) {
       throw new PipelineIntegrityError('ANALYSIS_OUTPUT_INCOMPLETE', 'pre_synthesis');
@@ -605,13 +645,23 @@ export const analyzeDocument = async (
     });
 
     const phase1Status = aggregatedRawData.evidence_check.failed || !phase1Validation.valid ? 'completed_with_warnings' : 'completed';
-    emitProgress({ stage: 'analysis', status: phase1Status, completed: Object.keys(BATCH_DEFINITIONS).length, total: Object.keys(BATCH_DEFINITIONS).length });
-    emitProgress({ stage: 'evidence', status: phase1Status, completed: Object.keys(BATCH_DEFINITIONS).length, total: Object.keys(BATCH_DEFINITIONS).length });
+    emitProgress({ stage: 'analysis', status: phase1Status, completed: scopedBatchIds.length, total: scopedBatchIds.length });
+    emitProgress({ stage: 'evidence', status: phase1Status, completed: scopedBatchIds.length, total: scopedBatchIds.length });
 
     emitProgress({ stage: 'calculation', status: 'in_progress' });
     await new Promise(r => setTimeout(r, 600));
+    const scopedPairRegistry = {
+      ...FINOPS_MATURITY_PAIR_REGISTRY,
+      pairs: FINOPS_MATURITY_PAIR_REGISTRY.pairs.filter((pair) =>
+        scoringSurface.design_area_ids.includes(pair.domain_id),
+      ),
+    };
     const validationData = calculateMetrics(auditLogs, {
       evidencePacketReady: sourceRegistryStatus.acquisition_readiness.status !== 'BLOCKED',
+      maturityCriterionTotal: scopedMaturityIds.length,
+      antipatternCriterionTotal: scopedAntipatternIds.length,
+      pairRegistry: scopedPairRegistry,
+      designAreaIds: scoringSurface.design_area_ids,
     });
     const silentDomainIds = validationData.assessment_sufficiency.silent_domain_ids;
     const unresolvedDomainIds = new Set(validationData.verification_unresolved.map(item => item.charAt(1)));
@@ -1689,6 +1739,8 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         document_analyzed: "Uploaded Text",
         timestamp: new Date().toISOString(),
         engine_version: ENGINE_VERSION,
+        assessment_scope: lockedScope,
+        scoring_surface: scoringSurfaceSummary(scoringSurface),
         source_parse_warnings: sourceParseWarnings.length > 0 ? sourceParseWarnings : undefined,
         source_registry: sourceRegistryStatus,
         knowledge_base: referenceKbIndex.status,
