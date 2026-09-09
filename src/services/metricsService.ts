@@ -1,4 +1,4 @@
-import type { AuditItem, EvidenceCategory, Phase1AuditLogs, Phase2Validation } from '../types';
+import type { AuditItem, EvidenceCategory, MaturityPairRegistry, Phase1AuditLogs, Phase2Validation } from '../types';
 import { BATCH_TITLES, FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { calculateResolutionBasedMaturity, evaluateAssessmentSufficiency } from './maturityModelService';
@@ -7,9 +7,6 @@ export const EVIDENCE_DENSITY_BLOCK = 30;
 export const EVIDENCE_DENSITY_WARN = 60;
 
 const clampPercent = (value: number): number => Math.min(Math.max(value, 0), 100);
-const maturityCriterionTotal = Math.max(FINOPS_CRITERIA.length, 1);
-const antipatternCriterionTotal = Math.max(FINOPS_ANTIPATTERNS.length, 1);
-const totalCriterionCount = maturityCriterionTotal + antipatternCriterionTotal;
 
 const hasSourceQuote = (item: AuditItem): boolean =>
   Array.isArray(item.evidence_quotes) &&
@@ -31,8 +28,17 @@ export const hasVerifiedSourceCoverage = (item: AuditItem, stream: 'maturity' | 
 
 export const calculateMetrics = (
   logs: Phase1AuditLogs,
-  options: { evidencePacketReady?: boolean } = {},
+  options: {
+    evidencePacketReady?: boolean;
+    maturityCriterionTotal?: number;
+    antipatternCriterionTotal?: number;
+    pairRegistry?: MaturityPairRegistry;
+    designAreaIds?: string[];
+  } = {},
 ): Phase2Validation => {
+  const maturityCriterionTotal = Math.max(options.maturityCriterionTotal ?? FINOPS_CRITERIA.length, 1);
+  const antipatternCriterionTotal = Math.max(options.antipatternCriterionTotal ?? FINOPS_ANTIPATTERNS.length, 1);
+  const totalCriterionCount = maturityCriterionTotal + antipatternCriterionTotal;
   let maturityCount = 0; let maturitySum = 0; const maturityGaps: string[] = [];
   let antipatternCount = 0; let antipatternSum = 0; const antipatternFindings: string[] = [];
   let testedAbsentCount = 0;
@@ -59,7 +65,7 @@ export const calculateMetrics = (
   let itemsWithEvidence = 0;
   const silentAreas: string[] = [];
   const categoryScores: Record<string, number> = Object.fromEntries(
-    Object.keys(BATCH_TITLES).map(batch => [batch, 0])
+    (options.designAreaIds ?? Object.keys(BATCH_TITLES)).map(batch => [batch, 0])
   ) as Record<string, number>;
   const evidenceCategoryTotals: Partial<Record<EvidenceCategory, number>> = {};
 
@@ -78,6 +84,7 @@ export const calculateMetrics = (
 
   Object.entries(logs.maturity).forEach(([key, rawItem]) => {
     const item = rawItem as AuditItem;
+    if (item.coverage_reason === 'step0_out_of_scope') return;
     tally(item, 'maturity');
     if (item.verification_unresolved) {
       maturityVerificationUnresolved++;
@@ -116,6 +123,7 @@ export const calculateMetrics = (
 
   Object.entries(logs.antipattern).forEach(([key, rawItem]) => {
     const item = rawItem as AuditItem;
+    if (item.coverage_reason === 'step0_out_of_scope') return;
     tally(item, 'antipattern');
     if (item.verification_unresolved) {
       antipatternVerificationUnresolved++;
@@ -191,7 +199,7 @@ export const calculateMetrics = (
 
   const capability_attainment = clampPercent(maturity_depth);
   const antipattern_control = antipattern_clearance;
-  const resolution_maturity = calculateResolutionBasedMaturity(logs);
+  const resolution_maturity = calculateResolutionBasedMaturity(logs, options.pairRegistry);
   const assessment_sufficiency = evaluateAssessmentSufficiency(resolution_maturity, options);
   const corroborated_maturity = resolution_maturity.overall.corroborated_maturity;
   const observed_maturity = resolution_maturity.overall.observed_maturity;
