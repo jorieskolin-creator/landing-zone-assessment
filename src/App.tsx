@@ -33,6 +33,11 @@ import demoSimulation from '../test/demo-simulation.txt?raw';
 import { persistencePrefix } from './knowledge_base';
 import { LANDING_ZONE_PACK } from './domain-packs/loadLandingZonePack';
 import { demoAssessmentScopeDraft, lockScope, type AssessmentScope } from './scope/step0Scope';
+import {
+  classifyLandingZoneSource,
+  LZ_SOURCE_KIND_LABELS,
+  type LzSourceClassification,
+} from './acquisition/landingZoneSourceClassification';
 
 const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Demo Pack';
 const PERSISTENCE_PREFIX = persistencePrefix();
@@ -158,6 +163,7 @@ interface UploadedFile {
   acquisition?: EvidenceSourceAcquisition;
   visualUnits?: VisualEvidenceUnit[];
   kind?: 'pdf' | 'html' | 'csv' | 'tsv' | 'json' | 'xlsx' | 'image';
+  lzClassification?: LzSourceClassification;
   status: 'parsed' | 'error';
   scan?: ScanResult;
   parseMetadata?: {
@@ -900,6 +906,15 @@ const App: React.FC = () => {
                   ? { extraction_method: 'local_ocr' as const, extraction_version: 'tesseract.js@7.0.0' }
                 : { extraction_method: 'browser_json' as const, extraction_version: 'json_parse_v1' };
         acquisition = { ...acquisition, ...extraction, extraction_status: 'PASS' };
+        const lzClassification = classifyLandingZoneSource({
+          fileName: file.name,
+          kind,
+          text,
+          pages,
+          visualUnits,
+          tables: [...(structuredTables || []), ...(structuredTable ? [structuredTable] : [])],
+          lockedProviders: lockedScope?.providers ? [...lockedScope.providers] : undefined,
+        });
 
         processedFiles.push({
           id: Math.random().toString(36).substr(2, 9),
@@ -912,6 +927,7 @@ const App: React.FC = () => {
           acquisition,
           visualUnits,
           kind,
+          lzClassification,
           status: 'parsed',
           scan: scanParseableFile(text, kind, false),
           parseMetadata
@@ -945,12 +961,14 @@ const App: React.FC = () => {
     PerformanceMonitor.start('FullAnalysis');
     try {
       const sources: SourceRecord[] = opts?.sourcesOverride ?? (opts?.textOverride !== undefined
-        ? [{ schema_version:'source_record_v1', source_id:'src-001', source_name:'Document 001', kind:'text', text:opts.textOverride }]
+        ? [{ schema_version:'source_record_v1', source_id:'src-001', source_name:'Document 001', original_file_name: opts.label, kind:'text', text:opts.textOverride }]
         : files.map((file,index) => ({
             schema_version:'source_record_v1' as const,
             source_id:`src-${String(index+1).padStart(3,'0')}`,
             source_name:`Document ${String(index+1).padStart(3,'0')}`,
+            original_file_name: file.name,
             kind:file.kind || 'text',
+            lz_classification: file.lzClassification,
             acquisition:file.acquisition,
             visual_units:file.visualUnits?.map(unit => ({
               ...unit,
@@ -1471,6 +1489,14 @@ const App: React.FC = () => {
                                     {file.scan?.status === 'Insufficient' ? 'Unreadable / Empty' : file.scan?.status === 'PassWithWarning' ? 'Low Relevance Warning' : file.scan?.status === 'Weak' ? 'Weak Signal' : 'Ready'} &bull; {(file.size / 1024).toFixed(0)} KB
                                   </div>
                                 </div>
+                                {file.lzClassification && (
+                                  <div className="text-[10px] text-emerald-300/90 mt-1 truncate max-w-[240px]">
+                                    {file.lzClassification.evidence_class === 'platform' ? 'Class 1' : file.lzClassification.evidence_class === 'workshop' ? 'Class 3' : 'Class 2'}
+                                    {' · '}
+                                    {LZ_SOURCE_KIND_LABELS[file.lzClassification.source_kind]}
+                                    {file.lzClassification.out_of_locked_scope_providers.length > 0 ? ' · extra provider, not a scope expansion' : ''}
+                                  </div>
+                                )}
                                 {file.parseMetadata && (
                                   <div className="text-[10px] text-slate-500 mt-1 truncate max-w-[240px]">
                                     {file.kind === 'pdf' && `${file.parseMetadata.parsedTextPages}/${file.parseMetadata.totalPages} pages acquired · ${file.parseMetadata.parseQuality?.visualPagesIncluded || 0} locally OCR'd`}

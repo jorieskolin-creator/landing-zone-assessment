@@ -612,6 +612,22 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
     }
   });
 
+  const classificationBySource = new Map(records.map(record => [record.source_id, record.lz_classification]));
+  for (const chunk of chunks) {
+    const classification = classificationBySource.get(chunk.source_id);
+    chunk.evidence_class = classification?.evidence_class || 'document';
+    chunk.lz_source_kind = classification?.source_kind || 'unclassified';
+  }
+  for (const record of records) {
+    const classification = record.lz_classification;
+    if (!classification || classification.status === 'unclassified') {
+      warnings.push(`${record.source_id}: Landing Zone source unclassified; treated as Class 2 document, not platform inventory.`);
+    }
+    if (classification?.out_of_locked_scope_providers.length) {
+      warnings.push(`${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; extra providers are not a silent scope expansion.`);
+    }
+  }
+
   return {
     source_count: new Set(chunks.map(chunk => chunk.source_id)).size,
     chunk_count: chunks.length,
@@ -675,7 +691,9 @@ const renderChunk = (chunk: SourceChunk, relevance: SourceRelevanceTier): string
     chunk.withheld_visual_region_count !== undefined ? `withheld_visual_regions="${chunk.withheld_visual_region_count}"` : '',
     `type="${chunk.type}"`,
     `relevance="${relevance}"`,
-    `routed_domains="${escapeXml(routedDomains(chunk).join(','))}"`
+    `routed_domains="${escapeXml(routedDomains(chunk).join(','))}"`,
+    chunk.evidence_class ? `evidence_class="${chunk.evidence_class}"` : '',
+    chunk.lz_source_kind ? `lz_source_kind="${escapeXml(chunk.lz_source_kind)}"` : ''
   ].filter(Boolean).join(' ');
   return `<CHUNK ${attrs}>\n${escapeXml(chunk.text)}\n</CHUNK>`;
 };
@@ -702,7 +720,9 @@ const manifestFor = (chunk: SourceChunk, relevance: SourceRelevanceTier): Source
   withheld_visual_region_count: chunk.withheld_visual_region_count,
   type: chunk.type,
   relevance,
-  routed_domains: routedDomains(chunk)
+  routed_domains: routedDomains(chunk),
+  evidence_class: chunk.evidence_class,
+  lz_source_kind: chunk.lz_source_kind
 });
 
 const INLINE_CELL_CHARS = 240;

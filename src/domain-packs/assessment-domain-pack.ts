@@ -58,6 +58,8 @@ export interface ProviderPack {
 export interface EvidenceTaxonomy {
   evidence_classes: Record<EvidenceClass, { id: EvidenceClass; class_number: 1 | 2 | 3; meaning: string }>;
   representations: Array<"text" | "image" | "derived">;
+  object_types?: string[];
+  source_kinds?: string[];
 }
 
 export interface RoutingPolicy {

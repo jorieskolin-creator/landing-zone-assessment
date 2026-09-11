@@ -348,6 +348,7 @@ export interface AnalysisMeta {
   engine_version: string;
   assessment_scope?: import('./scope/step0Scope').AssessmentScope;
   scoring_surface?: ReturnType<typeof import('./scope/step0Scope').scoringSurfaceSummary>;
+  lz_acquisition?: import('./acquisition/landingZoneSourceClassification').LzAcquisitionSummary;
   source_parse_warnings?: string[];
   source_registry?: SourceRegistryRuntimeStatus;
   knowledge_base?: KnowledgeBaseRuntimeStatus;
@@ -657,6 +658,7 @@ export interface SourceRecord {
   schema_version: 'source_record_v1';
   source_id: string;
   source_name: string;
+  original_file_name?: string;
   kind: 'text' | 'pdf' | 'html' | 'csv' | 'tsv' | 'json' | 'xlsx' | 'image';
   text?: string;
   pages?: SourcePage[];
@@ -666,6 +668,7 @@ export interface SourceRecord {
   extraction?: SourceExtractionMetadata;
   acquisition?: EvidenceSourceAcquisition;
   visual_units?: VisualEvidenceUnit[];
+  lz_classification?: import('./acquisition/landingZoneSourceClassification').LzSourceClassification;
 }
 
 export interface VisualEvidenceUnit {
@@ -763,6 +766,8 @@ export interface SourceChunk {
   parse_warnings?: string[];
   routing: SourceChunkRoutingHint[];
   image?: ImageInput;
+  evidence_class?: import('./domain-packs/assessment-domain-pack').EvidenceClass;
+  lz_source_kind?: import('./acquisition/landingZoneSourceClassification').LzSourceKind;
 }
 
 export interface SourceRegistry {
@@ -821,6 +826,8 @@ export interface SourcePacketManifestItem {
   type: SourceChunkType;
   relevance: SourceRelevanceTier;
   routed_domains: string[];
+  evidence_class?: import('./domain-packs/assessment-domain-pack').EvidenceClass;
+  lz_source_kind?: import('./acquisition/landingZoneSourceClassification').LzSourceKind;
 }
 
 export interface RoutedSourcePacket {
