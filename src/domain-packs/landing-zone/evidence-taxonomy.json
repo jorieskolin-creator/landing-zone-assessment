@@ -43,8 +43,26 @@
     "Policy-assignment",
     "Network-path",
     "Log-sink",
+    "Security-config",
     "IaC",
-    "Workshop"
+    "Exception-register",
+    "Architecture-document",
+    "Workshop",
+    "Unclassified"
+  ],
+  "source_kinds": [
+    "hierarchy_organization",
+    "inventory_accounts",
+    "iam_bindings",
+    "policy_guardrails",
+    "network_topology",
+    "logging_monitoring",
+    "security_configuration",
+    "iac_vending",
+    "exception_waiver",
+    "architecture_operating_model",
+    "workshop_attestation",
+    "unclassified"
   ],
   "authority_rules": [
     "An uploaded control-plane export remains Class 1 even though it was not collected through a live connection.",

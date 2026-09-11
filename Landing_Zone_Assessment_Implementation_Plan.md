@@ -4,8 +4,8 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.7 |
-| Last updated | 2026-09-08 |
+| Current version | 1.8 |
+| Last updated | 2026-09-11 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
@@ -276,8 +276,9 @@ The original automated Landing Zone assessment result and later expert annotatio
 
 The work is ordered by technical dependency, not by separate release classifications.
 
-Current implementation status at version 1.7:
+Current implementation status at version 1.8:
 
+- Work 5 reused the copied parsers for PDF, HTML, CSV/TSV, XLSX, JSON, and PNG/JPEG/WebP, and classified those files into Landing Zone source kinds with evidence classes. Control-plane exports are Class 1, documents and IaC are Class 2, and workshop files are Class 3. Unclassified material is treated as Class 2. Extra providers found in files do not expand Step 0. Questionnaire typed ingestion remains Work 6.
 - Work 4 added Step 0 scope: named estate, providers, user-supplied roots, A–H selection, inventory-export flag, and exclusions. Scoring cannot start without a locked scope object. Out-of-scope providers and design areas are omitted from the scoring surface and are not scored as zero. Live collection stays unavailable.
 - Work 3 built the versioned Landing Zone domain pack from the frozen HTML catalogue: 8 design areas A–H, 80 unique criteria, 40 reciprocal pairs, 240 sub-criteria, provider evidence contracts, questionnaire mapping, prompt/report vocabulary contracts, and automated ID-reference validation. Knowledge Base and Tactic Playbook files remain empty contracts and must not fall back to FinOps content.
 - Work 1 copied the FinOps Engine kernel baseline into this repository and wired production knowledge access to the Landing Zone pack.
@@ -661,3 +662,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-07 | 1.5 | Work 2: applied pack-driven taxonomy to the copied kernel in this repository. Replaced A–F unions, `[A-F][1-5]` regular expressions, fixed six-domain loops, five-wide criterion generation, hard-coded expected keys and batch titles, FinOps-only routing fallbacks, and FinOps persistence prefixes. Characterization tests keep FinOps-shaped stubs and aliases. |
 | 2026-09-08 | 1.6 | Work 3: completed the Landing Zone domain pack. Frozen HTML catalogue converts to versioned JSON with 80 unique IDs, 40 reciprocal pairs, three sub-criteria each, A–H coverage, and valid provider mappings. Questionnaire, Knowledge Base, tactics, prompt, and report references resolve to pack IDs or remain empty pending-content contracts. |
 | 2026-09-08 | 1.7 | Work 4: implemented Step 0 scope. Named estate, providers, user-supplied roots, A–H selection, inventory-export recording, and exclusions lock before intake. Scoring is blocked without a valid scope object. The scoring surface loads only in-scope providers and design areas; live collection remains false. |
+| 2026-09-11 | 1.8 | Work 5: reused copied file parsers and added Landing Zone source classification. Hierarchy, inventory, IAM, policy, network, logging, security, IaC, exception, architecture, and workshop files receive evidence class and source kind. Unclassified material is Class 2. Extra providers found later do not expand Step 0. |
