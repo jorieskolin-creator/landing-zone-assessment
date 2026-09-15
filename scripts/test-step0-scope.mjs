@@ -146,6 +146,9 @@ const analyzeFn = analysis.slice(
   analysis.indexOf("const images"),
 );
 assert.match(analyzeFn, /lockScope\(options\.scope \|\| \{\}/);
+assert.doesNotMatch(analyzeFn, /lockScope\([^\n]*workshop/);
+assert.match(analysis, /lz_engine_workshop_session/);
+assert.match(analysis, /normalizeWorkshopSession\(options\.workshopSession\)/);
 assert.doesNotMatch(analyzeFn, /createRun/, "analyzeDocument must lock Step 0 before createRun");
 assert.match(analysis, /coverage_reason: "step0_out_of_scope"/);
 assert.match(analysis, /runPhase1Audit\([\s\S]*scopedBatchIds\)/);
@@ -170,7 +173,19 @@ const form = await readFile(new URL("../src/components/Step0ScopeForm.tsx", impo
 assert.match(form, /Inventory exports are included in the file set/);
 assert.match(form, /Live cloud collection is not available/);
 assert.match(form, /Lock Step 0 scope/);
+assert.match(form, /Customer \/ Organization/);
+assert.match(form, /Facilitator/);
+assert.match(form, /Participants/);
+assert.match(form, /Live inventory/);
+assert.match(form, /inventoryExportsIncludedFromChoice/);
+assert.match(form, /workshop_themes/);
 assert.doesNotMatch(form, /live_collection_permitted: true/);
+assert.doesNotMatch(form, /lockScope\([^)]*workshopSession/);
+
+assert.match(app, /emptyWorkshopSession/);
+assert.match(app, /workshopSession: normalizeWorkshopSession\(workshopSession\)/);
+assert.match(app, /setWorkshopSession\(emptyWorkshopSession\(\)\)/);
+assert.match(app, /IntakeHero/);
 
 console.log(
   `step 0 scope passed (azure+aws instances=${azureAwsSurface.instances.length}, A+B azure instances=${subsetSurface.instances.length}, gcp excluded=${azureAwsSurface.excluded_providers.join(",")})`,
