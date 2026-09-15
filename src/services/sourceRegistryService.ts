@@ -64,6 +64,15 @@ const KIND_AREA_PRIORS: Record<string, Array<{ domain: string; score: number }>>
   architecture_operating_model: [{ domain: 'C', score: 3 }, { domain: 'H', score: 3 }, { domain: 'A', score: 2 }],
 };
 
+const exclusivelyOutOfScopeProviders = (
+  detected?: string[],
+  outOfScope?: string[],
+): boolean => {
+  const found = detected || [];
+  const excluded = outOfScope || [];
+  return found.length > 0 && excluded.length > 0 && found.every(provider => excluded.includes(provider));
+};
+
 const criterionAreasFromText = (text: string): Map<string, string[]> => {
   const byArea = new Map<string, string[]>();
   const add = (domain: string, reason: string) => {
@@ -71,7 +80,7 @@ const criterionAreasFromText = (text: string): Map<string, string[]> => {
     if (!reasons.includes(reason)) reasons.push(reason);
     byArea.set(domain, reasons);
   };
-  for (const match of text.matchAll(/\b(?:AP-)?([A-H])\d+\b/g)) {
+  for (const match of text.matchAll(/\b(?:AP-)?([A-H])[1-5]\b/g)) {
     add(match[1], `criterion=${match[0]}`);
   }
   for (const match of text.matchAll(/design_area_id="([A-H])"/gi)) {
@@ -691,6 +700,8 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
     const classification = classificationBySource.get(chunk.source_id);
     chunk.evidence_class = classification?.evidence_class || 'document';
     chunk.lz_source_kind = classification?.source_kind || 'unclassified';
+    chunk.providers_detected = classification?.providers_detected;
+    chunk.out_of_locked_scope_providers = classification?.out_of_locked_scope_providers;
   }
   for (const record of records) {
     const classification = record.lz_classification;
@@ -698,7 +709,13 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
       warnings.push(`${record.source_id}: Landing Zone source unclassified; treated as Class 2 document, not platform inventory.`);
     }
     if (classification?.out_of_locked_scope_providers.length) {
-      warnings.push(`${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; extra providers are not a silent scope expansion.`);
+      const exclusive = exclusivelyOutOfScopeProviders(
+        classification.providers_detected,
+        classification.out_of_locked_scope_providers,
+      );
+      warnings.push(exclusive
+        ? `${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; withheld from A-H packets so extra providers are not a silent scope expansion.`
+        : `${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; extra providers are not a silent scope expansion.`);
     }
     if (record.extraction?.quality === 'poor') {
       warnings.push(`${record.source_id}: source extraction is unusable for A-H packetization (poor quality).`);
@@ -770,7 +787,9 @@ const renderChunk = (chunk: SourceChunk, relevance: SourceRelevanceTier): string
     `relevance="${relevance}"`,
     `routed_domains="${escapeXml(routedDomains(chunk).join(','))}"`,
     chunk.evidence_class ? `evidence_class="${chunk.evidence_class}"` : '',
-    chunk.lz_source_kind ? `lz_source_kind="${escapeXml(chunk.lz_source_kind)}"` : ''
+    chunk.lz_source_kind ? `lz_source_kind="${escapeXml(chunk.lz_source_kind)}"` : '',
+    chunk.providers_detected?.length ? `providers="${escapeXml(chunk.providers_detected.join(','))}"` : '',
+    chunk.out_of_locked_scope_providers?.length ? `out_of_scope_providers="${escapeXml(chunk.out_of_locked_scope_providers.join(','))}"` : ''
   ].filter(Boolean).join(' ');
   return `<CHUNK ${attrs}>\n${escapeXml(chunk.text)}\n</CHUNK>`;
 };
@@ -799,7 +818,9 @@ const manifestFor = (chunk: SourceChunk, relevance: SourceRelevanceTier): Source
   relevance,
   routed_domains: routedDomains(chunk),
   evidence_class: chunk.evidence_class,
-  lz_source_kind: chunk.lz_source_kind
+  lz_source_kind: chunk.lz_source_kind,
+  providers_detected: chunk.providers_detected,
+  out_of_locked_scope_providers: chunk.out_of_locked_scope_providers
 });
 
 const INLINE_CELL_CHARS = 240;
@@ -843,6 +864,7 @@ const structuredTableRows = (table: NonNullable<SourceRecord['structured_table']
 };
 
 export const rankedDomainCandidates = (registry: SourceRegistry, domainId: string) => registry.chunks
+    .filter(chunk => !exclusivelyOutOfScopeProviders(chunk.providers_detected, chunk.out_of_locked_scope_providers))
     .map(chunk => ({ chunk, tier: tierForDomain(chunk, domainId), score: scoreForDomain(chunk, domainId) }))
     .filter(item => item.tier === 'high' || item.tier === 'medium' || hasGapOrContradictionSignal(item.chunk))
     .sort((a, b) => {
@@ -939,6 +961,7 @@ export const expandDomainPacket = (
     if (selectedIds.has(chunkId)) continue;
     const chunk = registry.chunks.find(candidate => candidate.chunk_id === chunkId);
     if (!chunk) continue;
+    if (exclusivelyOutOfScopeProviders(chunk.providers_detected, chunk.out_of_locked_scope_providers)) continue;
     const nextLen = chunk.text.length + 260;
     if (chars + nextLen > HARD_PACKET_CHARS) continue;
     const tier = tierForDomain(chunk, packet.domain_id);
