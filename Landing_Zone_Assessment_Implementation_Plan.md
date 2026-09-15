@@ -4,8 +4,8 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.9 |
-| Last updated | 2026-09-11 |
+| Current version | 1.10 |
+| Last updated | 2026-09-15 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
@@ -276,8 +276,9 @@ The original automated Landing Zone assessment result and later expert annotatio
 
 The work is ordered by technical dependency, not by separate release classifications.
 
-Current implementation status at version 1.9:
+Current implementation status at version 1.10:
 
+- Work 10 integrated the Landing Zone Knowledge Base contract into the copied kernel. The pack still has empty topics while content is pending. The runtime index records pack version, schema version, and pending status in packets and RunTrace. FinOps titles, aliases, blob prefixes, and JSON fixtures are rejected and are never used as REFERENCE knowledge. Missing required Landing Zone knowledge fails visibly after content is marked available.
 - Work 6 ingested the 48-question interview export as typed Class 3 workshop records. Question ID, pack criterion refs, interview observation, evidence lead, facilitator/participant context, and source locator are preserved. Observations support operating-model interpretation. Evidence leads request additional material and are not findings.
 - Work 5 reused the copied parsers for PDF, HTML, CSV/TSV, XLSX, JSON, and PNG/JPEG/WebP, and classified those files into Landing Zone source kinds with evidence classes. Control-plane exports are Class 1, documents and IaC are Class 2, and workshop files are Class 3. Unclassified material is treated as Class 2. Extra providers found in files do not expand Step 0.
 - Work 4 added Step 0 scope: named estate, providers, user-supplied roots, A–H selection, inventory-export flag, and exclusions. Scoring cannot start without a locked scope object. Out-of-scope providers and design areas are omitted from the scoring surface and are not scored as zero. Live collection stays unavailable.
@@ -665,3 +666,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-08 | 1.7 | Work 4: implemented Step 0 scope. Named estate, providers, user-supplied roots, A–H selection, inventory-export recording, and exclusions lock before intake. Scoring is blocked without a valid scope object. The scoring surface loads only in-scope providers and design areas; live collection remains false. |
 | 2026-09-11 | 1.8 | Work 5: reused copied file parsers and added Landing Zone source classification. Hierarchy, inventory, IAM, policy, network, logging, security, IaC, exception, architecture, and workshop files receive evidence class and source kind. Unclassified material is Class 2. Extra providers found later do not expand Step 0. |
 | 2026-09-15 | 1.9 | Work 6: ingested the 48-question interview export as typed Class 3 records. Pack mapping supplies criterion refs. Interview observations remain operating-model interpretation. Evidence leads are acquisition requests, not findings. Solo questionnaire JSON is no longer rejected as a failed report import. |
+| 2026-09-15 | 1.10 | Work 10: integrated the Landing Zone Knowledge Base contract without inventing topic prose. Pack topics stay empty and pending. The kernel now builds a pack-local index, records KB version metadata on packets and RunTrace, rejects FinOps titles/aliases/blob prefixes, and fails visibly if required Landing Zone knowledge is missing. Catalogue BATCH_DEFINITIONS are not treated as an integrated Knowledge Base. |

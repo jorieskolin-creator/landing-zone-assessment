@@ -11,9 +11,19 @@ VALID_KINDS = {"mapped", "native", "not_applicable"}
 VALID_APPLICABILITY = {"applicable", "not_applicable", "out_of_scope"}
 VALID_EVIDENCE_CLASSES = {"platform", "document", "workshop"}
 VALID_PUBLICATION_STATES = {"GO", "WARN", "BLOCK"}
+REQUIRED_KB_PROHIBITED_USES = ("customer_current_state_claim", "source_evidence_quote")
+REJECTED_FINOPS_KB_MARKERS = (
+    "Cost Visibility & Allocation",
+    "Rate & Usage Optimization",
+    "Architecture & Engineering",
+    "Culture & Organization",
+    "GenAI & AI Cost Management",
+    "GenAI / Token Cost Management",
+)
 CRITERION_REF_KEYS = {
     "referenced_criterion_ids",
     "criterion_ids",
+    "applicable_criterion_ids",
     "antipattern_ids",
     "capability_ids",
     "capability_id",
@@ -22,6 +32,8 @@ CRITERION_REF_KEYS = {
 }
 DESIGN_AREA_REF_KEYS = {
     "referenced_design_area_ids",
+    "applicable_design_area_ids",
+    "design_area_ids",
     "design_area_id",
 }
 
@@ -133,14 +145,7 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
         for ref in list(binding.get("criterion_ids") or []) + list(binding.get("antipattern_ids") or []):
             _require(ref in known_ids, f"Tactic binding {binding.get('tactic_id')} references unknown id {ref}")
     knowledge = pack.get("knowledgeBase") or {}
-    if "must_not_fallback_to_finops_content" in knowledge:
-        _require(
-            knowledge["must_not_fallback_to_finops_content"] is True,
-            "Knowledge Base must not fall back to FinOps content",
-        )
-    for topic in knowledge.get("topics") or []:
-        for ref in topic.get("criterion_ids") or []:
-            _require(ref in known_ids, f"Knowledge topic {topic.get('id')} references unknown criterion {ref}")
+    _validate_knowledge_base(knowledge, known_ids, design_area_ids)
 
     for template in pack.get("prompts") or []:
         for ref in template.get("referenced_criterion_ids") or []:
@@ -179,6 +184,90 @@ def validate_pack(pack: AssessmentDomainPack) -> None:
     states = quality_gate.get("publication_states")
     if states:
         _require(set(states) == VALID_PUBLICATION_STATES, "Quality Gate publication states must be GO, WARN and BLOCK")
+
+
+def _contains_rejected_finops_knowledge(*values: Any) -> bool:
+    haystack = " ".join(str(value) for value in values if value)
+    return any(marker in haystack for marker in REJECTED_FINOPS_KB_MARKERS)
+
+
+def _topic_area_ids(topic: dict[str, Any]) -> list[str]:
+    return list(topic.get("applicable_design_area_ids") or topic.get("design_area_ids") or [])
+
+
+def _topic_criterion_ids(topic: dict[str, Any]) -> list[str]:
+    return list(topic.get("applicable_criterion_ids") or topic.get("criterion_ids") or [])
+
+
+def _topic_providers(topic: dict[str, Any]) -> list[str]:
+    value = topic.get("provider_applicability")
+    if value == "all":
+        return sorted(VALID_PROVIDER_IDS)
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, dict):
+        return [str(item) for item in value]
+    return []
+
+
+def _validate_knowledge_base(knowledge: dict[str, Any], known_ids: set[str], design_area_ids: set[str]) -> None:
+    if "must_not_fallback_to_finops_content" in knowledge:
+        _require(
+            knowledge["must_not_fallback_to_finops_content"] is True,
+            "Knowledge Base must not fall back to FinOps content",
+        )
+    topics = knowledge.get("topics") or []
+    status = knowledge.get("status")
+    if (
+        status
+        and status != "contract_defined_content_pending"
+        and knowledge.get("load_policy") == "fail_visible_if_required_content_missing"
+        and not topics
+    ):
+        raise PackValidationError("Knowledge Base required content is missing")
+    for topic in topics:
+        _require(isinstance(topic, dict), "Knowledge topic must be an object")
+        topic_id = topic.get("id") or "(missing-id)"
+        _require(bool(topic.get("id")), "Knowledge topic is missing id")
+        area_ids = _topic_area_ids(topic)
+        criterion_ids = _topic_criterion_ids(topic)
+        _require(bool(area_ids), f"Knowledge topic {topic_id} must declare applicable design areas")
+        _require(bool(criterion_ids), f"Knowledge topic {topic_id} must declare applicable criterion IDs")
+        for area_id in area_ids:
+            _require(area_id in design_area_ids, f"Knowledge topic {topic_id} references unknown design area {area_id}")
+        for ref in criterion_ids:
+            _require(ref in known_ids, f"Knowledge topic {topic_id} references unknown criterion {ref}")
+        providers = _topic_providers(topic)
+        _require(bool(providers), f"Knowledge topic {topic_id} is missing provider applicability")
+        for provider_id in providers:
+            _require(provider_id in VALID_PROVIDER_IDS, f"Knowledge topic {topic_id} has unknown provider {provider_id}")
+        _require(
+            bool(topic.get("allowed_interpretation_use")),
+            f"Knowledge topic {topic_id} must declare allowed interpretation use",
+        )
+        prohibited = list(topic.get("prohibited_use") or []) + list(knowledge.get("prohibited_use") or [])
+        for use in REQUIRED_KB_PROHIBITED_USES:
+            _require(use in prohibited, f"Knowledge topic {topic_id} must prohibit {use}")
+        citation = topic.get("citation")
+        _require(
+            isinstance(citation, dict) and bool(citation.get("source")),
+            f"Knowledge topic {topic_id} is missing citation.source",
+        )
+        provenance = topic.get("provenance")
+        _require(
+            isinstance(provenance, dict) and bool(provenance.get("origin")),
+            f"Knowledge topic {topic_id} is missing provenance.origin",
+        )
+        _require(
+            not _contains_rejected_finops_knowledge(
+                topic.get("id"),
+                topic.get("title"),
+                topic.get("body"),
+                (citation or {}).get("source") if isinstance(citation, dict) else citation,
+                (provenance or {}).get("origin") if isinstance(provenance, dict) else provenance,
+            ),
+            f"Knowledge topic {topic_id} contains rejected FinOps Knowledge Base content",
+        )
 
 
 def _check_invariant(invariants: dict[str, Any], key: str, actual: int) -> None:

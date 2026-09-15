@@ -67,8 +67,9 @@ for(const domain of ['A','B','C','D','E','F'])for(const stage of stages){const p
 assert.equal(packetKeys.length,24);const baseline=buildShadowKnowledgePacket(index,{batchId:'A',stage:'forensic_audit'});const changed={...index,documents:index.documents.map((document,index)=>index===0?{...document,sections:{...document.sections,canonical_definition:'changed governed content'}}:document)};assert.notEqual(buildShadowKnowledgePacket(changed,{batchId:'A',stage:'forensic_audit'}).packet_hash,baseline.packet_hash,'packet hash must change with governed packet content');
 const missingRequired={...index,documents:index.documents.map((document,index)=>index===0?{...document,sections:{...document.sections,canonical_definition:''}}:document)};const invalidPacket=buildShadowKnowledgePacket(missingRequired,{batchId:'A',stage:'forensic_audit'});assert.equal(invalidPacket.readiness,'NOT_READY');assert.ok(invalidPacket.missing_requirements.includes('A1:canonical_definition'));
 const runtimeContextSource=kbSource.slice(kbSource.indexOf('async fetchReferenceKnowledgeBaseContext'),kbSource.indexOf('async fetchStrategicPlaybook'));
-const fallbackCondition=runtimeContextSource.slice(runtimeContextSource.indexOf('if (index.status.source'),runtimeContextSource.indexOf('return formatRemoteKbContext'));
+const fallbackCondition=runtimeContextSource.slice(runtimeContextSource.indexOf('if (!knowledgeDocumentsAreUsable'),runtimeContextSource.indexOf('return formatRemoteKbContext'));
 assert.doesNotMatch(fallbackCondition,/shadow_ready|shadowPacket\.readiness/,'future packet diagnostics must not gate runtime KB prompt selection');
-assert.match(fallbackCondition,/index\.status\.source !== 'remote_blob'/);
-assert.match(fallbackCondition,/index\.status\.failure_count > 0/);
+assert.match(fallbackCondition,/knowledgeDocumentsAreUsable\(index\)/);
+assert.match(fallbackCondition,/index\.status\.source === 'remote_blob' && index\.status\.failure_count > 0/);
+assert.doesNotMatch(fallbackCondition,/built_in/,'catalogue built_in is not a substitute Knowledge Base');
 console.log('scale readiness tests passed');

@@ -133,6 +133,36 @@ const healthyRemoteWithFutureContractNotReady = {
 const remoteSnapshot = validateKnowledgeAcquisition(healthyRemoteWithFutureContractNotReady);
 assert.equal(remoteSnapshot.mode, 'remote_blob', 'future packet readiness telemetry must not select built-in fallback');
 
+const pendingLzKnowledge = {
+  status: {
+    source: 'lz_pack_pending', document_count: 0, failure_count: 1,
+    kb_content_status: 'contract_defined_content_pending', kb_pack_version: '1.0.0',
+  },
+  documents: [], failures: [{ pathname: 'landing-zone/knowledge-base-manifest.json', reason: 'LZ_KNOWLEDGE_CONTENT_PENDING' }],
+};
+assert.equal(validateKnowledgeAcquisition(pendingLzKnowledge).mode, 'built_in', 'pending LZ knowledge must not hard-fail catalogue integrity');
+assert.throws(
+  () => validateKnowledgeAcquisition({
+    status: { source: 'unavailable', document_count: 0, failure_count: 1, kb_content_status: 'content_available' },
+    documents: [], failures: [],
+  }),
+  error => error instanceof PipelineIntegrityError && error.code === 'KNOWLEDGE_PACKET_INTEGRITY_FAILED',
+  'required LZ knowledge missing after leaving pending must fail closed',
+);
+assert.throws(
+  () => validateKnowledgeAcquisition({
+    status: { source: 'remote_blob', document_count: 1, failure_count: 0 },
+    documents: [{
+      pathname: 'Knowledge Base/Cost Visibility & Allocation/A - Cost Visibility & Allocation - A1.pdf',
+      domain_name: 'Cost Visibility & Allocation',
+      title: 'Comprehensive Cost Allocation & Tagging',
+    }],
+    failures: [],
+  }),
+  error => error instanceof PipelineIntegrityError && error.code === 'KNOWLEDGE_PACKET_INTEGRITY_FAILED',
+  'FinOps-shaped REFERENCE knowledge must not pass acquisition',
+);
+
 const ids = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(domain => [1, 2, 3, 4, 5].map(index => `${domain}${index}`));
 const logs = Object.fromEntries(ids.map(id => [id, {
   count: 0,

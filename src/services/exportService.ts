@@ -19,6 +19,22 @@ import { stripSourceFilenameMetadata } from './privacyService';
 const BATCHES = Object.keys(BATCH_TITLES);
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const formatKnowledgeBaseStatus = (kb: DiagnosticResult['meta']['knowledge_base']): string => {
+  if (!kb) return '';
+  if (kb.source === 'remote_blob') {
+    return `Remote Landing Zone KB ${kb.document_count} PDFs`;
+  }
+  if (kb.source === 'lz_pack_index') {
+    return `Landing Zone pack KB ${kb.document_count} topic(s)`;
+  }
+  const pending = kb.source === 'lz_pack_pending'
+    || kb.kb_content_status === 'contract_defined_content_pending';
+  if (pending) {
+    return 'Landing Zone Knowledge Base content pending (not FinOps fallback)';
+  }
+  return 'Landing Zone Knowledge Base unavailable (not FinOps fallback)';
+};
 const ASSESSMENT_METHOD_DISCLAIMER =
   'This assessment was created using the FinOps Engine, which combines deterministic analysis with governed generative-AI processing. Generative AI supports bounded evidence interpretation, verification, diagnosis and synthesis tasks. Scoring, calculations, evidence sufficiency, confidence thresholds and final GO/WARN/BLOCK decisions are controlled by deterministic system logic. Customer evidence remains the source of truth, and raw customer evidence is not supplied directly to generative reasoning models. Generated analytical content is validated against evidence and system rules before publication.';
 const renderAssessmentMethodDisclaimer = (): string =>
@@ -793,9 +809,7 @@ export const generateSummaryReportHtml = (unsafeResult: DiagnosticResult): strin
   const gauges = reportView.metrics;
   const qgTone = result.quality_gate.decision === 'GO' ? 'go' : result.quality_gate.decision === 'WARN' ? 'warn' : 'block';
   const kbStatus = result.meta.knowledge_base
-    ? result.meta.knowledge_base.source === 'remote_blob'
-      ? `Remote KB ${result.meta.knowledge_base.document_count} PDFs`
-      : 'Built-in KB fallback'
+    ? formatKnowledgeBaseStatus(result.meta.knowledge_base)
     : '';
   const sourceNote = (result.meta.source_parse_warnings?.length ?? 0) > 0
     ? `<p class="source-note">Source coverage note: ${escapeHtml(displaySourceCoverageWarning(result.meta.source_parse_warnings![0]))}${result.meta.source_parse_warnings!.length > 1 ? ` (+${result.meta.source_parse_warnings!.length - 1} more)` : ''}</p>`
@@ -1239,9 +1253,7 @@ export const generateReportHtml = (unsafeResult: DiagnosticResult): string => {
   <h1>FinOps Master Data</h1>
   <div class="meta">
     <p>Generated ${escapeHtml(result.meta.timestamp)} · FinOps Engine v.${escapeHtml(result.meta.engine_version)}</p>
-    ${result.meta.knowledge_base ? `<p>Knowledge Base: ${result.meta.knowledge_base.source === 'remote_blob'
-      ? `Remote PDF KB loaded (${escapeHtml(String(result.meta.knowledge_base.document_count))} PDFs${result.meta.knowledge_base.failure_count ? `, ${escapeHtml(String(result.meta.knowledge_base.failure_count))} issue(s)` : ''})`
-      : 'Built-in KB fallback'}</p>` : ''}
+    ${result.meta.knowledge_base ? `<p>Knowledge Base: ${escapeHtml(formatKnowledgeBaseStatus(result.meta.knowledge_base))}${result.meta.knowledge_base.source === 'remote_blob' && result.meta.knowledge_base.failure_count ? `, ${escapeHtml(String(result.meta.knowledge_base.failure_count))} issue(s)` : ''}</p>` : ''}
     ${(result.meta.source_parse_warnings?.length ?? 0) > 0 ? `<p>Source coverage note: ${escapeHtml(displaySourceCoverageWarning(result.meta.source_parse_warnings![0]))}${result.meta.source_parse_warnings!.length > 1 ? ` (+${result.meta.source_parse_warnings!.length - 1} more)` : ''}</p>` : ''}
   </div>
 

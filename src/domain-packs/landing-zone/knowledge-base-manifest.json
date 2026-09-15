@@ -16,6 +16,32 @@
     "source_evidence_quote",
     "audited_finding"
   ],
+  "topic_contract": {
+    "required_fields": [
+      "id",
+      "applicable_design_area_ids",
+      "applicable_criterion_ids",
+      "provider_applicability",
+      "allowed_interpretation_use",
+      "prohibited_use",
+      "citation",
+      "provenance"
+    ],
+    "must_resolve_to_pack_criteria": true,
+    "must_resolve_to_pack_design_areas": true,
+    "allowed_uses": [
+      "rubric_context",
+      "maturity_examples",
+      "antipattern_examples",
+      "evidence_requirements",
+      "validation_questions"
+    ],
+    "prohibited_uses": [
+      "customer_current_state_claim",
+      "source_evidence_quote",
+      "audited_finding"
+    ]
+  },
   "load_policy": "fail_visible_if_required_content_missing",
   "must_not_fallback_to_finops_content": true
 }

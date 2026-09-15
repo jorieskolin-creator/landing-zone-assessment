@@ -12,6 +12,7 @@ const KERNEL_DIRS = [
   "src/orchestrator.ts",
   "src/knowledge_base/index.ts",
   "src/knowledge_base/landingZoneKnowledge.ts",
+  "src/knowledge_base/landingZoneKnowledgeIndex.ts",
   "src/App.tsx",
   "lib/kbIndex.js",
   "lib/outputContracts.js",

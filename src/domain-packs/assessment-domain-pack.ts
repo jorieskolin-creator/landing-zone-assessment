@@ -73,12 +73,51 @@ export interface PersonaDefinition {
   description: string;
 }
 
+export interface KnowledgeTopicCitation {
+  source: string;
+  locator?: string;
+}
+
+export interface KnowledgeTopicProvenance {
+  origin: string;
+  version?: string;
+  recorded_at?: string;
+}
+
+export interface KnowledgeTopic {
+  id: string;
+  title?: string;
+  applicable_design_area_ids?: string[];
+  design_area_ids?: string[];
+  applicable_criterion_ids?: string[];
+  criterion_ids?: string[];
+  provider_applicability?: ProviderId[] | "all" | Record<ProviderId, string>;
+  allowed_interpretation_use?: string[];
+  prohibited_use?: string[];
+  citation?: KnowledgeTopicCitation;
+  provenance?: KnowledgeTopicProvenance;
+  stream?: "maturity" | "antipattern";
+  body?: string;
+}
+
+export interface KnowledgeBaseTopicContract {
+  required_fields: string[];
+  must_resolve_to_pack_criteria?: boolean;
+  must_resolve_to_pack_design_areas?: boolean;
+  allowed_uses?: string[];
+  prohibited_uses?: string[];
+}
+
 export interface KnowledgeBaseDescriptor {
   version: string;
   schemaVersion: string;
   status: string;
-  topics: unknown[];
+  description?: string;
+  topics: KnowledgeTopic[];
+  allowed_interpretation_use?: string[];
   prohibited_use: string[];
+  topic_contract?: KnowledgeBaseTopicContract;
+  load_policy?: string;
   must_not_fallback_to_finops_content: boolean;
 }
 
