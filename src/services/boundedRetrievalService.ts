@@ -5,7 +5,16 @@ const MAX_PASSES=2 as const;
 const MINIMUM_GAIN_POINTS=5 as const;
 const MAX_SELECTIONS_PER_PASS=8;
 const NEUTRAL_GAP_TERMS=['owner','ownership','enforce','enforcement','exception','execution','review','evidence','policy','process','control'];
-const DOMAIN_EXPANSION_TERMS:Record<string,string[]>={A:['mapping','label','attribution','showback','chargeback'],B:['discount','commitment','capacity','consumption','idle'],C:['governance','approval','budget','forecast','compliance'],D:['design','platform','infrastructure','scaling','architecture'],E:['accountability','training','collaboration','incentive','organization'],F:['model','inference','token','gateway','ai spend']};
+const DOMAIN_EXPANSION_TERMS:Record<string,string[]>={
+  A:['hierarchy','management group','tenant root','billing account'],
+  B:['privileged access','break-glass','identity center','pim eligible'],
+  C:['subscription vending','naming standard','environment separation'],
+  D:['hub and spoke','private endpoint','transit gateway','vnet peering'],
+  E:['defender','guardduty','security baseline','key vault'],
+  F:['diagnostic settings','log sink','cloudtrail','activity log'],
+  G:['policy assignment','org policy','service control','exemption'],
+  H:['terraform','bicep','vending pipeline','platform as code']
+};
 const percent=(count:number,total:number):number=>total>0?Math.round((count/total)*100):0;
 const hasNeutralGapSignal=(chunk:SourceChunk,domainId:string,extraTerms:string[]=[]):boolean=>{
   const text=chunk.text.toLowerCase();
