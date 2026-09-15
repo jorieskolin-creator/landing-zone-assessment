@@ -774,6 +774,8 @@ export interface SourceChunk {
   image?: ImageInput;
   evidence_class?: import('./domain-packs/assessment-domain-pack').EvidenceClass;
   lz_source_kind?: import('./acquisition/landingZoneSourceClassification').LzSourceKind;
+  providers_detected?: string[];
+  out_of_locked_scope_providers?: string[];
 }
 
 export interface SourceRegistry {
@@ -834,6 +836,8 @@ export interface SourcePacketManifestItem {
   routed_domains: string[];
   evidence_class?: import('./domain-packs/assessment-domain-pack').EvidenceClass;
   lz_source_kind?: import('./acquisition/landingZoneSourceClassification').LzSourceKind;
+  providers_detected?: string[];
+  out_of_locked_scope_providers?: string[];
 }
 
 export interface RoutedSourcePacket {

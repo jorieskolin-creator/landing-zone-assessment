@@ -10,7 +10,8 @@ assert.doesNotMatch(registrySource, /const DOMAIN_TERMS/);
 assert.match(registrySource, /DOMAIN_ROUTING_TERMS\[domain\]/);
 assert.match(registrySource, /routeChunk\(text, doc\.lz_classification\)/);
 assert.match(registrySource, /kind_prior=/);
-assert.match(registrySource, /criterion=/);
+assert.match(registrySource, /\\b\(\?:AP-\)\?\(\[A-H\]\)\[1-5\]\\b/);
+assert.doesNotMatch(registrySource, /\\b\(\?:AP-\)\?\(\[A-H\]\)\\d\+\\b/);
 assert.match(registrySource, /UNCLASSIFIED_SOURCES_PRESENT/);
 assert.match(registrySource, /OUT_OF_LOCKED_SCOPE_PROVIDERS_PRESENT/);
 assert.match(registrySource, /UNUSABLE_SOURCE_EXTRACTION_PRESENT/);
@@ -217,6 +218,58 @@ const outStatus = sourceRegistryRuntimeStatus(
 assert.equal(outStatus.acquisition_readiness.status, "READY_WITH_WARNINGS");
 assert.ok(outStatus.acquisition_readiness.reasons.includes("OUT_OF_LOCKED_SCOPE_PROVIDERS_PRESENT"));
 assert.ok(outRegistry.chunks[0].routing.some((item) => item.reasons.includes("out_of_scope_provider=aws")));
+assert.ok(outRegistry.warnings.some((warning) => warning.includes("withheld from A-H packets")));
+assert.ok(
+  Object.values(outPackets).every((packet) => !packet.manifest.some((item) => item.source_id === "src-aws")),
+  "exclusively out-of-scope provider evidence must not enter A-H packets",
+);
+assert.ok(Object.values(outPackets).every((packet) => !packet.text.includes("src-aws")));
+
+const mixedProviderRecord = {
+  schema_version: "source_record_v1",
+  source_id: "src-mixed",
+  source_name: "Document src-mixed",
+  kind: "json",
+  text: '{"id":"root","children":[{"id":"corp"}]}',
+  lz_classification: {
+    schema_version: "lz_source_classification_v1",
+    source_kind: "hierarchy_organization",
+    evidence_class: "platform",
+    evidence_class_number: 1,
+    object_type: "Inventory",
+    status: "classified",
+    providers_detected: ["azure", "aws"],
+    out_of_locked_scope_providers: ["aws"],
+    structured_export: true,
+    object_count: 1,
+    id_fields: [],
+    signals: ["mixed-provider"],
+  },
+};
+const mixedProviderPackets = buildDomainPackets(buildSourceRegistry([mixedProviderRecord]));
+assert.ok(mixedProviderPackets.A.manifest.some((item) => item.source_id === "src-mixed"));
+assert.match(mixedProviderPackets.A.text, /providers="azure,aws"/);
+assert.match(mixedProviderPackets.A.text, /out_of_scope_providers="aws"/);
+
+const inventedCriterion = buildSourceRegistry([{
+  schema_version: "source_record_v1",
+  source_id: "src-b12",
+  source_name: "Document src-b12",
+  kind: "text",
+  text: "Locker label B12 is not a catalogue criterion.",
+}]);
+assert.ok(inventedCriterion.chunks[0].routing.every((item) => !item.reasons.includes("criterion=B12")));
+assert.ok(inventedCriterion.chunks[0].routing.every((item) => item.score === 0));
+
+const catalogueCriterion = buildSourceRegistry([{
+  schema_version: "source_record_v1",
+  source_id: "src-a1",
+  source_name: "Document src-a1",
+  kind: "text",
+  text: "Referenced criterion A1 is in the frozen catalogue.",
+}]);
+assert.ok(hint(catalogueCriterion, "A").reasons.includes("criterion=A1"));
+assert.ok(hint(catalogueCriterion, "A").score >= 4);
 
 const unclassifiedRegistry = buildSourceRegistry([{
   schema_version: "source_record_v1",
