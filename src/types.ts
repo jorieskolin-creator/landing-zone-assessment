@@ -349,6 +349,7 @@ export interface AnalysisMeta {
   assessment_scope?: import('./scope/step0Scope').AssessmentScope;
   scoring_surface?: ReturnType<typeof import('./scope/step0Scope').scoringSurfaceSummary>;
   lz_acquisition?: import('./acquisition/landingZoneSourceClassification').LzAcquisitionSummary;
+  lz_questionnaire_ingestion?: import('./acquisition/questionnaireIngestion').LzQuestionnaireIngestionSummary;
   source_parse_warnings?: string[];
   source_registry?: SourceRegistryRuntimeStatus;
   knowledge_base?: KnowledgeBaseRuntimeStatus;
@@ -669,6 +670,7 @@ export interface SourceRecord {
   acquisition?: EvidenceSourceAcquisition;
   visual_units?: VisualEvidenceUnit[];
   lz_classification?: import('./acquisition/landingZoneSourceClassification').LzSourceClassification;
+  lz_questionnaire_session?: import('./acquisition/questionnaireIngestion').LzQuestionnaireSession;
 }
 
 export interface VisualEvidenceUnit {

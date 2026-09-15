@@ -55,4 +55,15 @@ assert.equal(broken.kind, 'invalid_report');
 const incomplete = parseDiagnosticResultJson(JSON.stringify({ phase_1_audit_logs: {} }));
 assert.equal(incomplete.kind, 'invalid_report');
 
+const questionnaire = parseDiagnosticResultJson(JSON.stringify({
+  version: 1,
+  saved_at: '2026-09-15T07:00:00.000Z',
+  meta: { facilitator: 'Alex' },
+  answers: { 'A-Q1': { answer: 'Tenant Root Group', evidence: 'Request MG export' } },
+}));
+assert.equal(questionnaire.kind, 'not_report');
+
+const ordinaryJson = parseDiagnosticResultJson(JSON.stringify({ managementGroups: [] }));
+assert.equal(ordinaryJson.kind, 'not_report');
+
 console.log('report import unit tests passed');

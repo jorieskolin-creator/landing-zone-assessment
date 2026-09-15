@@ -37,13 +37,25 @@ const extractFinOpsPayloadScript = (html: string): string | null => {
   return match?.[1]?.trim() || null;
 };
 
+const looksLikeDiagnosticAttempt = (payload: unknown): boolean => {
+  if (!payload || typeof payload !== 'object') return false;
+  const value = payload as Record<string, unknown>;
+  return 'phase_1_audit_logs' in value
+    || 'phase_2_validation' in value
+    || 'phase_3_strategy' in value
+    || 'quality_gate' in value;
+};
+
 export const parseDiagnosticResultJson = (jsonText: string): ReportImportResult => {
   try {
     const parsed = JSON.parse(jsonText);
-    if (!isDiagnosticResultPayload(parsed)) {
+    if (isDiagnosticResultPayload(parsed)) {
+      return { kind: 'report', result: parsed };
+    }
+    if (looksLikeDiagnosticAttempt(parsed)) {
       return { kind: 'invalid_report', error: 'The embedded FinOps report payload is incomplete or uses an inactive historical maturity contract.' };
     }
-    return { kind: 'report', result: parsed };
+    return { kind: 'not_report' };
   } catch {
     return { kind: 'invalid_report', error: 'The embedded FinOps report payload could not be parsed.' };
   }

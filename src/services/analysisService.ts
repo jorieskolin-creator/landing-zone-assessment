@@ -74,6 +74,11 @@ import {
   applyLandingZoneSourceClassification,
   summarizeLzAcquisition,
 } from "../acquisition/landingZoneSourceClassification";
+import {
+  applyQuestionnaireIngestion,
+  questionnaireIngestionWarnings,
+  summarizeQuestionnaireIngestion,
+} from "../acquisition/questionnaireIngestion";
 import { LANDING_ZONE_PACK } from "../domain-packs/loadLandingZonePack";
 // @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
 import { OUTPUT_CONTRACT_IDS, withOneOutputRegeneration } from "../../lib/outputContracts.js";
@@ -361,7 +366,8 @@ export const analyzeDocument = async (
     if (privacy.decision.decision === 'BLOCK') {
       throw new Error(`Deterministic privacy gate blocked the evidence set (${privacy.decision.blocking_codes.join(', ')}). Remove prohibited secrets before running the assessment.`);
     }
-    const acquiredSources = applyLandingZoneSourceClassification(privacy.sources, [...lockedScope.providers]);
+    const classifiedSources = applyLandingZoneSourceClassification(privacy.sources, [...lockedScope.providers]);
+    const acquiredSources = applyQuestionnaireIngestion(classifiedSources);
     const extractionWarnings = acquiredSources.filter(source => source.extraction?.truncated || source.extraction?.quality === 'poor' || (source.parse_warnings?.length || 0) > 0).length;
     emitProgress({ stage: 'extraction', status: extractionWarnings > 0 ? 'completed_with_warnings' : 'completed' });
     emitProgress({ stage: 'packetization', status: 'in_progress' });
@@ -408,6 +414,7 @@ export const analyzeDocument = async (
     let activePacketCoverageWarnings = packetCoverageWarnings(sourcePackets);
     let sourceParseWarnings = [
       ...sourceRegistry.warnings,
+      ...questionnaireIngestionWarnings(acquiredSources),
       ...dlpScan.caution_hits.map(hit => `DLP caution: ${hit.kind} detected in ${hit.chunk_ids.length} chunk(s).`),
       ...activePacketCoverageWarnings,
     ];
@@ -1746,6 +1753,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         assessment_scope: lockedScope,
         scoring_surface: scoringSurfaceSummary(scoringSurface),
         lz_acquisition: summarizeLzAcquisition(acquiredSources),
+        lz_questionnaire_ingestion: summarizeQuestionnaireIngestion(acquiredSources),
         source_parse_warnings: sourceParseWarnings.length > 0 ? sourceParseWarnings : undefined,
         source_registry: sourceRegistryStatus,
         knowledge_base: referenceKbIndex.status,
