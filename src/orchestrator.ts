@@ -59,6 +59,7 @@ export interface Phase1Result {
   evidence_adjudication_models_used: string[];
   evidence_gap_analysis_models_used: string[];
   semantic_gap_retrieval: SemanticGapRetrievalTrace;
+  meta?: Record<string, any>;
 }
 
 const runSingleBatch = async (
