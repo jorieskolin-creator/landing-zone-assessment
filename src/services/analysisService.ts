@@ -13,7 +13,7 @@ import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_T
 import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
 import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
 import { EVIDENCE_DENSITY_BLOCK, runQualityGate, runQualityGateExplanation } from "./qualityGateService";
-import { calculateMetrics } from "./metricsService";
+import { scoreLandingZoneAssessment } from "./landingZoneScoringAdapter";
 import {
   buildRegenerateAppendix,
   buildRoadmapFactCheckPrompt,
@@ -667,13 +667,14 @@ export const analyzeDocument = async (
         scoringSurface.design_area_ids.includes(pair.domain_id),
       ),
     };
-    const validationData = calculateMetrics(auditLogs, {
-      evidencePacketReady: sourceRegistryStatus.acquisition_readiness.status !== 'BLOCKED',
-      maturityCriterionTotal: scopedMaturityIds.length,
-      antipatternCriterionTotal: scopedAntipatternIds.length,
+    const lzScoring = scoreLandingZoneAssessment({
+      logs: auditLogs,
+      scoringSurface,
       pairRegistry: scopedPairRegistry,
-      designAreaIds: scoringSurface.design_area_ids,
+      sources: acquiredSources,
+      evidencePacketReady: sourceRegistryStatus.acquisition_readiness.status !== 'BLOCKED',
     });
+    const validationData = lzScoring.published_phase2;
     const silentDomainIds = validationData.assessment_sufficiency.silent_domain_ids;
     const unresolvedDomainIds = new Set(validationData.verification_unresolved.map(item => item.charAt(1)));
     const overallScoreAvailable = validationData.assessment_sufficiency.decision === 'PASS'
@@ -695,7 +696,7 @@ export const analyzeDocument = async (
     });
     emitProgress({ stage: 'calculation', status: 'completed' });
 
-    console.log(`[FinOps] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.crawl_walk_run}`);
+      console.log(`[FinOps] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}`);
 
     // Confidence bracket: drives which synthesis prompt runs.
     // LOW   → findings (no roadmap, no case studies)
@@ -1754,6 +1755,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         scoring_surface: scoringSurfaceSummary(scoringSurface),
         lz_acquisition: summarizeLzAcquisition(acquiredSources),
         lz_questionnaire_ingestion: summarizeQuestionnaireIngestion(acquiredSources),
+        lz_scoring: lzScoring,
         source_parse_warnings: sourceParseWarnings.length > 0 ? sourceParseWarnings : undefined,
         source_registry: sourceRegistryStatus,
         knowledge_base: referenceKbIndex.status,

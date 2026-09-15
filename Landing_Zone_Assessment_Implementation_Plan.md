@@ -4,8 +4,8 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.9 |
-| Last updated | 2026-09-11 |
+| Current version | 1.10 |
+| Last updated | 2026-09-15 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
@@ -665,3 +665,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-08 | 1.7 | Work 4: implemented Step 0 scope. Named estate, providers, user-supplied roots, A–H selection, inventory-export recording, and exclusions lock before intake. Scoring is blocked without a valid scope object. The scoring surface loads only in-scope providers and design areas; live collection remains false. |
 | 2026-09-11 | 1.8 | Work 5: reused copied file parsers and added Landing Zone source classification. Hierarchy, inventory, IAM, policy, network, logging, security, IaC, exception, architecture, and workshop files receive evidence class and source kind. Unclassified material is Class 2. Extra providers found later do not expand Step 0. |
 | 2026-09-15 | 1.9 | Work 6: ingested the 48-question interview export as typed Class 3 records. Pack mapping supplies criterion refs. Interview observations remain operating-model interpretation. Evidence leads are acquisition requests, not findings. Solo questionnaire JSON is no longer rejected as a failed report import. |
+| 2026-09-15 | 1.10 | Work 9: adapted ADR-002 pair scoring behind a Landing Zone adapter. Provider-scoped applicable instances are the denominator; out-of-scope and not-applicable instances are excluded. Evidence-class policy demotes Class 2/3 positive resolution and tested absence before scoring. Confirmed paired anti-patterns clamp pair value without erasing capability evidence. Results stay per provider; multi-provider headlines are not blended. Labels map Crawl/Walk/Run onto Foundation/Pilot/Rollout/Operate without new score cutovers. Quality Gate remains evidence sufficiency, not customer pass/fail. Work 7 packet routing and Work 8 per-provider forensic evaluation remain pending, so multi-provider slots stay unresolved until those land. |

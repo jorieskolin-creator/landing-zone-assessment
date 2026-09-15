@@ -35,7 +35,7 @@ assert.match(orchestrator, /catch \(error\) \{[\s\S]*?'targeted_rescan_unavailab
 const integrityGatePosition = analysis.indexOf('validatePreSynthesisIntegrity(');
 const effectivePacketPosition = analysis.indexOf('sourcePackets = { ...semanticPackets }');
 const provenancePosition = analysis.indexOf('reconcileEvidenceProvenance(');
-const calculationPosition = analysis.indexOf('const validationData = calculateMetrics');
+const calculationPosition = analysis.indexOf('scoreLandingZoneAssessment(');
 const synthesisPosition = analysis.indexOf("emitProgress({ stage: 'synthesis', status: 'in_progress' })");
 assert.ok(integrityGatePosition > 0 && integrityGatePosition < calculationPosition && calculationPosition < synthesisPosition, 'technical domain failures must stop before calculation and synthesis');
 assert.ok(effectivePacketPosition > 0 && effectivePacketPosition < provenancePosition && provenancePosition < integrityGatePosition, 'effective semantic-gap packets must become authoritative before provenance and pre-synthesis integrity checks');
