@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Landing Zone Assessment Engine — Global Source Register v1.0.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:        #0E1B2C;
+    --ink-2:      #1F2D3F;
+    --ink-3:      #4A5668;
+    --paper:      #F7F5F0;
+    --paper-2:    #ECE8DF;
+    --rule:       #C9C2B5;
+    --rule-soft:  #E1DCD0;
+
+    --accent:     #B5472D;   /* forensic accent — burnt sienna */
+    --accent-2:   #2D5F4E;   /* maturity green */
+    --accent-3:   #8C6D2F;   /* anti-pattern ochre */
+
+    --good:       #2D5F4E;
+    --warn:       #B5472D;
+
+    --serif:      'Fraunces', Georgia, serif;
+    --sans:       'Inter', -apple-system, system-ui, sans-serif;
+    --mono:       'JetBrains Mono', 'Courier New', monospace;
+
+    --max:        1180px;
+    --gutter:     clamp(20px, 4vw, 56px);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Subtle paper texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(14, 27, 44, 0.025) 1px, transparent 0);
+    background-size: 24px 24px;
+    z-index: 0;
+  }
+
+  main { position: relative; z-index: 1; }
+
+  /* ─── Layout ─── */
+  .container {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+
+  section { padding: 80px 0; border-bottom: 1px solid var(--rule-soft); }
+  section:last-of-type { border-bottom: none; }
+
+  /* ─── Header / Hero ─── */
+  .hero {
+    padding: 100px 0 80px;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(38px, 5.5vw, 68px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 32px;
+    max-width: 900px;
+    font-variation-settings: "opsz" 144;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(18px, 1.8vw, 22px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 760px;
+    font-variation-settings: "opsz" 36;
+  }
+
+  .lede strong {
+    color: var(--ink);
+    font-weight: 500;
+    background: linear-gradient(transparent 60%, rgba(181, 71, 45, 0.18) 60%);
+    padding: 0 2px;
+  }
+
+  /* ─── Section headings ─── */
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .section-tag .num {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(28px, 3.6vw, 44px);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 24px;
+    max-width: 880px;
+    font-variation-settings: "opsz" 96;
+  }
+
+  h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(20px, 2vw, 26px);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    font-variation-settings: "opsz" 36;
+  }
+
+  h4 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    margin: 0 0 10px;
+  }
+
+  p { margin: 0 0 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; color: var(--ink); }
+  em { font-style: italic; }
+
+  /* ─── Pipeline diagram (Phase 0–3 flow) ─── */
+  .pipeline {
+    margin-top: 48px;
+    display: grid;
+    gap: 28px;
+  }
+
+  .stage {
+    background: #FDFCF8;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 28px 32px;
+    position: relative;
+  }
+  .stage[data-phase="0"] { border-left-color: var(--ink-3); }
+  .stage[data-phase="1"] { border-left-color: var(--accent); }
+  .stage[data-phase="2"] { border-left-color: var(--ink); }
+  .stage[data-phase="3"] { border-left-color: var(--accent-2); }
+  .stage[data-phase="output"] { border-left-color: var(--accent-3); background: var(--paper-2); }
+
+  .stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .stage-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .stage-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .stage-body {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-2);
+  }
+
+  /* Connector arrow between stages */
+  .connector {
+    text-align: center;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .connector::before, .connector::after {
+    content: '';
+    width: 60px;
+    height: 1px;
+    background: var(--rule);
+  }
+  .connector svg { color: var(--accent); }
+
+  /* Phase 1 inner batches */
+  .batch-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .batch-chip {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 12px 10px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .batch-chip strong {
+    display: block;
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .batch-chip span {
+    display: block;
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--ink);
+    margin-top: 4px;
+  }
+
+  /* ─── Why-Order callouts ─── */
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 36px;
+  }
+  .why-card {
+    border-top: 2px solid var(--ink);
+    padding-top: 18px;
+  }
+  .why-card .why-num {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 10px;
+    font-variation-settings: "opsz" 96;
+  }
+  .why-card h4 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18px;
+    text-transform: none;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin-bottom: 8px;
+    font-variation-settings: "opsz" 36;
+  }
+  .why-card p {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+
+  /* ─── Personas ─── */
+  .persona {
+    border-top: 1px solid var(--rule);
+    padding: 36px 0;
+  }
+  .persona:first-child { border-top: none; padding-top: 16px; }
+
+  .persona-head {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+
+  .persona-num {
+    font-family: var(--serif);
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+    font-variation-settings: "opsz" 144;
+  }
+  .persona-title {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .persona-phase {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .persona-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .persona-meta {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .persona-meta dt {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .persona-meta dd {
+    margin: 0 0 16px;
+    color: var(--ink-2);
+  }
+  .persona-meta dd:last-child { margin-bottom: 0; }
+
+  .persona-rules {
+    background: #FDFCF8;
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+  }
+  .persona-rules h4 {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .persona-rules ul {
+    margin: 0;
+    padding-left: 18px;
+    list-style: none;
+  }
+  .persona-rules li {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin-bottom: 10px;
+    font-style: italic;
+    position: relative;
+    padding-left: 12px;
+  }
+  .persona-rules li::before {
+    content: '"';
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--accent);
+    position: absolute;
+    left: -8px;
+    top: -4px;
+  }
+  .persona-rules li:last-child { margin-bottom: 0; }
+
+  /* ─── Code blocks ─── */
+  pre, .codeblock {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 24px 28px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 24px 0;
+    border-left: 3px solid var(--accent);
+  }
+  pre code { font-family: inherit; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 2px solid var(--ink);
+    background: transparent;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* ─── Dual-stream block ─── */
+  .streams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .stream-card {
+    border: 1px solid var(--rule);
+    padding: 24px 28px;
+    background: #FDFCF8;
+  }
+  .stream-card.maturity { border-top: 4px solid var(--accent-2); }
+  .stream-card.antipattern { border-top: 4px solid var(--accent); }
+
+  .stream-card h4 {
+    color: inherit;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .stream-card.maturity h4 { color: var(--accent-2); }
+  .stream-card.antipattern h4 { color: var(--accent); }
+
+  .stream-card .stream-name {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 4px 0 16px;
+    color: var(--ink);
+  }
+
+  .combined-readings {
+    margin-top: 28px;
+    background: var(--paper-2);
+    padding: 24px 28px;
+  }
+  .combined-readings h4 {
+    margin-bottom: 12px;
+  }
+  .combined-readings ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .combined-readings li {
+    font-size: 14px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: baseline;
+  }
+  .combined-readings li:last-child { border-bottom: none; }
+  .combined-readings .reading-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .combined-readings .reading-result {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--accent);
+    font-size: 15px;
+  }
+
+  /* ─── Batch criteria ─── */
+  .batch-section {
+    border-top: 2px solid var(--ink);
+    padding-top: 36px;
+    margin-top: 60px;
+  }
+  .batch-section:first-of-type { margin-top: 32px; }
+
+  .batch-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .batch-letter {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--accent);
+    font-variation-settings: "opsz" 144;
+  }
+  .batch-name {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .batch-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .criteria-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    margin-top: 28px;
+    border: 1px solid var(--rule);
+  }
+  .criteria-col {
+    padding: 24px 28px;
+  }
+  .criteria-col.maturity {
+    background: #FDFCF8;
+    border-right: 1px solid var(--rule);
+  }
+  .criteria-col.antipattern {
+    background: var(--paper-2);
+  }
+  .col-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .criteria-col.maturity .col-label { color: var(--accent-2); }
+  .criteria-col.antipattern .col-label { color: var(--accent); }
+
+  .criterion {
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px dashed var(--rule-soft);
+  }
+  .criterion:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .criterion-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+  }
+  .criterion-name {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 4px 0 8px;
+    color: var(--ink);
+  }
+  .criterion-desc {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .criterion-subs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: subitem;
+  }
+  .criterion-subs li {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    padding: 4px 0 4px 28px;
+    position: relative;
+    counter-increment: subitem;
+  }
+  .criterion-subs li::before {
+    content: counter(subitem);
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--ink-3);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+
+  /* ─── Evidence scale ─── */
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .scale-card {
+    border: 1px solid var(--rule);
+    padding: 20px 22px;
+    background: #FDFCF8;
+    border-top: 4px solid var(--ink-3);
+  }
+  .scale-card[data-score="0"] { border-top-color: var(--ink-3); }
+  .scale-card[data-score="1"] { border-top-color: var(--accent-3); }
+  .scale-card[data-score="2"] { border-top-color: #6B8E5A; }
+  .scale-card[data-score="3"] { border-top-color: var(--accent-2); }
+
+  .scale-card .score {
+    font-family: var(--serif);
+    font-size: 48px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144;
+  }
+  .scale-card .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 8px 0 4px;
+  }
+  .scale-card .level {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--accent);
+  }
+  .scale-card .standard {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+
+  /* ─── Tier callouts (input docs) ─── */
+  .tier {
+    border-left: 3px solid var(--rule);
+    padding: 4px 0 4px 24px;
+    margin-bottom: 28px;
+  }
+  .tier.t1 { border-left-color: var(--accent); }
+  .tier.t2 { border-left-color: var(--accent-3); }
+  .tier.t3 { border-left-color: var(--ink-3); }
+
+  .tier h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+  }
+  .tier.t1 h4 { color: var(--accent); }
+  .tier.t2 h4 { color: var(--accent-3); }
+  .tier.t3 h4 { color: var(--ink-3); }
+
+  .tier ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+  }
+  .tier li {
+    font-size: 14px;
+    padding: 4px 0;
+    color: var(--ink-2);
+    position: relative;
+    padding-left: 18px;
+  }
+  .tier li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* ─── Pull-quote / instruction box ─── */
+  .pullquote {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.45;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink);
+    border-top: 2px solid var(--accent);
+    border-bottom: 1px solid var(--rule);
+    padding: 28px 0;
+    margin: 32px 0;
+    max-width: 760px;
+    font-variation-settings: "opsz" 60;
+  }
+  .pullquote::before {
+    content: '"';
+    font-size: 56px;
+    color: var(--accent);
+    line-height: 0;
+    vertical-align: -16px;
+    margin-right: 4px;
+  }
+
+  /* ─── Phase 2 metrics list ─── */
+  .metrics-list {
+    margin-top: 24px;
+    display: grid;
+    gap: 16px;
+  }
+  .metric-item {
+    background: #FDFCF8;
+    border: 1px solid var(--rule);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .metric-name {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .metric-name span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-3);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+  .metric-formula {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    display: inline-block;
+    line-height: 1.5;
+  }
+  .metric-interp {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    margin-top: 6px;
+  }
+
+  /* ─── Trustworthiness checklist ─── */
+  .checklist {
+    margin-top: 24px;
+    counter-reset: check;
+    list-style: none;
+    padding: 0;
+  }
+  .checklist li {
+    counter-increment: check;
+    padding: 16px 0 16px 56px;
+    border-bottom: 1px solid var(--rule-soft);
+    position: relative;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .checklist li::before {
+    content: counter(check, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .checklist li::after {
+    content: '';
+    position: absolute;
+    left: 36px;
+    top: 22px;
+    width: 10px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .checklist li:last-child { border-bottom: none; }
+
+  /* ─── Footer ─── */
+  footer {
+    padding: 60px 0 80px;
+    background: var(--paper-2);
+    border-top: 1px solid var(--rule);
+  }
+  footer .container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    align-items: end;
+  }
+  .footer-note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    max-width: 640px;
+  }
+  .footer-mark {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: right;
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .why-grid,
+    .streams,
+    .scale-grid,
+    .persona-grid,
+    .criteria-pair { grid-template-columns: 1fr; }
+    .criteria-col.maturity { border-right: none; border-bottom: 1px solid var(--rule); }
+    .batch-grid { grid-template-columns: repeat(2, 1fr); }
+    .metric-item { grid-template-columns: 1fr; gap: 12px; }
+    .persona-head { grid-template-columns: 60px 1fr; }
+    .persona-phase { grid-column: 2; }
+    footer .container { grid-template-columns: 1fr; }
+    .footer-mark { text-align: left; }
+  }
+
+  /* ─── Print ─── */
+  @media print {
+    body { background: white; font-size: 11pt; }
+    body::before { display: none; }
+    section { page-break-inside: avoid; padding: 30px 0; }
+    .hero { padding: 40px 0; }
+    .stage, .stream-card, .scale-card, .metric-item, .criteria-pair {
+      page-break-inside: avoid;
+    }
+    pre, .codeblock { background: #f5f5f5; color: black; border-left: 3px solid #888; }
+    a { color: inherit; text-decoration: none; }
+  }
+
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 36px;
+  }
+  .toc a {
+    display: block;
+    border: 1px solid var(--rule);
+    background: #FDFCF8;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .toc a:hover { border-color: var(--accent); }
+  .toc .l {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .toc .n {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.35;
+  }
+  .pack-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .pack-card {
+    border: 1px solid var(--rule);
+    background: #FDFCF8;
+    padding: 20px 22px;
+    border-top: 4px solid var(--ink);
+  }
+  .pack-card .k {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .pack-card h4 {
+    font-family: var(--serif);
+    font-size: 18px;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .pack-card p { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+  .themes {
+    margin-top: 18px;
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 20px;
+  }
+  .themes h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .themes ol {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .themes li { margin: 4px 0; }
+  .prov {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 6px 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--rule-soft);
+  }
+  .prov dt {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-top: 2px;
+  }
+  .prov dd {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .kind-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .kind {
+    background: #FDFCF8;
+    border: 1px solid var(--rule);
+    padding: 20px 22px;
+  }
+  .kind h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .kind p { font-size: 14px; color: var(--ink-2); }
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-top: 36px;
+  }
+  .stat {
+    border-top: 2px solid var(--ink);
+    padding-top: 12px;
+  }
+  .stat b {
+    display: block;
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .stat span {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  @media (max-width: 900px) {
+    .toc, .pack-grid, .kind-row, .stat-row { grid-template-columns: 1fr 1fr; }
+    .prov { grid-template-columns: 52px 1fr; }
+  }
+
+
+  .tier-pill{font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:5px 8px;border:1px solid var(--rule)}
+  .t1{color:var(--accent);border-color:var(--accent)}
+  .t2{color:var(--accent-2);border-color:var(--accent-2)}
+  .t3{color:var(--accent-3);border-color:var(--accent-3)}
+  .src{border:1px solid var(--rule);background:#FDFCF8;padding:22px 26px;margin:0 0 14px}
+  .src-head{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+  .src-id{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.04em}
+  .src h3{font-size:18px;margin:0 0 8px}
+  .src .url{font-family:var(--mono);font-size:11.5px;word-break:break-all}
+  .src .url a{color:var(--ink-2)}
+  .src .meta{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}
+  .chip{font:600 10px/1 var(--mono);letter-spacing:.08em;border:1px solid var(--rule);padding:6px 8px;color:var(--ink-3)}
+  .src ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:13.5px}
+  .src li{margin:4px 0}
+  .crit-table{width:100%;font-size:13.5px}
+  .crit-table th{position:sticky;top:0;background:var(--paper)}
+  .crit-id{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+  .sid{font-family:var(--mono);font-size:11px;display:inline-block;margin:2px 6px 2px 0;color:var(--ink-2)}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 28px}
+  </style>
+</head>
+<body>
+<main>
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Landing Zone Assessment Engine · Global Source Register · v1.0.0</div>
+    <h1>Source <em>identity</em> for A–H — preliminary.</h1>
+    <p class="lede">
+      Bounded register of <strong>publisher-verified sources</strong> for the Landing Zone Engine.
+      It owns identity, authority tier, location, licensing and coverage.
+      It does <strong>not</strong> score a landing zone, prove compliance, or replace control-plane evidence.
+    </p>
+    <p class="lede" style="margin-top:18px;font-size:16px">
+      Status: <strong>PRELIMINARY</strong> · Evidence and source date 2026-09-15 · 43 sources · 8 domains · 80 criteria.
+      Freeze after review. Not decision-eligible until APPROVED.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">00</span><span>Authority boundary</span></div>
+    <h2>Registration is identity. Scoring is inventory.</h2>
+    <p class="pullquote">This register owns stable source identity, exact publication identity, authority tier and type, official location, edition or date, verification metadata, licensing boundary, bounded A–H coverage and bounded criterion coverage hints (A1–H5 and AP-A1–AP-H5). It does not contain exact clause locators or case evidence. Criterion objects own exact locators, supported claims, mapping rationale, applicability and exclusions. Registration alone cannot satisfy a control, prove a landing zone, or authorize a governance decision.</p>
+    <div class="why-grid">
+      <div class="why-card"><div class="why-num">01</div><h4>TIER 1 — Normative</h4><p>Binding legislation. A source is normative only when its jurisdictional, material, actor, role and temporal applicability conditions are established for the assessed estate. Landing-zone assessments rarely score TIER_1 directly; NIS2/GDPR support logging, incident, residency and governance interpretation.</p></div>
+      <div class="why-card"><div class="why-num">02</div><h4>TIER 2 — Authoritative</h4><p>Official provider reference architectures (CAF, Control Tower, GCP landing-zone series), product documentation used as locator identity, government and intergovernmental guidance, and published consensus standards. These sources support interpretation and evidence contracts but must not be represented as legislation or as proof that a customer implemented them.</p></div>
+      <div class="why-card"><div class="why-num">03</div><h4>TIER 3 — Supporting</h4><p>Recognized community benchmarks (CIS, CSA CCM) and implementation accelerators. They may support tests and examples but cannot independently establish landing-zone maturity, legal obligations or a GO on a criterion.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">01</span><span>Admission</span></div>
+    <h2>What a source must be before it may support a finding.</h2>
+    <h3>Mapping requirements (criterion objects)</h3>
+    <ol class="checklist">
+      <li>Use the exact registered source ID, source version or date, verification status and verification date from the sealed baseline context.</li><li>Identify a precise section, design area, control family, principle or product object; generic thematic locators are prohibited in criterion objects.</li><li>State the criterion-specific supported claim, relationship, mapping rationale, applicability conditions and exclusions.</li><li>Do not infer landing-zone maturity, control satisfaction, legal applicability or decision authority from source registration or domain coverage.</li><li>Do not combine multiple instruments, publications or mutable collections behind one source ID.</li><li>Provider packs (Azure, AWS, GCP) are selected in Step 0. Out-of-scope cloud sources are not a silent zero.</li><li>Workshop testimony cannot replace a control-plane object for a GO on that criterion.</li>
+    </ol>
+    <h3 style="margin-top:36px">Decision-eligible requirements</h3>
+    <ol class="checklist">
+      <li>The register and approval record are APPROVED and the source record is VERIFIED. This release is PRELIMINARY and is not decision-eligible until freeze.</li><li>The record identifies one stable instrument or publication with an official publisher location, exact edition or date, authority tier, authority type and applicability conditions.</li><li>The source is in force or published and is not a draft, proposal, collection page used as the scored edition, mutable topic page, withdrawn, superseded or under development.</li><li>VERIFIED means source governance checked the publisher, title, instrument identifier, version or date, publication status, canonical location, authority classification and licensing boundary — not only URL reachability.</li><li>Licensed standards (ISO, CIS numbered editions, CSA CCM) remain metadata- and locator-only unless separate, explicit usage rights permit storage or transmission of protected content.</li><li>Implementation accelerators (GitHub ALZ, AFT/LZA, terraform-example-foundation) cannot independently establish a capability score.</li><li>A VERIFIED record may be used only within its stated authority boundary and never substitutes for assessment-time applicability or live inventory.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">02</span><span>Domain coverage A–H</span></div>
+    <h2>Minimum sources per design area.</h2>
+    <p>Each domain lists the registered sources that currently support at least one A1–H5 / AP pair in that batch. Out-of-scope clouds are excluded at Step 0 — they are not silent zeros.</p>
+    
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">A</div>
+            <div class="persona-title">Tenant, billing &amp; organisation construct</div>
+            <div class="persona-phase">10 criteria · 14 sources</div>
+          </div>
+          <p>Authoritative cloud organisation root, management-plane hygiene, billing/contract alignment, administrative boundary and root recovery.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: A1, AP-A1, A2, AP-A2, A3, AP-A3, A4, AP-A4, A5, AP-A5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-MS-CAF-DESIGN-AREAS">SRC-MS-CAF-DESIGN-AREAS</a> <a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">B</div>
+            <div class="persona-title">Identity &amp; access</div>
+            <div class="persona-phase">10 criteria · 16 sources</div>
+          </div>
+          <p>Federated workforce identity, time-bound privilege, workload identity, least-privilege inheritance and monitored break-glass.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: B1, AP-B1, B2, AP-B2, B3, AP-B3, B4, AP-B4, B5, AP-B5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-AWS-IDENTITY-CENTER">SRC-AWS-IDENTITY-CENTER</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-NIST-800-207">SRC-NIST-800-207</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">C</div>
+            <div class="persona-title">Resource organization</div>
+            <div class="persona-phase">10 criteria · 15 sources</div>
+          </div>
+          <p>Hierarchy as policy spine, platform vs application landing zones, naming/tagging, governed vending and environment separation.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: C1, AP-C1, C2, AP-C2, C3, AP-C3, C4, AP-C4, C5, AP-C5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-AZURE-ALZ-GITHUB">SRC-AZURE-ALZ-GITHUB</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">D</div>
+            <div class="persona-title">Network topology &amp; connectivity</div>
+            <div class="persona-phase">10 criteria · 13 sources</div>
+          </div>
+          <p>Hub with inspection, owned hybrid paths, central DNS, private-by-default and landing-zone segmentation.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: D1, AP-D1, D2, AP-D2, D3, AP-D3, D4, AP-D4, D5, AP-D5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-GCP-SHARED-VPC">SRC-GCP-SHARED-VPC</a> <a class="sid" href="#SRC-NIST-800-207">SRC-NIST-800-207</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">E</div>
+            <div class="persona-title">Security baseline</div>
+            <div class="persona-phase">10 criteria · 13 sources</div>
+          </div>
+          <p>Preventive baseline, central detections, keys, secrets and security-operations placement.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: E1, AP-E1, E2, AP-E2, E3, AP-E3, E4, AP-E4, E5, AP-E5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-WA-SECURITY">SRC-AWS-WA-SECURITY</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a> <a class="sid" href="#SRC-ISO-27017">SRC-ISO-27017</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">F</div>
+            <div class="persona-title">Management &amp; observability</div>
+            <div class="persona-phase">10 criteria · 15 sources</div>
+          </div>
+          <p>Central activity logs, live inventory, platform monitoring, platform restore and update/agent baseline.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: F1, AP-F1, F2, AP-F2, F3, AP-F3, F4, AP-F4, F5, AP-F5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-WA-SECURITY">SRC-AWS-WA-SECURITY</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a> <a class="sid" href="#SRC-ISO-27001">SRC-ISO-27001</a> <a class="sid" href="#SRC-EU-NIS2">SRC-EU-NIS2</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">G</div>
+            <div class="persona-title">Governance &amp; policy</div>
+            <div class="persona-phase">10 criteria · 16 sources</div>
+          </div>
+          <p>Policy inheritance, deny of insecure defaults, time-bound exemptions, cost/tag/region guardrails and exportable compliance.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: G1, AP-G1, G2, AP-G2, G3, AP-G3, G4, AP-G4, G5, AP-G5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-DESIGN-PRINCIPLES">SRC-MS-CAF-DESIGN-PRINCIPLES</a> <a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a> <a class="sid" href="#SRC-EU-NIS2">SRC-EU-NIS2</a> <a class="sid" href="#SRC-EU-GDPR">SRC-EU-GDPR</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></div>
+        </div>
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-num">H</div>
+            <div class="persona-title">Platform automation &amp; DevOps</div>
+            <div class="persona-phase">10 criteria · 12 sources</div>
+          </div>
+          <p>Platform as code, vending pipeline, drift detection, guardrailed self-service and platform change management.</p>
+          <p style="font-size:13px;color:var(--ink-3)">Criteria: H1, AP-H1, H2, AP-H2, H3, AP-H3, H4, AP-H4, H5, AP-H5</p>
+          <div><a class="sid" href="#SRC-MS-CAF-DESIGN-PRINCIPLES">SRC-MS-CAF-DESIGN-PRINCIPLES</a> <a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-AWS-CT-DESIGN">SRC-AWS-CT-DESIGN</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-AWS-LZA">SRC-AWS-LZA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-ISO-27001">SRC-ISO-27001</a> <a class="sid" href="#SRC-AZURE-ALZ-GITHUB">SRC-AZURE-ALZ-GITHUB</a> <a class="sid" href="#SRC-GCP-TFT-FOUNDATION">SRC-GCP-TFT-FOUNDATION</a></div>
+        </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">03</span><span>Criterion coverage</span></div>
+    <h2>Every capability and anti-pattern has named sources.</h2>
+    <p>These are coverage hints for Engine composition. Exact locators stay on the criterion object. A listed source does not make the paired anti-pattern “cleared”.</p>
+    <div class="legend">
+      <span class="tier-pill t1">TIER 1 legislation</span>
+      <span class="tier-pill t2">TIER 2 provider / government / ISO</span>
+      <span class="tier-pill t3">TIER 3 CIS / CSA / accelerators</span>
+    </div>
+    <table class="crit-table">
+      <thead><tr><th>ID</th><th>Criterion</th><th>Domain</th><th>Stream</th><th>Minimum sources</th></tr></thead>
+      <tbody>
+        <tr><td class='crit-id'>A1</td><td>Authoritative organisation root<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>authoritative-org-root · pair AP-A1</div></td><td>A</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-MS-CAF-DESIGN-AREAS">SRC-MS-CAF-DESIGN-AREAS</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>AP-A1</td><td>Shadow tenants<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>shadow-tenants · pair A1</div></td><td>A</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a></td></tr><tr><td class='crit-id'>A2</td><td>Management-plane hygiene<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>management-plane-hygiene · pair AP-A2</div></td><td>A</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-A2</td><td>Workloads in the management plane<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>workloads-in-management-plane · pair A2</div></td><td>A</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>A3</td><td>Billing and contract alignment<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>billing-contract-alignment · pair AP-A3</div></td><td>A</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-DESIGN-AREAS">SRC-MS-CAF-DESIGN-AREAS</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>AP-A3</td><td>Billing split from technical ownership<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>billing-split-from-tech · pair A3</div></td><td>A</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-DESIGN-AREAS">SRC-MS-CAF-DESIGN-AREAS</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>A4</td><td>Administrative boundary<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>administrative-boundary · pair AP-A4</div></td><td>A</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-A4</td><td>Unbounded guest or partner root<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>unbounded-guest-root · pair A4</div></td><td>A</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>A5</td><td>Root recovery<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>root-recovery · pair AP-A5</div></td><td>A</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a></td></tr><tr><td class='crit-id'>AP-A5</td><td>Unowned root credentials<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>unowned-root-credentials · pair A5</div></td><td>A</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>B1</td><td>Federated workforce identity<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>federated-workforce-identity · pair AP-B1</div></td><td>B</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-IDENTITY-CENTER">SRC-AWS-IDENTITY-CENTER</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-NIST-800-207">SRC-NIST-800-207</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a></td></tr><tr><td class='crit-id'>AP-B1</td><td>Standing root-equivalent access<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>standing-root-equivalent · pair B1</div></td><td>B</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-IDENTITY-CENTER">SRC-AWS-IDENTITY-CENTER</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>B2</td><td>Time-bound privileged access<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>privileged-access-timebound · pair AP-B2</div></td><td>B</td><td>Capability</td><td><a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-IDENTITY-CENTER">SRC-AWS-IDENTITY-CENTER</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-B2</td><td>Local cloud users as the identity system<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>local-cloud-users · pair B2</div></td><td>B</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-IDENTITY-CENTER">SRC-AWS-IDENTITY-CENTER</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a></td></tr><tr><td class='crit-id'>B3</td><td>Workload identity<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>workload-identity · pair AP-B3</div></td><td>B</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a></td></tr><tr><td class='crit-id'>AP-B3</td><td>Long-lived keys as identity<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>long-lived-keys-as-identity · pair B3</div></td><td>B</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a></td></tr><tr><td class='crit-id'>B4</td><td>Least-privilege inheritance<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>least-privilege-inheritance · pair AP-B4</div></td><td>B</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-B4</td><td>Unscoped Owner at root<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>unscoped-owner-at-root · pair B4</div></td><td>B</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-IDENTITY">SRC-MS-CAF-IDENTITY</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a></td></tr><tr><td class='crit-id'>B5</td><td>Monitored break-glass<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>break-glass-monitored · pair AP-B5</div></td><td>B</td><td>Capability</td><td><a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-B5</td><td>Unmonitored break-glass<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>unmonitored-break-glass · pair B5</div></td><td>B</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-ENTRA-PIM">SRC-MS-ENTRA-PIM</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a></td></tr><tr><td class='crit-id'>C1</td><td>Hierarchy encodes policy<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>hierarchy-encodes-policy · pair AP-C1</div></td><td>C</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a></td></tr><tr><td class='crit-id'>AP-C1</td><td>Flat sprawl<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>flat-sprawl · pair C1</div></td><td>C</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>C2</td><td>Platform versus application landing zones<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>platform-vs-app-lz · pair AP-C2</div></td><td>C</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-C2</td><td>Applications hosted in platform landing zones<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>apps-in-platform · pair C2</div></td><td>C</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-LZ">SRC-MS-CAF-LZ</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>C3</td><td>Naming and tagging enforced<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>naming-tagging-enforced · pair AP-C3</div></td><td>C</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a></td></tr><tr><td class='crit-id'>AP-C3</td><td>Ad-hoc naming<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>adhoc-naming · pair C3</div></td><td>C</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>C4</td><td>Governed vending<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>governed-vending · pair AP-C4</div></td><td>C</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-AZURE-ALZ-GITHUB">SRC-AZURE-ALZ-GITHUB</a></td></tr><tr><td class='crit-id'>AP-C4</td><td>ClickOps birth of isolation units<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>clickops-birth · pair C4</div></td><td>C</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>C5</td><td>Environment separation<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>environment-separation · pair AP-C5</div></td><td>C</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-C5</td><td>Mixed production and non-production<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>mixed-environments · pair C5</div></td><td>C</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-RESOURCE-ORG">SRC-MS-CAF-RESOURCE-ORG</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>D1</td><td>Hub with inspection<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>hub-with-inspection · pair AP-D1</div></td><td>D</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-SHARED-VPC">SRC-GCP-SHARED-VPC</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a></td></tr><tr><td class='crit-id'>AP-D1</td><td>Per-application internet edge<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>per-app-internet-edge · pair D1</div></td><td>D</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-SHARED-VPC">SRC-GCP-SHARED-VPC</a></td></tr><tr><td class='crit-id'>D2</td><td>Owned hybrid connectivity<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>hybrid-connectivity-owned · pair AP-D2</div></td><td>D</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a></td></tr><tr><td class='crit-id'>AP-D2</td><td>Flat global network<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>flat-global-network · pair D2</div></td><td>D</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-NIST-800-207">SRC-NIST-800-207</a></td></tr><tr><td class='crit-id'>D3</td><td>Central DNS<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>central-dns · pair AP-D3</div></td><td>D</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a></td></tr><tr><td class='crit-id'>AP-D3</td><td>Split-brain DNS<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>split-brain-dns · pair D3</div></td><td>D</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a></td></tr><tr><td class='crit-id'>D4</td><td>Private by default<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>private-by-default · pair AP-D4</div></td><td>D</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>AP-D4</td><td>Public as default<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>public-as-default · pair D4</div></td><td>D</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>D5</td><td>Landing-zone segmentation<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>lz-segmentation · pair AP-D5</div></td><td>D</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-NIST-800-207">SRC-NIST-800-207</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-SHARED-VPC">SRC-GCP-SHARED-VPC</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a></td></tr><tr><td class='crit-id'>AP-D5</td><td>Unmanaged peering mesh<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>unmanaged-peering-mesh · pair D5</div></td><td>D</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-NETWORK">SRC-MS-CAF-NETWORK</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-SHARED-VPC">SRC-GCP-SHARED-VPC</a></td></tr><tr><td class='crit-id'>E1</td><td>Preventive security baseline<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>preventive-baseline · pair AP-E1</div></td><td>E</td><td>Capability</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>AP-E1</td><td>Optional security<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>optional-security · pair E1</div></td><td>E</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>E2</td><td>Central threat detection<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>central-threat-detection · pair AP-E2</div></td><td>E</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a></td></tr><tr><td class='crit-id'>AP-E2</td><td>SIEM islands<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>siem-islands · pair E2</div></td><td>E</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>E3</td><td>Encryption and key management<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>encryption-key-management · pair AP-E3</div></td><td>E</td><td>Capability</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-WA-SECURITY">SRC-AWS-WA-SECURITY</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NCSC-CLOUD-PRINCIPLES">SRC-NCSC-CLOUD-PRINCIPLES</a> <a class="sid" href="#SRC-ISO-27017">SRC-ISO-27017</a></td></tr><tr><td class='crit-id'>AP-E3</td><td>Keys in code<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>keys-in-code · pair E3</div></td><td>E</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>E4</td><td>Secrets management<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>secrets-management · pair AP-E4</div></td><td>E</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-AWS-WA-SECURITY">SRC-AWS-WA-SECURITY</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-E4</td><td>Secrets in pipelines<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>secrets-in-pipelines · pair E4</div></td><td>E</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>E5</td><td>Security operations placement<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>security-ops-placement · pair AP-E5</div></td><td>E</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a></td></tr><tr><td class='crit-id'>AP-E5</td><td>Security as a ticket after go-live<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>security-as-ticket · pair E5</div></td><td>E</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-SECURITY">SRC-MS-CAF-SECURITY</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-LZ">SRC-GCP-LZ</a></td></tr><tr><td class='crit-id'>F1</td><td>Central activity logs<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>central-activity-logs · pair AP-F1</div></td><td>F</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-EU-NIS2">SRC-EU-NIS2</a></td></tr><tr><td class='crit-id'>AP-F1</td><td>Logs left in the producing account<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>logs-left-in-subscription · pair F1</div></td><td>F</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>F2</td><td>Inventory as truth<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>inventory-truth · pair AP-F2</div></td><td>F</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a></td></tr><tr><td class='crit-id'>AP-F2</td><td>No live inventory<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>no-inventory · pair F2</div></td><td>F</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-HIERARCHY">SRC-GCP-HIERARCHY</a></td></tr><tr><td class='crit-id'>F3</td><td>Platform baseline monitoring<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>baseline-monitoring · pair AP-F3</div></td><td>F</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a></td></tr><tr><td class='crit-id'>AP-F3</td><td>Application monitoring only<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>app-monitoring-only · pair F3</div></td><td>F</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>F4</td><td>Platform backup and restore<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>platform-backup · pair AP-F4</div></td><td>F</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-ISO-27001">SRC-ISO-27001</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-F4</td><td>No platform restore<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>no-platform-restore · pair F4</div></td><td>F</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-ISO-27001">SRC-ISO-27001</a></td></tr><tr><td class='crit-id'>F5</td><td>Update and agent baseline<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>update-agent-baseline · pair AP-F5</div></td><td>F</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-MANAGEMENT">SRC-MS-CAF-MANAGEMENT</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-WA-SECURITY">SRC-AWS-WA-SECURITY</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-F5</td><td>Snowflake agents and images<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>snowflake-agents · pair F5</div></td><td>F</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>G1</td><td>Policy inheritance<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>policy-inheritance · pair AP-G1</div></td><td>G</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a></td></tr><tr><td class='crit-id'>AP-G1</td><td>Policy as documentation only<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>policy-as-pdf · pair G1</div></td><td>G</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-MS-CAF-DESIGN-PRINCIPLES">SRC-MS-CAF-DESIGN-PRINCIPLES</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a></td></tr><tr><td class='crit-id'>G2</td><td>Deny insecure defaults<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>deny-insecure-defaults · pair AP-G2</div></td><td>G</td><td>Capability</td><td><a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-CIS-AZURE">SRC-CIS-AZURE</a> <a class="sid" href="#SRC-CIS-AWS">SRC-CIS-AWS</a> <a class="sid" href="#SRC-CIS-GCP">SRC-CIS-GCP</a></td></tr><tr><td class='crit-id'>AP-G2</td><td>Root-level allow-all<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>root-allow-all · pair G2</div></td><td>G</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a></td></tr><tr><td class='crit-id'>G3</td><td>Exemptions with expiry<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>exemption-with-expiry · pair AP-G3</div></td><td>G</td><td>Capability</td><td><a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a></td></tr><tr><td class='crit-id'>AP-G3</td><td>Permanent exemptions<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>permanent-exemptions · pair G3</div></td><td>G</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a></td></tr><tr><td class='crit-id'>G4</td><td>Cost, tag and region guardrails<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>cost-tag-guardrails · pair AP-G4</div></td><td>G</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-AWS-ORG-STRATEGY">SRC-AWS-ORG-STRATEGY</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a> <a class="sid" href="#SRC-EU-GDPR">SRC-EU-GDPR</a></td></tr><tr><td class='crit-id'>AP-G4</td><td>No cost or region guardrail<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>no-cost-policy · pair G4</div></td><td>G</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-GOVERNANCE">SRC-MS-CAF-GOVERNANCE</a> <a class="sid" href="#SRC-AWS-SCP">SRC-AWS-SCP</a> <a class="sid" href="#SRC-GCP-ORGPOLICY">SRC-GCP-ORGPOLICY</a></td></tr><tr><td class='crit-id'>G5</td><td>Compliance export<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>compliance-export · pair AP-G5</div></td><td>G</td><td>Capability</td><td><a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-MS-MCSB-V1">SRC-MS-MCSB-V1</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-EU-NIS2">SRC-EU-NIS2</a></td></tr><tr><td class='crit-id'>AP-G5</td><td>Screenshot compliance<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>screenshot-compliance · pair G5</div></td><td>G</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-CISA-CLOUD-TRA">SRC-CISA-CLOUD-TRA</a> <a class="sid" href="#SRC-AWS-SRA">SRC-AWS-SRA</a></td></tr><tr><td class='crit-id'>H1</td><td>Platform as code<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>platform-as-code · pair AP-H1</div></td><td>H</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-LZA">SRC-AWS-LZA</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a> <a class="sid" href="#SRC-GCP-TFT-FOUNDATION">SRC-GCP-TFT-FOUNDATION</a> <a class="sid" href="#SRC-AZURE-ALZ-GITHUB">SRC-AZURE-ALZ-GITHUB</a></td></tr><tr><td class='crit-id'>AP-H1</td><td>ClickOps platform<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>clickops-platform · pair H1</div></td><td>H</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-CT-DESIGN">SRC-AWS-CT-DESIGN</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>H2</td><td>Vending pipeline<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>vending-pipeline · pair AP-H2</div></td><td>H</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-H2</td><td>Email-request vending<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>email-vending · pair H2</div></td><td>H</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>H3</td><td>Drift detection<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>drift-detection · pair AP-H3</div></td><td>H</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-MS-AZURE-POLICY">SRC-MS-AZURE-POLICY</a> <a class="sid" href="#SRC-AWS-CT">SRC-AWS-CT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-H3</td><td>Drift accepted<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>drift-accepted · pair H3</div></td><td>H</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-LZA">SRC-AWS-LZA</a> <a class="sid" href="#SRC-GCP-TFT-FOUNDATION">SRC-GCP-TFT-FOUNDATION</a></td></tr><tr><td class='crit-id'>H4</td><td>Guardrailed self-service<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>self-service-guardrailed · pair AP-H4</div></td><td>H</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-MS-CAF-DESIGN-PRINCIPLES">SRC-MS-CAF-DESIGN-PRINCIPLES</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>AP-H4</td><td>Ticket-only, no self-service<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>ticket-only-self-service · pair H4</div></td><td>H</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-AWS-AFT">SRC-AWS-AFT</a> <a class="sid" href="#SRC-GCP-FOUNDATIONS">SRC-GCP-FOUNDATIONS</a></td></tr><tr><td class='crit-id'>H5</td><td>Platform change management<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>platform-change-management · pair AP-H5</div></td><td>H</td><td>Capability</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-ISO-27001">SRC-ISO-27001</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-AWS-CT-DESIGN">SRC-AWS-CT-DESIGN</a></td></tr><tr><td class='crit-id'>AP-H5</td><td>Undocumented hotfixes<div style='font-size:11px;color:var(--ink-3);font-family:var(--mono)'>undocumented-hotfixes · pair H5</div></td><td>H</td><td>Anti-pattern</td><td><a class="sid" href="#SRC-MS-CAF-AUTOMATION">SRC-MS-CAF-AUTOMATION</a> <a class="sid" href="#SRC-NIST-800-53">SRC-NIST-800-53</a> <a class="sid" href="#SRC-ISO-27001">SRC-ISO-27001</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-tag"><span class="num">04</span><span>Source catalogue</span></div>
+    <h2>43 publisher identities, each one instrument.</h2>
+    <p>Official location is the canonical publisher URL verified 2026-09-15. MCSB v2 remains preview and is not registered as a substitute for MCSB v1. CIS collection pages identify the benchmark family; the numbered edition is recorded at mapping time.</p>
+    
+        <article class="src" id="SRC-MS-CAF-LZ">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-LZ</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>What is an Azure landing zone? — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready; Learn page current as of 2026-08-26</p>
+          <ul><li>Microsoft reference architecture for platform and application landing zones on Azure.</li><li>Applies only when Azure is in Step 0 scope. Does not prove a customer environment implements the architecture.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-DESIGN-AREAS">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-DESIGN-AREAS</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Azure landing zone design areas — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-areas">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-areas</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready; Learn page current as of 2026-08-26</p>
+          <ul><li>Defines the eight Azure landing-zone design areas that this Engine’s A–H batches follow.</li><li>Taxonomy source for workshop themes. Not a scored control checklist by itself.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-DESIGN-PRINCIPLES">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-DESIGN-PRINCIPLES</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Azure landing zone design principles — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-principles">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-principles</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready; Learn page current as of 2026-08-26</p>
+          <ul><li>Aspirational design principles (subscription democratization, policy-driven governance, application-centric, etc.).</li><li>Use to interpret capability intent. Do not score principles as if they were control-plane facts.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-IDENTITY">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-IDENTITY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Identity and access management design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/identity-access">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/identity-access</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Identity design area</p>
+          <ul><li>Azure-specific identity foundation for landing zones (Entra ID, RBAC, platform vs application identity).</li><li>Azure pack only. Pair with Entra PIM for privileged-access locators.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-RESOURCE-ORG">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-RESOURCE-ORG</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Resource organization design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/resource-org">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/resource-org</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain C</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Resource organization design area</p>
+          <ul><li>Management group hierarchy, subscription design and naming for Azure landing zones.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-NETWORK">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-NETWORK</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Network topology and connectivity design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/network-topology-and-connectivity">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/network-topology-and-connectivity</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Network design area</p>
+          <ul><li>Hub-spoke / Virtual WAN, DNS, hybrid connectivity and segmentation decisions for Azure.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-SECURITY">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-SECURITY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Security design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/security">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/security</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain E</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Security design area</p>
+          <ul><li>Platform security responsibilities, Defender placement and Zero Trust alignment for Azure landing zones.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-MANAGEMENT">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-MANAGEMENT</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Management design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/management">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/management</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain F</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Management design area</p>
+          <ul><li>Operations baseline: inventory, monitoring, patching, backup of the Azure platform plane.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-GOVERNANCE">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-GOVERNANCE</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Governance design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/governance">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/governance</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Governance design area</p>
+          <ul><li>Policy-driven governance, cost, and compliance design for Azure landing zones.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-CAF-AUTOMATION">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-CAF-AUTOMATION</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Platform automation and DevOps design area — Cloud Adoption Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/platform-automation-devops">https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/platform-automation-devops</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">CAF Ready · Automation design area</p>
+          <ul><li>IaC, CI/CD and subscription vending as platform capabilities. Accelerators are TIER_3 and must not replace this design-area source.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-MCSB-V1">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-MCSB-V1</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Microsoft cloud security benchmark (v1)</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/security/benchmark/azure/overview-mcsb-v1">https://learn.microsoft.com/en-us/security/benchmark/azure/overview-mcsb-v1</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_SECURITY_BENCHMARK</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">MCSB v1 (successor of Azure Security Benchmark; rebranded October 2022). MCSB v2 remains preview and is not substituted.</p>
+          <ul><li>Prescriptive Azure (and preview multi-cloud) security recommendations mapped to Azure Policy.</li><li>MCSB v2 is preview: admission policy forbids using a draft as a decision-eligible source. Keep v1 until v2 is published final.</li><li>Registration does not prove Defender/Policy assignment in a tenant.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-WAF">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-WAF</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Azure Well-Architected Framework</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/well-architected/">https://learn.microsoft.com/en-us/azure/well-architected/</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Well-Architected Framework current Learn edition</p>
+          <ul><li>Workload architecture framework. Supports landing-zone security/reliability interpretation; do not score a landing zone solely from WAF workload reviews.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-ENTRA-PIM">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-ENTRA-PIM</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Microsoft Entra Privileged Identity Management</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-configure">https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-configure</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Entra ID Governance · PIM</p>
+          <ul><li>Product documentation for time-bound privileged access. Evidence is PIM eligible/standing assignment export, not this page.</li></ul>
+        </article>
+        <article class="src" id="SRC-MS-AZURE-POLICY">
+          <div class="src-head">
+            <div class="src-id">SRC-MS-AZURE-POLICY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Azure Policy overview</h3>
+          <div class="url"><a href="https://learn.microsoft.com/en-us/azure/governance/policy/overview">https://learn.microsoft.com/en-us/azure/governance/policy/overview</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain G</span> <span class="chip">Domain C</span> <span class="chip">Domain E</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Azure Policy product documentation</p>
+          <ul><li>Explains assignments, initiatives, exemptions and compliance. Scoring requires Policy Insights / assignment export, not the overview page.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-CT">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-CT</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>What is AWS Control Tower?</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/controltower/latest/userguide/what-is-control-tower.html">https://docs.aws.amazon.com/controltower/latest/userguide/what-is-control-tower.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">AWS Control Tower User Guide</p>
+          <ul><li>AWS-managed landing-zone service. Applies when Control Tower is in scope.</li><li>Absence of Control Tower is not automatically an anti-pattern if an equivalent Organizations + SRA design is evidenced.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-CT-DESIGN">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-CT-DESIGN</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Designing an AWS Control Tower landing zone — AWS Prescriptive Guidance</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/designing-control-tower-landing-zone/introduction.html">https://docs.aws.amazon.com/prescriptive-guidance/latest/designing-control-tower-landing-zone/introduction.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">AWS Prescriptive Guidance</p>
+          <ul><li>Design-document template aligned with Well-Architected. Use for design-area interpretation, not as live evidence.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-SRA">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-SRA</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>AWS Security Reference Architecture</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/">https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">AWS Prescriptive Guidance · SRA</p>
+          <ul><li>Multi-account security architecture (org, identity, logging, networking, security tooling). AWS pack.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-ORG-STRATEGY">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-ORG-STRATEGY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Organizing Your AWS Environment Using Multiple Accounts</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html">https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/organizing-your-aws-environment.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain C</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">AWS Whitepaper</p>
+          <ul><li>Multi-account strategy, OU design, management-account hygiene. Primary AWS source for domains A and C.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-SCP">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-SCP</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Service control policies (SCPs) — AWS Organizations</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html">https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain G</span> <span class="chip">Domain B</span> <span class="chip">Domain E</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">AWS Organizations User Guide</p>
+          <ul><li>SCPs are deny-shaped guardrails and do not grant permissions. They do not apply to the management account.</li><li>Evidence is attached SCP documents and inheritance, not this page. RCPs are a related but separate instrument — do not combine behind this ID.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-WA-SECURITY">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-WA-SECURITY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>AWS Well-Architected Framework — Security Pillar</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html">https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Well-Architected Security Pillar</p>
+          <ul><li>Workload and account security principles. A WAFR workshop is not a substitute for Organizations/Config inventory.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-IDENTITY-CENTER">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-IDENTITY-CENTER</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>AWS IAM Identity Center</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html">https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">IAM Identity Center User Guide</p>
+          <ul><li>Workforce federation and permission sets. Evidence is Identity Center instance, assignments and permission-set export.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-AFT">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-AFT</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Account Factory for Terraform (AFT)</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/controltower/latest/userguide/aft-overview.html">https://docs.aws.amazon.com/controltower/latest/userguide/aft-overview.html</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain C</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Control Tower User Guide · AFT</p>
+          <ul><li>Account-vending pipeline on Control Tower. Alternative vending (Service Catalog, custom Terraform) may satisfy H2 if evidenced.</li></ul>
+        </article>
+        <article class="src" id="SRC-AWS-LZA">
+          <div class="src-head">
+            <div class="src-id">SRC-AWS-LZA</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>Landing Zone Accelerator on AWS</h3>
+          <div class="url"><a href="https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/">https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/</a></div>
+          <div class="meta">
+            <span class="chip">IMPLEMENTATION_ACCELERATOR</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain H</span> <span class="chip">Domain C</span> <span class="chip">Domain G</span> <span class="chip">Domain E</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">AWS Solutions Library</p>
+          <ul><li>Opinionated accelerator. Supports H1/H2 interpretation. Presence of the repo is not platform-as-code evidence without apply history and drift status.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-LZ">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-LZ</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Landing zone design in Google Cloud</h3>
+          <div class="url"><a href="https://docs.cloud.google.com/architecture/landing-zones">https://docs.cloud.google.com/architecture/landing-zones</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Cloud Architecture Center; last reviewed 2026-01-02</p>
+          <ul><li>Canonical GCP landing-zone design series (identity, hierarchy, network, security). GCP pack.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-FOUNDATIONS">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-FOUNDATIONS</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Enterprise foundations blueprint (formerly security foundations)</h3>
+          <div class="url"><a href="https://docs.cloud.google.com/architecture/blueprints/security-foundations">https://docs.cloud.google.com/architecture/blueprints/security-foundations</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Cloud Architecture Center; last reviewed 2025-05-15</p>
+          <ul><li>Opinionated foundation architecture and controls. Companion Terraform is a separate TIER_3 source.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-HIERARCHY">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-HIERARCHY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Google Cloud resource hierarchy</h3>
+          <div class="url"><a href="https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy">https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain A</span> <span class="chip">Domain C</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Resource Manager documentation</p>
+          <ul><li>Organization, folders, projects as the policy spine. Evidence is org/folder/project export.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-ORGPOLICY">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-ORGPOLICY</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Organization Policy Service overview</h3>
+          <div class="url"><a href="https://cloud.google.com/resource-manager/docs/organization-policy/overview">https://cloud.google.com/resource-manager/docs/organization-policy/overview</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain G</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Resource Manager · Organization Policy</p>
+          <ul><li>Constraints and inheritance. restoreDefault / empty constraints are the GCP reading of root-allow-all.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-SHARED-VPC">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-SHARED-VPC</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Shared VPC overview</h3>
+          <div class="url"><a href="https://cloud.google.com/vpc/docs/shared-vpc">https://cloud.google.com/vpc/docs/shared-vpc</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_PRODUCT_DOCUMENTATION</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">VPC documentation</p>
+          <ul><li>Host/service project model for GCP hub networking. Pair with SRC-GCP-LZ network decision.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-WAF">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-WAF</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>Google Cloud Well-Architected Framework</h3>
+          <div class="url"><a href="https://docs.cloud.google.com/architecture/framework">https://docs.cloud.google.com/architecture/framework</a></div>
+          <div class="meta">
+            <span class="chip">PROVIDER_REFERENCE_ARCHITECTURE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span> <span class="chip">Domain H</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Cloud Architecture Center</p>
+          <ul><li>Cross-pillar architecture guidance. Complements, does not replace, the landing-zone series.</li></ul>
+        </article>
+        <article class="src" id="SRC-NIST-800-53">
+          <div class="src-head">
+            <div class="src-id">SRC-NIST-800-53</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>NIST SP 800-53 Rev. 5 — Security and Privacy Controls</h3>
+          <div class="url"><a href="https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final">https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final</a></div>
+          <div class="meta">
+            <span class="chip">GOVERNMENT_VOLUNTARY_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Revision 5, Update 1, 10 December 2020</p>
+          <ul><li>Control catalog requiring organization-specific selection and tailoring.</li><li>Registration does not make AC/CM/AU/SC families applicable or prove effectiveness. Use for interpretation of identity, logging, encryption and policy.</li></ul>
+        </article>
+        <article class="src" id="SRC-NIST-800-207">
+          <div class="src-head">
+            <div class="src-id">SRC-NIST-800-207</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>NIST SP 800-207 — Zero Trust Architecture</h3>
+          <div class="url"><a href="https://csrc.nist.gov/pubs/sp/800/207/final">https://csrc.nist.gov/pubs/sp/800/207/final</a></div>
+          <div class="meta">
+            <span class="chip">GOVERNMENT_VOLUNTARY_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">NIST SP 800-207, August 2020</p>
+          <ul><li>Zero Trust principles for identity, path and segmentation. Not a landing-zone control checklist.</li></ul>
+        </article>
+        <article class="src" id="SRC-CISA-CLOUD-TRA">
+          <div class="src-head">
+            <div class="src-id">SRC-CISA-CLOUD-TRA</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>CISA Cloud Security Technical Reference Architecture v2</h3>
+          <div class="url"><a href="https://www.cisa.gov/resources-tools/resources/cloud-security-technical-reference-architecture">https://www.cisa.gov/resources-tools/resources/cloud-security-technical-reference-architecture</a></div>
+          <div class="meta">
+            <span class="chip">MULTI_AGENCY_GOVERNMENT_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Version 2.0, June 2022</p>
+          <ul><li>Coauthored by CISA, USDS and FedRAMP. Written for US federal agencies under EO 14028.</li><li>Useful CSPM / shared-responsibility interpretation. Not automatically binding outside US federal applicability.</li></ul>
+        </article>
+        <article class="src" id="SRC-NCSC-CLOUD-PRINCIPLES">
+          <div class="src-head">
+            <div class="src-id">SRC-NCSC-CLOUD-PRINCIPLES</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>NCSC Cloud Security Principles (14 principles)</h3>
+          <div class="url"><a href="https://www.ncsc.gov.uk/collection/cloud/the-cloud-security-principles">https://www.ncsc.gov.uk/collection/cloud/the-cloud-security-principles</a></div>
+          <div class="meta">
+            <span class="chip">GOVERNMENT_VOLUNTARY_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">NCSC cloud collection; principles structure unchanged in 2026 refresh</p>
+          <ul><li>Goal-based principles for choosing and configuring cloud services. Not legislation.</li><li>Use for identity, separation, encryption, operational security interpretation.</li></ul>
+        </article>
+        <article class="src" id="SRC-ISO-27001">
+          <div class="src-head">
+            <div class="src-id">SRC-ISO-27001</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>ISO/IEC 27001:2022 — Information security management systems — Requirements</h3>
+          <div class="url"><a href="https://www.iso.org/standard/27001">https://www.iso.org/standard/27001</a></div>
+          <div class="meta">
+            <span class="chip">PUBLISHED_STANDARD</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">ISO/IEC 27001:2022</p>
+          <ul><li>Voluntary ISMS requirements. Metadata and locator only. Certification is not landing-zone evidence.</li></ul>
+        </article>
+        <article class="src" id="SRC-ISO-27017">
+          <div class="src-head">
+            <div class="src-id">SRC-ISO-27017</div>
+            <span class="tier-pill t2">TIER 2 AUTHORITATIVE</span>
+          </div>
+          <h3>ISO/IEC 27017:2015 — Code of practice for information security controls for cloud services</h3>
+          <div class="url"><a href="https://www.iso.org/standard/43757">https://www.iso.org/standard/43757</a></div>
+          <div class="meta">
+            <span class="chip">PUBLISHED_STANDARD</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">ISO/IEC 27017:2015</p>
+          <ul><li>Cloud-specific security guidance for customers and providers. Metadata and locator only.</li></ul>
+        </article>
+        <article class="src" id="SRC-EU-NIS2">
+          <div class="src-head">
+            <div class="src-id">SRC-EU-NIS2</div>
+            <span class="tier-pill t1">TIER 1 NORMATIVE</span>
+          </div>
+          <h3>Directive (EU) 2022/2555 — NIS 2 Directive</h3>
+          <div class="url"><a href="https://eur-lex.europa.eu/eli/dir/2022/2555/oj">https://eur-lex.europa.eu/eli/dir/2022/2555/oj</a></div>
+          <div class="meta">
+            <span class="chip">LEGISLATION</span>
+            <span class="chip">IN_FORCE</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Directive (EU) 2022/2555</p>
+          <ul><li>A directive requiring national transposition. Establish entity classification, sector, size, jurisdiction and applicable national law before treating an article as binding.</li><li>Supports logging, incident, supply-chain and governance interpretation of a landing zone. Registration does not make a cloud estate an essential/important entity.</li></ul>
+        </article>
+        <article class="src" id="SRC-EU-GDPR">
+          <div class="src-head">
+            <div class="src-id">SRC-EU-GDPR</div>
+            <span class="tier-pill t1">TIER 1 NORMATIVE</span>
+          </div>
+          <h3>Regulation (EU) 2016/679 — General Data Protection Regulation</h3>
+          <div class="url"><a href="https://eur-lex.europa.eu/eli/reg/2016/679/oj">https://eur-lex.europa.eu/eli/reg/2016/679/oj</a></div>
+          <div class="meta">
+            <span class="chip">LEGISLATION</span>
+            <span class="chip">IN_FORCE</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain D</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Regulation (EU) 2016/679</p>
+          <ul><li>Establish whether personal data are processed in logs, backups or replicas before mapping residency, logging or access obligations.</li><li>Region/tag guardrails (G4) are not GDPR by themselves. Do not infer Schrems/transfer conclusions from a landing-zone score.</li></ul>
+        </article>
+        <article class="src" id="SRC-CIS-AZURE">
+          <div class="src-head">
+            <div class="src-id">SRC-CIS-AZURE</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>CIS Microsoft Azure Foundations Benchmark</h3>
+          <div class="url"><a href="https://www.cisecurity.org/benchmark/azure">https://www.cisecurity.org/benchmark/azure</a></div>
+          <div class="meta">
+            <span class="chip">COMMUNITY_TECHNICAL_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Use the current numbered CIS edition at assessment time; collection page is identity only</p>
+          <ul><li>Community benchmark. Record exact edition/level in the criterion mapping. Not law. Licensed content.</li></ul>
+        </article>
+        <article class="src" id="SRC-CIS-AWS">
+          <div class="src-head">
+            <div class="src-id">SRC-CIS-AWS</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>CIS Amazon Web Services Foundations Benchmark</h3>
+          <div class="url"><a href="https://www.cisecurity.org/benchmark/amazon_web_services">https://www.cisecurity.org/benchmark/amazon_web_services</a></div>
+          <div class="meta">
+            <span class="chip">COMMUNITY_TECHNICAL_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Use the current numbered CIS edition at assessment time; collection page is identity only</p>
+          <ul><li>Community benchmark. Record exact edition/level in the criterion mapping. Not law. Licensed content.</li></ul>
+        </article>
+        <article class="src" id="SRC-CIS-GCP">
+          <div class="src-head">
+            <div class="src-id">SRC-CIS-GCP</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>CIS Google Cloud Computing Platform Benchmark</h3>
+          <div class="url"><a href="https://www.cisecurity.org/benchmark/google_cloud_computing_platform">https://www.cisecurity.org/benchmark/google_cloud_computing_platform</a></div>
+          <div class="meta">
+            <span class="chip">COMMUNITY_TECHNICAL_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Use the current numbered CIS edition at assessment time; collection page is identity only</p>
+          <ul><li>Community benchmark. Record exact edition/level in the criterion mapping. Not law. Licensed content.</li></ul>
+        </article>
+        <article class="src" id="SRC-CSA-CCM">
+          <div class="src-head">
+            <div class="src-id">SRC-CSA-CCM</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>Cloud Security Alliance Cloud Controls Matrix (CCM)</h3>
+          <div class="url"><a href="https://cloudsecurityalliance.org/research/cloud-controls-matrix">https://cloudsecurityalliance.org/research/cloud-controls-matrix</a></div>
+          <div class="meta">
+            <span class="chip">COMMUNITY_TECHNICAL_GUIDANCE</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain B</span> <span class="chip">Domain C</span> <span class="chip">Domain D</span> <span class="chip">Domain E</span> <span class="chip">Domain F</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">Use the current published CCM version at assessment time</p>
+          <ul><li>Cross-cloud control matrix. Supporting interpretation only. Cannot independently establish landing-zone maturity.</li></ul>
+        </article>
+        <article class="src" id="SRC-AZURE-ALZ-GITHUB">
+          <div class="src-head">
+            <div class="src-id">SRC-AZURE-ALZ-GITHUB</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>Azure Landing Zones — official implementation (Enterprise-Scale / ALZ)</h3>
+          <div class="url"><a href="https://github.com/Azure/Enterprise-Scale">https://github.com/Azure/Enterprise-Scale</a></div>
+          <div class="meta">
+            <span class="chip">IMPLEMENTATION_ACCELERATOR</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain H</span> <span class="chip">Domain C</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">GitHub Azure/Enterprise-Scale (implementation; not a scoring instrument)</p>
+          <ul><li>Code accelerator. H1 evidence is versioned apply of *this customer’s* fork plus drift status, not the upstream README.</li></ul>
+        </article>
+        <article class="src" id="SRC-GCP-TFT-FOUNDATION">
+          <div class="src-head">
+            <div class="src-id">SRC-GCP-TFT-FOUNDATION</div>
+            <span class="tier-pill t3">TIER 3 SUPPORTING</span>
+          </div>
+          <h3>terraform-example-foundation — Google Cloud enterprise foundations</h3>
+          <div class="url"><a href="https://github.com/terraform-google-modules/terraform-example-foundation">https://github.com/terraform-google-modules/terraform-example-foundation</a></div>
+          <div class="meta">
+            <span class="chip">IMPLEMENTATION_ACCELERATOR</span>
+            <span class="chip">PUBLISHED</span>
+            <span class="chip">VERIFIED · 2026-09-15</span>
+            <span class="chip">Domain H</span> <span class="chip">Domain C</span> <span class="chip">Domain G</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-3);margin:0 0 10px">GitHub terraform-google-modules/terraform-example-foundation</p>
+          <ul><li>Companion to SRC-GCP-FOUNDATIONS. Accelerator only.</li></ul>
+        </article>
+  </div>
+</section>
+</main>
+<footer>
+  <div class="container">
+    <p class="footer-note">
+      Preliminary global source register for the Landing Zone Assessment Engine.
+      43 sources · domains A–H · 80 criterion coverage hints.
+      Registration does not prove a landing zone. Control-plane evidence remains the system of record.
+    </p>
+    <div class="footer-mark">Vivicta &nbsp;·&nbsp; Engine Architecture &nbsp;·&nbsp; Preliminary · 2026-09-15</div>
+  </div>
+</footer>
+</body>
+</html>
