@@ -43,7 +43,7 @@ const Field: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ label, children, className }) => (
-  <label className={`block ${className || ""}`}>
+  <label className={`block min-w-0 ${className || ""}`}>
     <span className="lz-field-label">{label}</span>
     {children}
   </label>
@@ -198,7 +198,7 @@ export const Step0ScopeForm: React.FC<{
         and participants are optional workshop session fields only; they are not scored.
       </p>
 
-      <div className="grid gap-3.5 md:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]">
         <Field label="Customer / Organization">
           <input
             value={estateName}
@@ -233,7 +233,7 @@ export const Step0ScopeForm: React.FC<{
         </Field>
       </div>
 
-      <div className="grid gap-3.5 md:grid-cols-4 mt-3.5">
+      <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 mt-3.5">
         <Field label="Facilitator">
           <input
             value={workshopSession.facilitator || ""}
