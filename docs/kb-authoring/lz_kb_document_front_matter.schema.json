@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lz_kb_document_front_matter_v1",
+  "title": "Landing Zone Knowledge Base document front matter",
+  "description": "JSON object that MUST be the first JSON object in each KB PDF/text document. The engine extracts this object, then parses markdown headings after it. Stream uses maturity/antipattern (not capability). Do not include legacy fields streams or antipattern_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kb_id",
+    "kb_type",
+    "version",
+    "domain_id",
+    "domain_name",
+    "stream",
+    "criterion_id",
+    "capability_id",
+    "pair_id",
+    "allowed_uses",
+    "forbidden_uses"
+  ],
+  "properties": {
+    "kb_id": {
+      "type": "string",
+      "pattern": "^lz-kb-(AP-)?[A-H][1-5]-v[0-9]+$",
+      "description": "Stable document id. Example: lz-kb-A1-v1, lz-kb-AP-A1-v1."
+    },
+    "kb_type": {
+      "const": "reference",
+      "description": "Reference interpretation. Never customer evidence."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Document version. Independent of pack version."
+    },
+    "domain_id": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "E", "F", "G", "H"]
+    },
+    "domain_name": {
+      "type": "string",
+      "description": "Must match pack taxonomy name exactly, e.g. Tenant, billing & organization construct."
+    },
+    "stream": {
+      "type": "string",
+      "enum": ["maturity", "antipattern"],
+      "description": "Engine stream. Use maturity for capabilities A1–H5. Use antipattern for AP-A1–AP-H5. Do not use capability."
+    },
+    "criterion_id": {
+      "type": "string",
+      "pattern": "^(AP-)?[A-H][1-5]$",
+      "description": "This document's criterion. Capability file: A1. Antipattern file: AP-A1."
+    },
+    "capability_id": {
+      "type": "string",
+      "pattern": "^[A-H][1-5]$",
+      "description": "Paired capability id WITHOUT AP-. Always A1 on both the A1 and AP-A1 documents."
+    },
+    "pair_id": {
+      "type": "string",
+      "pattern": "^PAIR-[A-H][1-5]$",
+      "description": "Pack pair-registry id. PAIR-A1 pairs A1 with AP-A1."
+    },
+    "intent_id": {
+      "type": "string",
+      "description": "From the pack criterion record, e.g. authoritative-org-root."
+    },
+    "capability_name": {
+      "type": "string",
+      "description": "Required on maturity documents. Pack capability title."
+    },
+    "antipattern_name": {
+      "type": "string",
+      "description": "Required on antipattern documents. Pack anti-pattern title."
+    },
+    "evidence_categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "Policy",
+          "Process",
+          "Operational",
+          "Automation",
+          "Accountability",
+          "Financial-Integration",
+          "Cultural"
+        ]
+      }
+    },
+    "allowed_uses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "rubric_context",
+          "maturity_examples",
+          "antipattern_examples",
+          "evidence_requirements",
+          "validation_questions"
+        ]
+      }
+    },
+    "forbidden_uses": {
+      "type": "array",
+      "minItems": 3,
+      "allOf": [
+        { "contains": { "const": "customer_current_state_claim" } },
+        { "contains": { "const": "source_evidence_quote" } },
+        { "contains": { "const": "audited_finding" } }
+      ],
+      "items": {
+        "type": "string",
+        "enum": [
+          "customer_current_state_claim",
+          "source_evidence_quote",
+          "audited_finding"
+        ]
+      }
+    },
+    "legacy_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["streams"] },
+      { "required": ["antipattern_id"] }
+    ]
+  }
+}

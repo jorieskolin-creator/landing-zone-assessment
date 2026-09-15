@@ -1,0 +1,117 @@
+{
+  "schema_version": "lz_kb_pair_authoring_v1",
+  "pair_id": "PAIR-XX",
+  "design_area_id": "A",
+  "design_area_name": "Tenant, billing & organization construct",
+  "relationship_type": "DIRECT_INVERSE",
+  "capability_document": {
+    "blob_pathname": "Knowledge Base/<Design Area Name>/<ID> - <Design Area Name> - <CapabilityId> - <Title>.pdf",
+    "front_matter": {
+      "kb_id": "lz-kb-<CapabilityId>-v1",
+      "kb_type": "reference",
+      "version": "1.0.0",
+      "domain_id": "A",
+      "domain_name": "Tenant, billing & organization construct",
+      "stream": "maturity",
+      "criterion_id": "A1",
+      "capability_id": "A1",
+      "pair_id": "PAIR-A1",
+      "intent_id": "from-pack-criterion",
+      "capability_name": "from-pack-title",
+      "evidence_categories": ["Policy", "Operational"],
+      "allowed_uses": [
+        "rubric_context",
+        "maturity_examples",
+        "evidence_requirements",
+        "validation_questions"
+      ],
+      "forbidden_uses": [
+        "customer_current_state_claim",
+        "source_evidence_quote",
+        "audited_finding"
+      ],
+      "legacy_ids": []
+    },
+    "sections": {
+      "engine_usage_note": "",
+      "purpose": "",
+      "applies_to": "",
+      "canonical_definition": "",
+      "primary_assessment_questions": "",
+      "state_interpretation": "",
+      "detailed_interpretation": "",
+      "evidence_requirements": "",
+      "strong_evidence_examples": "",
+      "moderate_evidence_examples": "",
+      "weak_evidence_examples": "",
+      "contradictory_evidence_examples": "",
+      "accepted_evidence_types": "",
+      "provider_mapping": "",
+      "related_capabilities": "",
+      "false_positive_guards": "",
+      "validation_questions": "",
+      "detection_heuristics": "",
+      "operational_indicators": "",
+      "risk_notes": "",
+      "remediation_tactic_notes": "",
+      "prohibited_inference_rules": "",
+      "scoring_guidance": "",
+      "canonical_source_foundations": ""
+    }
+  },
+  "antipattern_document": {
+    "blob_pathname": "Knowledge Base/<Design Area Name>/<ID> - <Design Area Name> - AP-<CapabilityId> - <Title>.pdf",
+    "front_matter": {
+      "kb_id": "lz-kb-AP-<CapabilityId>-v1",
+      "kb_type": "reference",
+      "version": "1.0.0",
+      "domain_id": "A",
+      "domain_name": "Tenant, billing & organization construct",
+      "stream": "antipattern",
+      "criterion_id": "AP-A1",
+      "capability_id": "A1",
+      "pair_id": "PAIR-A1",
+      "intent_id": "from-pack-criterion",
+      "antipattern_name": "from-pack-title",
+      "evidence_categories": ["Policy", "Operational"],
+      "allowed_uses": [
+        "rubric_context",
+        "antipattern_examples",
+        "evidence_requirements",
+        "validation_questions"
+      ],
+      "forbidden_uses": [
+        "customer_current_state_claim",
+        "source_evidence_quote",
+        "audited_finding"
+      ],
+      "legacy_ids": []
+    },
+    "sections": {
+      "engine_usage_note": "",
+      "purpose": "",
+      "applies_to": "",
+      "canonical_definition": "",
+      "primary_assessment_questions": "",
+      "state_interpretation": "",
+      "detailed_interpretation": "",
+      "evidence_requirements": "",
+      "strong_evidence_examples": "",
+      "moderate_evidence_examples": "",
+      "weak_evidence_examples": "",
+      "contradictory_evidence_examples": "",
+      "accepted_evidence_types": "",
+      "provider_mapping": "",
+      "related_capabilities": "",
+      "false_positive_guards": "",
+      "validation_questions": "",
+      "detection_heuristics": "",
+      "operational_indicators": "",
+      "risk_notes": "",
+      "remediation_tactic_notes": "",
+      "prohibited_inference_rules": "",
+      "scoring_guidance": "",
+      "canonical_source_foundations": ""
+    }
+  }
+}
