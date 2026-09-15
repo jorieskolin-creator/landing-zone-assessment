@@ -3,10 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { authorizeConfiguredDestination, authorizeDestination } from '../lib/governance.js';
 import {
   AI_ROLES,
+  MODEL_ROUTING_LABEL,
   MODEL_ROUTING_POLICY_VERSION,
+  MODEL_ROUTING_TEST_LABEL,
   MODEL_STAGES,
   STAGE_ROLES,
   ModelRoutingConfigurationError,
+  authorizedProfiles,
   resolveModelRouting,
   settingsForProfile,
 } from '../lib/modelRoutingPolicy.js';
@@ -33,7 +36,7 @@ const config = resolveModelRouting(env);
 assert.equal(config.policy_version, MODEL_ROUTING_POLICY_VERSION);
 assert.equal(config.schema_version, 'model_routing_config_v2');
 assert.equal(config.mode, 'role_policy');
-assert.equal(config.label, 'ai_role_policy');
+assert.equal(config.label, MODEL_ROUTING_LABEL);
 assert.deepEqual(config.stage_roles, STAGE_ROLES);
 assert.deepEqual(Object.keys(config.roles).sort(), [...AI_ROLES].sort());
 
@@ -132,6 +135,121 @@ assert.throws(() => authorizeConfiguredDestination(
   'forensic_audit', 'openai', 'gpt-5.6-sol', { max_tokens: 16384, reasoning_effort: 'medium' }, env,
 ), /DESTINATION_NOT_CONFIGURED/);
 
+const expandedEnv = {
+  ...env,
+  GEMINI_API_KEY: 'test-gemini-key',
+  META_API_KEY: 'test-meta-key',
+  REASONER_PROVIDER: 'OPENAI',
+  REASONER_MODEL: 'gpt-6-astra',
+  REASONER_FALLBACK_PROVIDER: 'XAI',
+  REASONER_FALLBACK_MODEL: 'grok-4.6',
+  WORKHORSE_PROVIDER: 'GOOGLE',
+  WORKHORSE_MODEL: 'gemini-3.8-flash',
+  WORKHORSE_FALLBACK_PROVIDER: 'XAI',
+  WORKHORSE_FALLBACK_MODEL: 'grok-4.6',
+  QUALITY_CHECKER_PROVIDER: 'META',
+  QUALITY_CHECKER_MODEL: 'muse-spark-1.3',
+  QUALITY_CHECKER_FALLBACK_PROVIDER: 'OPENAI',
+  QUALITY_CHECKER_FALLBACK_MODEL: 'gpt-5.4',
+};
+const expandedConfig = resolveModelRouting(expandedEnv);
+assert.equal(expandedConfig.policy_version, 'ai_role_routing_v5');
+assert.deepEqual(expandedConfig.routes.evidence_adjudication.map(value => `${value.provider}:${value.id}`), [
+  'openai:gpt-6-astra',
+  'xai:grok-4.6',
+]);
+assert.equal(expandedConfig.routes.evidence_adjudication[0].reasoningEffort, 'high');
+assert.deepEqual(expandedConfig.routes.forensic_audit.map(value => `${value.provider}:${value.id}`), [
+  'google:gemini-3.8-flash',
+  'xai:grok-4.6',
+]);
+assert.equal(expandedConfig.routes.forensic_audit[0].reasoningEffort, 'medium');
+assert.deepEqual(expandedConfig.routes.fact_check.map(value => `${value.provider}:${value.id}`), [
+  'meta:muse-spark-1.3',
+  'openai:gpt-5.4',
+]);
+assert.doesNotThrow(() => authorizeConfiguredDestination(
+  'evidence_adjudication', 'openai', 'gpt-6-astra', { max_tokens: 32768, reasoning_effort: 'high' }, expandedEnv,
+));
+assert.doesNotThrow(() => authorizeConfiguredDestination(
+  'forensic_audit', 'google', 'gemini-3.8-flash', { max_tokens: 16384, reasoning_effort: 'medium' }, expandedEnv,
+));
+assert.doesNotThrow(() => authorizeConfiguredDestination(
+  'fact_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, expandedEnv,
+));
+assert.doesNotThrow(() => authorizeDestination(
+  'fact_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' },
+));
+assert.deepEqual(
+  authorizedProfiles('forensic_audit', 'meta', 'muse-spark-1.3-contributor'),
+  [],
+  'Contributor Spark is authorized only for QUALITY_CHECKER',
+);
+assert.ok(authorizedProfiles('fact_check', 'openai', 'gpt-5.4').length, 'GPT 5.4 must be authorized for QUALITY_CHECKER');
+assert.ok(authorizedProfiles('roadmap_synthesis', 'openai', 'gpt-6-astra').length, 'GPT 6 Astra must be authorized for REASONER');
+
+const googleKeyAliasEnv = {
+  ...expandedEnv,
+  GEMINI_API_KEY: '',
+  GOOGLE_API_KEY: 'test-google-key',
+  META_API_KEY: '',
+  MODEL_API_KEY: 'test-model-key',
+};
+assert.doesNotThrow(() => resolveModelRouting(googleKeyAliasEnv));
+
+const testModeEnv = {
+  TEST_MODE: 'true',
+  GEMINI_API_KEY: 'test-gemini-key',
+  XAI_API_KEY: 'test-xai-key',
+  META_API_KEY: 'test-meta-key',
+  REASONER_PROVIDER: 'OTHER',
+  REASONER_MODEL: 'unapproved-model',
+  REASONER_FALLBACK_PROVIDER: 'OPENAI',
+  REASONER_FALLBACK_MODEL: 'gpt-5.6-sol',
+  WORKHORSE_PROVIDER: 'OPENAI',
+  WORKHORSE_MODEL: 'gpt-5.6-terra',
+  WORKHORSE_FALLBACK_PROVIDER: 'ANTHROPIC',
+  WORKHORSE_FALLBACK_MODEL: 'claude-sonnet-5',
+  QUALITY_CHECKER_PROVIDER: 'OPENAI',
+  QUALITY_CHECKER_MODEL: 'gpt-5.4',
+  QUALITY_CHECKER_FALLBACK_PROVIDER: 'ANTHROPIC',
+  QUALITY_CHECKER_FALLBACK_MODEL: 'claude-sonnet-5',
+};
+const testModeConfig = resolveModelRouting(testModeEnv);
+assert.equal(testModeConfig.label, MODEL_ROUTING_TEST_LABEL);
+assert.deepEqual(testModeConfig.routes.forensic_audit.map(value => `${value.provider}:${value.id}`), [
+  'google:gemini-3.8-flash',
+  'xai:grok-4.6',
+]);
+assert.deepEqual(testModeConfig.routes.evidence_adjudication.map(value => `${value.provider}:${value.id}`), [
+  'xai:grok-4.6',
+  'google:gemini-3.8-flash',
+]);
+assert.deepEqual(testModeConfig.routes.fact_check.map(value => `${value.provider}:${value.id}`), [
+  'meta:muse-spark-1.3-contributor',
+  'google:gemini-3.8-flash',
+]);
+assert.doesNotThrow(() => authorizeConfiguredDestination(
+  'fact_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
+));
+assert.throws(() => authorizeConfiguredDestination(
+  'evidence_adjudication', 'openai', 'gpt-6-astra', { max_tokens: 32768, reasoning_effort: 'high' }, testModeEnv,
+), /DESTINATION_NOT_CONFIGURED/, 'TEST_MODE must ignore production role variables');
+
+const testModeWithoutRoleVars = resolveModelRouting({
+  TEST_MODE: 'true',
+  GEMINI_API_KEY: 'test-gemini-key',
+  XAI_API_KEY: 'test-xai-key',
+  META_API_KEY: 'test-meta-key',
+});
+assert.equal(testModeWithoutRoleVars.label, MODEL_ROUTING_TEST_LABEL);
+assert.equal(resolveModelRouting({ ...env, TEST_MODE: 'false' }).label, MODEL_ROUTING_LABEL);
+
+assert.throws(() => resolveModelRouting({ ...testModeEnv, XAI_API_KEY: '' }), ModelRoutingConfigurationError);
+assert.throws(() => resolveModelRouting({ ...env, TEST_MODE: 'TRUE' }), ModelRoutingConfigurationError);
+assert.throws(() => resolveModelRouting({ ...env, TEST_MODE: '1' }), ModelRoutingConfigurationError);
+assert.throws(() => resolveModelRouting({ ...env, TEST_MODE: '' }), ModelRoutingConfigurationError);
+
 const modelContracts = await readFile(new URL('../src/models.ts', import.meta.url), 'utf8');
 const router = await readFile(new URL('../src/services/modelRouter.ts', import.meta.url), 'utf8');
 const analysis = await readFile(new URL('../src/services/analysisService.ts', import.meta.url), 'utf8');
@@ -141,6 +259,8 @@ assert.doesNotMatch(modelContracts, /cheap_test|VITE_FINOPS_MODEL_MODE|URLSearch
 assert.match(router, /fetch\('\/api\/model-routing'/);
 assert.match(router, /ROLE_INSTRUCTIONS/);
 assert.match(router, /await getModelRoutingConfig\(\)/);
+assert.match(router, /'google'|\"google\"/);
+assert.match(router, /'meta'|\"meta\"/);
 assert.doesNotMatch(analysis, /runStage\(['"]preflight['"]/);
 assert.match(analysis, /sanitizeEvidenceSources\(sources\)/);
 assert.ok(analysis.indexOf('sanitizeEvidenceSources(sources)') < analysis.indexOf('runPhase1Audit('));

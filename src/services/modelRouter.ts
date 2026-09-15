@@ -40,7 +40,7 @@ export class StageExecutionError extends Error { constructor(public code:string,
 
 const STAGES: StageId[] = ['forensic_audit','evidence_gap_analysis','targeted_rescan','evidence_check','evidence_adjudication','synthesis','roadmap_synthesis','synthesis_escalation','fact_check','fact_check_high','quality_gate'];
 const ROLES = new Set<AiRole>(['REASONER', 'WORKHORSE', 'QUALITY_CHECKER']);
-const PROVIDERS = new Set<Provider>(['anthropic', 'openai', 'xai']);
+const PROVIDERS = new Set<Provider>(['anthropic', 'google', 'meta', 'openai', 'xai']);
 const ROLE_INSTRUCTIONS: Record<AiRole, string> = {
   WORKHORSE: 'AI ROLE: WORKHORSE. Perform only the bounded semantic task supplied. Use only the supplied evidence and reference universe, make no unsupported inference, and follow the exact output contract. Do not derive values that the prompt identifies as deterministic.',
   REASONER: 'AI ROLE: REASONER. Resolve only the supplied ambiguity or multi-factor decision. Weigh the competing supplied evidence and knowledge constraints, respect prohibited inferences, evaluate supplied decision alternatives when present, and provide a source-grounded rationale. Do not invent evidence or deterministic state.',
@@ -53,7 +53,7 @@ const validProfile = (value: any): value is ModelProfile => Boolean(
   && typeof value.id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value.id)
   && PROVIDERS.has(value.provider)
   && (value.maxTokens === undefined || (Number.isInteger(value.maxTokens) && value.maxTokens > 0))
-  && (value.reasoningEffort === undefined || ['none','low','medium','high','xhigh'].includes(value.reasoningEffort))
+  && (value.reasoningEffort === undefined || ['none','low','medium','high','xhigh','max'].includes(value.reasoningEffort))
 );
 
 const validRoutingConfig = (value: any): value is ModelRoutingConfig => Boolean(
@@ -316,7 +316,7 @@ async function postWithTimeout(url: string, body: any, approval: any): Promise<{
 }
 
 export async function callModel(profile: ModelProfile, prompt: NormalizedPrompt, stage: StageId, ctx: RunContext): Promise<{ text: string; usage?: any }> {
-  if (profile.provider === 'anthropic' || profile.provider === 'openai' || profile.provider === 'xai') return governedCall(profile, prompt, stage, ctx);
+  if (PROVIDERS.has(profile.provider)) return governedCall(profile, prompt, stage, ctx);
   throw new Error(`Unknown provider: ${(profile as any).provider}`);
 }
 
