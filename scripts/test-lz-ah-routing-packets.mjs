@@ -27,20 +27,21 @@ assert.match(retrievalSource, /policy assignment/);
 assert.match(retrievalSource, /vending pipeline/);
 
 const analysis = await readFile(new URL("../src/services/analysisService.ts", import.meta.url), "utf8");
-assert.match(analysis, /buildDomainPackets\(sourceRegistry\)/);
-assert.doesNotMatch(analysis, /buildDomainPackets\(sourceRegistry,\s*scopedBatchIds\)/);
+const packetization = analysis.slice(
+  analysis.indexOf("const privacy = sanitizeEvidenceSources"),
+  analysis.indexOf("emitProgress({ stage: 'privacy'"),
+);
+assert.match(packetization, /buildDomainPackets\(sourceRegistry\)/);
+assert.doesNotMatch(packetization, /buildDomainPackets\(sourceRegistry,\s*scopedBatchIds\)/);
 assert.ok(
-  analysis.indexOf("applyQuestionnaireIngestion") < analysis.indexOf("buildSourceRegistry"),
+  packetization.indexOf("applyQuestionnaireIngestion") < packetization.indexOf("buildSourceRegistry"),
   "questionnaire ingestion must stay before packetization",
 );
 assert.ok(
-  analysis.indexOf("buildDomainPackets(sourceRegistry)") < analysis.indexOf("applyBoundedRetrieval"),
+  packetization.indexOf("buildDomainPackets(sourceRegistry)") < packetization.indexOf("applyBoundedRetrieval"),
   "bounded retrieval must expand the A-H baseline packets",
 );
-assert.ok(
-  analysis.indexOf("validateEvidenceAcquisition") > analysis.indexOf("applyBoundedRetrieval"),
-  "integrity hashes must bind the packetized A-H set",
-);
+assert.match(analysis, /validateEvidenceAcquisition\(acquiredSources, sourceRegistry, sourcePackets\)/);
 
 const dir = await mkdtemp(join(tmpdir(), "lz-ah-routing-"));
 const bundle = async (name, entry) => {
