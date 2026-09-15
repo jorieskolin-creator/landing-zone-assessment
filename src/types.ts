@@ -347,6 +347,7 @@ export interface AnalysisMeta {
   timestamp: string;
   engine_version: string;
   assessment_scope?: import('./scope/step0Scope').AssessmentScope;
+  lz_engine_workshop_session?: import('./scope/workshopSession').LzEngineWorkshopSession;
   scoring_surface?: ReturnType<typeof import('./scope/step0Scope').scoringSurfaceSummary>;
   lz_acquisition?: import('./acquisition/landingZoneSourceClassification').LzAcquisitionSummary;
   lz_questionnaire_ingestion?: import('./acquisition/questionnaireIngestion').LzQuestionnaireIngestionSummary;

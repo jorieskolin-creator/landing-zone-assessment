@@ -5,6 +5,7 @@ const component = await readFile(new URL('../src/components/DashboardComponents.
 const analysis = await readFile(new URL('../src/services/analysisService.ts', import.meta.url), 'utf8');
 const orchestrator = await readFile(new URL('../src/orchestrator.ts', import.meta.url), 'utf8');
 const app = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const intakeHero = await readFile(new URL('../src/components/IntakeHero.tsx', import.meta.url), 'utf8');
 const report = await readFile(new URL('../src/components/ReportView.tsx', import.meta.url), 'utf8');
 const exportedReport = await readFile(new URL('../src/services/exportService.ts', import.meta.url), 'utf8');
 const loadingComponent = component.slice(component.indexOf('const PIPELINE_STEPS'), component.indexOf('export const TransferProtocol'));
@@ -23,9 +24,10 @@ const taxonomy = JSON.parse(await readFile(new URL('../src/domain-packs/landing-
 assert.deepEqual(taxonomy.design_areas.map(area => area.id), [...'ABCDEFGH']);
 assert.doesNotMatch(loadingComponent, /Claude|GPT|Sonnet|Opus|model/i);
 assert.doesNotMatch(app, /Claude|GPT|Sonnet|Opus/);
+assert.doesNotMatch(intakeHero, /Claude|GPT|Sonnet|Opus/);
 assert.doesNotMatch(app, /Assessment Suite v1\.0/);
-assert.equal((app.match(/FinOps Engine v\.2\.0\.0/g) || []).length, 2, 'header and footer should use the current product version');
-assert.match(app, /href="https:\/\/evidence-driven-finops-assessment\.vercel\.app\/"/, 'engine explanation button should use the current public URL');
+assert.equal((app.match(/Landing Zone Engine v\.2\.0\.0/g) || []).length, 2, 'header and footer should use the current product version');
+assert.match(intakeHero, /href="https:\/\/evidence-driven-finops-assessment\.vercel\.app\/"/, 'engine explanation button should use the current public URL');
 assert.doesNotMatch(report, /Model routing mode:|Models:/);
 assert.doesNotMatch(exportedReport, /Model routing mode:|Models:|Model mode /);
 assert.match(orchestrator, /onProgress\(0, totalBatches\)/, 'parallel domain work must be announced before batches settle');

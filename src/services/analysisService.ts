@@ -70,6 +70,7 @@ import {
   type AssessmentScope,
   type AssessmentScopeDraft,
 } from "../scope/step0Scope";
+import { normalizeWorkshopSession, type LzEngineWorkshopSession } from "../scope/workshopSession";
 import {
   applyLandingZoneSourceClassification,
   summarizeLzAcquisition,
@@ -295,6 +296,8 @@ export interface AnalyzeOptions {
   deepMode?: boolean;
   onRunStarted?: (runId: string) => void;
   scope?: AssessmentScope | AssessmentScopeDraft;
+  /** Optional workshop session notes. Never a scoring input. */
+  workshopSession?: LzEngineWorkshopSession;
 }
 
 export const analyzeDocument = async (
@@ -303,6 +306,7 @@ export const analyzeDocument = async (
   options: AnalyzeOptions = {}
 ): Promise<DiagnosticResult> => {
   const lockedScope = lockScope(options.scope || {}, LANDING_ZONE_PACK);
+  const workshopSession = normalizeWorkshopSession(options.workshopSession);
   const scoringSurface = loadScoringSurface(lockedScope, LANDING_ZONE_PACK);
   const scopedBatchIds = scoringSurface.design_area_ids;
   const scopedMaturityIds = [...new Set(
@@ -1751,6 +1755,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         timestamp: new Date().toISOString(),
         engine_version: ENGINE_VERSION,
         assessment_scope: lockedScope,
+        ...(workshopSession ? { lz_engine_workshop_session: workshopSession } : {}),
         scoring_surface: scoringSurfaceSummary(scoringSurface),
         lz_acquisition: summarizeLzAcquisition(acquiredSources),
         lz_questionnaire_ingestion: summarizeQuestionnaireIngestion(acquiredSources),
