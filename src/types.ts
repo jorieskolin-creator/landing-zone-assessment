@@ -167,6 +167,44 @@ export interface Phase2Validation {
   category_scores: Record<string, number>;
   evidence_category_totals?: Partial<Record<EvidenceCategory, number>>;
   crawl_walk_run: 'Insufficient evidence' | 'Crawl' | 'Walk' | 'Walk with significant friction' | 'Run';
+  /** Landing Zone display label. ADR-002 bands stay on crawl_walk_run. */
+  lz_maturity_label?: LzMaturityLabel;
+}
+
+export type LzMaturityLabel = 'Insufficient evidence' | 'Foundation' | 'Pilot' | 'Rollout' | 'Operate';
+
+export type LzProviderScoreAttribution =
+  | 'estate_logs_single_provider'
+  | 'unattributed_pending_provider_forensic';
+
+export interface LzProviderScoringSlot {
+  provider: import('./domain-packs/assessment-domain-pack').ProviderId;
+  attribution: LzProviderScoreAttribution;
+  lz_maturity_label: LzMaturityLabel;
+  crawl_walk_run: Phase2Validation['crawl_walk_run'];
+  blended: false;
+  denominator_instance_count: number;
+  excluded_not_applicable_count: number;
+  excluded_out_of_scope_count: number;
+  evidence_class_demotions: number;
+  concealed_confirmed_antipattern_pairs: number;
+  phase_2: Phase2Validation;
+  publication_blocked_reason?: string;
+}
+
+export interface LzScoringResult {
+  schema_version: 'lz_provider_scoring_v1';
+  policy_version: string;
+  scoring_surface: 'provider_scoped_criterion_instance';
+  provider_blending: 'forbidden';
+  blended_headline_published: false;
+  headline_maturity_label: LzMaturityLabel;
+  headline_provider: import('./domain-packs/assessment-domain-pack').ProviderId | null;
+  provider_results: LzProviderScoringSlot[];
+  evidence_class_demotions: number;
+  estate_phase2: Phase2Validation;
+  published_phase2: Phase2Validation;
+  pending_work: Array<'packet_routing_work_7' | 'forensic_evaluation_work_8'>;
 }
 
 export type AntiPatternAbsenceStatus =
@@ -380,6 +418,7 @@ export interface AnalysisMeta {
   scoring_surface?: ReturnType<typeof import('./scope/step0Scope').scoringSurfaceSummary>;
   lz_acquisition?: import('./acquisition/landingZoneSourceClassification').LzAcquisitionSummary;
   lz_questionnaire_ingestion?: import('./acquisition/questionnaireIngestion').LzQuestionnaireIngestionSummary;
+  lz_scoring?: LzScoringResult;
   source_parse_warnings?: string[];
   source_registry?: SourceRegistryRuntimeStatus;
   knowledge_base?: KnowledgeBaseRuntimeStatus;

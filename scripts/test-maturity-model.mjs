@@ -236,9 +236,14 @@ const sufficiencyFixture = (resolvedCount, overallResolution, options = {}) => {
   const reconciliationIndex = analysisSource.indexOf('reconcileEvidenceProvenance(');
   const forensicIndex = analysisSource.indexOf('applyLzForensicEvaluation(');
   const sanitationIndex = analysisSource.indexOf('const auditLogs = validateAndSanitizeLogs(');
-  const calculationIndex = analysisSource.indexOf('calculateMetrics(auditLogs');
-  assert.ok(reconciliationIndex >= 0 && forensicIndex > reconciliationIndex && forensicIndex < sanitationIndex && sanitationIndex < calculationIndex,
-    'runtime maturity calculation must remain downstream of provenance, LZ forensic evaluation, and final sanitation');
+  const calculationIndex = analysisSource.indexOf('scoreLandingZoneAssessment(');
+  assert.ok(
+    reconciliationIndex >= 0
+    && forensicIndex > reconciliationIndex
+    && forensicIndex < sanitationIndex
+    && sanitationIndex < calculationIndex,
+    'runtime Landing Zone scoring must remain downstream of provenance, LZ forensic evaluation, and final sanitation',
+  );
 }
 
 console.log('active resolution-based maturity model tests passed');

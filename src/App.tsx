@@ -1643,9 +1643,35 @@ const App: React.FC = () => {
                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold font-display text-lg shadow-[0_0_15px_rgba(16,185,129,0.2)] flex-shrink-0">01</div>
                     <div>
                       <h3 className="text-2xl font-display font-bold text-white mb-2">Evidence Summary</h3>
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                        Classification: <span className={`${result.phase_2_validation.crawl_walk_run.includes('Insufficient') || result.phase_2_validation.crawl_walk_run.includes('Crawl') ? 'text-rose-400' : result.phase_2_validation.crawl_walk_run.includes('Run') ? 'text-emerald-400' : 'text-amber-400'}`}>{result.phase_2_validation.crawl_walk_run}</span>
-                      </p>
+                      {(() => {
+                        const scoring = result.meta.lz_scoring;
+                        const classificationLabel = scoring?.headline_maturity_label
+                          || result.phase_2_validation.lz_maturity_label
+                          || result.phase_2_validation.crawl_walk_run;
+                        const tone = classificationLabel.includes('Insufficient') || classificationLabel === 'Foundation' || classificationLabel.includes('Crawl')
+                          ? 'text-rose-400'
+                          : classificationLabel === 'Operate' || classificationLabel.includes('Run')
+                            ? 'text-emerald-400'
+                            : 'text-amber-400';
+                        return (
+                          <>
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                              Classification: <span className={tone}>{classificationLabel}</span>
+                              {scoring?.headline_provider ? <span className="ml-2 font-medium normal-case tracking-normal text-slate-500">({scoring.headline_provider})</span> : null}
+                            </p>
+                            {scoring && scoring.provider_results.length > 1 ? (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {scoring.provider_results.map((slot) => (
+                                  <span key={slot.provider} className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white/5 border border-white/10 text-slate-300">
+                                    {slot.provider}: {slot.lz_maturity_label}
+                                  </span>
+                                ))}
+                                <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-amber-300/80">No blended headline</span>
+                              </div>
+                            ) : null}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="pl-4 md:pl-20 border-l-2 border-emerald-500/20">
