@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lz_kb_pair_authoring_v1",
+  "title": "Landing Zone KB pair authoring envelope",
+  "description": "Write one envelope per PAIR-*. Split into two upload documents before blob/PDF ingest. The engine indexes 80 documents (maturity:A1…H5 and antipattern:AP-A1…AP-H5), not this envelope. Pair identity already exists in src/domain-packs/landing-zone/pair-registry.json — do not invent new pair ids.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pair_id",
+    "design_area_id",
+    "design_area_name",
+    "capability_document",
+    "antipattern_document"
+  ],
+  "properties": {
+    "schema_version": { "const": "lz_kb_pair_authoring_v1" },
+    "pair_id": { "type": "string", "pattern": "^PAIR-[A-H][1-5]$" },
+    "design_area_id": { "type": "string", "enum": ["A", "B", "C", "D", "E", "F", "G", "H"] },
+    "design_area_name": { "type": "string" },
+    "relationship_type": { "const": "DIRECT_INVERSE" },
+    "capability_document": { "$ref": "#/$defs/uploadDocument" },
+    "antipattern_document": { "$ref": "#/$defs/uploadDocument" }
+  },
+  "$defs": {
+    "uploadDocument": {
+      "type": "object",
+      "required": ["blob_pathname", "front_matter", "sections"],
+      "properties": {
+        "blob_pathname": {
+          "type": "string",
+          "description": "Knowledge Base/<Design Area Name>/<Design Area ID> - <Design Area Name> - <Criterion ID> - <Short Title>.pdf"
+        },
+        "front_matter": { "$ref": "./lz_kb_document_front_matter.schema.json" },
+        "sections": {
+          "type": "object",
+          "description": "Keys are engine section ids. Heading text in the PDF must match the canonical heading for that key. Omit unused FinOps-only sections. Do not invent extra heading names. Keep section order.",
+          "additionalProperties": { "type": "string" },
+          "properties": {
+            "engine_usage_note": { "type": "string" },
+            "purpose": { "type": "string" },
+            "applies_to": { "type": "string" },
+            "canonical_definition": { "type": "string" },
+            "primary_assessment_questions": { "type": "string" },
+            "state_interpretation": { "type": "string" },
+            "detailed_interpretation": { "type": "string" },
+            "evidence_requirements": { "type": "string" },
+            "strong_evidence_examples": { "type": "string" },
+            "moderate_evidence_examples": { "type": "string" },
+            "weak_evidence_examples": { "type": "string" },
+            "contradictory_evidence_examples": { "type": "string" },
+            "accepted_evidence_types": { "type": "string" },
+            "provider_mapping": { "type": "string" },
+            "related_capabilities": { "type": "string" },
+            "false_positive_guards": { "type": "string" },
+            "validation_questions": { "type": "string" },
+            "detection_heuristics": { "type": "string" },
+            "operational_indicators": { "type": "string" },
+            "risk_notes": { "type": "string" },
+            "remediation_tactic_notes": { "type": "string" },
+            "prohibited_inference_rules": { "type": "string" },
+            "scoring_guidance": { "type": "string" },
+            "canonical_source_foundations": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
