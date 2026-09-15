@@ -186,4 +186,148 @@ const anthropicSchemaText = JSON.stringify(anthropicFindingsRequest.output_confi
 assert.doesNotMatch(anthropicSchemaText, /"(?:minimum|maximum|maxItems|minLength|maxLength)"/);
 assert.doesNotMatch(anthropicSchemaText, /"minItems"/);
 
+let googleRequest;
+const googleResult = await invokeProvider({
+  ...packet,
+  stage: 'synthesis',
+  provider: 'google',
+  model: 'gemini-3.8-flash',
+  output_contract: OUTPUT_CONTRACT_IDS.evidenceSynthesis,
+  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+}, {
+  env: { GEMINI_API_KEY: 'test-gemini-key' },
+  fetchFn: async (url, options) => {
+    googleRequest = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return {
+      ok: true,
+      json: async () => ({
+        candidates: [{
+          finishReason: 'STOP',
+          content: { parts: [{ thought: true, text: 'hidden' }, { text: '{"phase_3_strategy":{}}' }] },
+        }],
+        usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 5, thoughtsTokenCount: 3 },
+      }),
+    };
+  },
+});
+assert.equal(googleRequest.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent');
+assert.equal(googleRequest.headers['x-goog-api-key'], 'test-gemini-key');
+assert.equal(googleRequest.body.generationConfig.thinkingConfig.thinkingLevel, 'medium');
+assert.equal(googleRequest.body.generationConfig.maxOutputTokens, 8192);
+assert.equal(googleRequest.body.generationConfig.responseMimeType, 'application/json');
+assert.equal(googleRequest.body.generationConfig.responseJsonSchema.additionalProperties, false);
+assert.deepEqual(googleRequest.body.generationConfig.responseJsonSchema.required, ['phase_3_strategy']);
+assert.equal(googleRequest.body.systemInstruction.parts[0].text, packet.system_instruction);
+assert.equal(googleResult.text, '{"phase_3_strategy":{}}');
+assert.deepEqual(googleResult.usage, { input_tokens: 9, output_tokens: 5, reasoning_tokens: 3 });
+
+await invokeProvider({
+  ...packet,
+  provider: 'google',
+  model: 'gemini-3.8-flash',
+  settings: { max_tokens: 8192, reasoning_effort: 'low' },
+}, {
+  env: { GOOGLE_API_KEY: 'alias-google-key' },
+  fetchFn: async (_url, options) => {
+    assert.equal(options.headers['x-goog-api-key'], 'alias-google-key');
+    return {
+      ok: true,
+      json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{}' }] } }] }),
+    };
+  },
+});
+
+await assert.rejects(
+  invokeProvider({
+    ...packet,
+    provider: 'google',
+    model: 'gemini-3.8-flash',
+    settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+  }, {
+    env: { GEMINI_API_KEY: 'test-key' },
+    fetchFn: async () => ({
+      ok: true,
+      json: async () => ({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '{"ok"' }] } }] }),
+    }),
+  }),
+  error => error?.code === 'INCOMPLETE_RESPONSE' && error?.terminationReason === 'MAX_OUTPUT_TOKENS',
+);
+
+let metaRequest;
+const metaResult = await invokeProvider({
+  ...packet,
+  stage: 'fact_check',
+  provider: 'meta',
+  model: 'muse-spark-1.3',
+  output_contract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
+  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+}, {
+  env: { META_API_KEY: 'test-meta-key' },
+  fetchFn: async (url, options) => {
+    metaRequest = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [{ finish_reason: 'stop', message: { content: '{"schema_version":"ok"}' } }],
+        usage: { prompt_tokens: 11, completion_tokens: 6, completion_tokens_details: { reasoning_tokens: 2 } },
+      }),
+    };
+  },
+});
+assert.equal(metaRequest.url, 'https://api.meta.ai/v1/chat/completions');
+assert.equal(metaRequest.headers.Authorization, 'Bearer test-meta-key');
+assert.equal(metaRequest.body.model, 'muse-spark-1.3');
+assert.equal(metaRequest.body.max_completion_tokens, 8192);
+assert.equal(metaRequest.body.reasoning_effort, 'medium');
+assert.equal(metaRequest.body.response_format.type, 'json_schema');
+assert.equal(metaRequest.body.response_format.json_schema.name, OUTPUT_CONTRACT_IDS.summaryFactCheck);
+assert.equal(metaRequest.body.response_format.json_schema.strict, true);
+assert.equal(metaResult.text, '{"schema_version":"ok"}');
+assert.deepEqual(metaResult.usage, { input_tokens: 11, output_tokens: 6, reasoning_tokens: 2 });
+
+await invokeProvider({
+  ...packet,
+  provider: 'meta',
+  model: 'muse-spark-1.3-contributor',
+  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+}, {
+  env: { MODEL_API_KEY: 'alias-model-key' },
+  fetchFn: async (_url, options) => {
+    assert.equal(options.headers.Authorization, 'Bearer alias-model-key');
+    return {
+      ok: true,
+      json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{}' } }] }),
+    };
+  },
+});
+
+await assert.rejects(
+  invokeProvider({
+    ...packet,
+    provider: 'meta',
+    model: 'muse-spark-1.3',
+    settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+  }, {
+    env: { META_API_KEY: 'test-key' },
+    fetchFn: async () => ({
+      ok: true,
+      json: async () => ({ choices: [{ finish_reason: 'length', message: { content: '{"ok"' } }] }),
+    }),
+  }),
+  error => error?.code === 'INCOMPLETE_RESPONSE' && error?.terminationReason === 'MAX_OUTPUT_TOKENS',
+);
+
+await assert.rejects(
+  invokeProvider({
+    ...packet,
+    provider: 'google',
+    model: 'gemini-3.8-flash',
+    settings: { max_tokens: 8192, reasoning_effort: 'xhigh' },
+  }, {
+    env: { GEMINI_API_KEY: 'test-key' },
+    fetchFn: async () => { throw new Error('must not dispatch'); },
+  }),
+  /PROVIDER_NOT_CONFIGURED/,
+);
+
 console.log('provider invocation behavioral tests passed');

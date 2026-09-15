@@ -360,9 +360,9 @@ export interface AnalysisMeta {
   model_mode?: string;
   model_routing_policy_version?: string;
   model_roles?: Record<'REASONER' | 'WORKHORSE' | 'QUALITY_CHECKER', {
-    primary_provider: 'ANTHROPIC' | 'OPENAI' | 'XAI';
+    primary_provider: 'ANTHROPIC' | 'GOOGLE' | 'META' | 'OPENAI' | 'XAI';
     primary_model: string;
-    fallback_provider: 'ANTHROPIC' | 'OPENAI' | 'XAI';
+    fallback_provider: 'ANTHROPIC' | 'GOOGLE' | 'META' | 'OPENAI' | 'XAI';
     fallback_model: string;
   }>;
   model_config: {

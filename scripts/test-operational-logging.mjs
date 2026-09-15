@@ -88,7 +88,7 @@ assert.match(logged[1], /provider_error_code=unsupported_parameter/);
 assert.match(logged[1], /provider_request_id=req_safe-123/);
 assert.doesNotMatch(logged[1], /private model output|private provider message|authorization|secret/);
 
-for (const file of ['../api/openai-generate.js', '../api/anthropic-generate.js', '../api/xai-generate.js']) {
+for (const file of ['../api/openai-generate.js', '../api/anthropic-generate.js', '../api/xai-generate.js', '../api/google-generate.js', '../api/meta-generate.js']) {
   const source = await readFile(new URL(file, import.meta.url), 'utf8');
   assert.doesNotMatch(source, /errorText\.substring|errorText\.replace/);
   assert.doesNotMatch(source, /msg=\\?"\$\{msg/);
