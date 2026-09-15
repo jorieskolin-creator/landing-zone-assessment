@@ -62,6 +62,7 @@ import { sanitizeEvidenceSources } from "./deterministicPrivacyService";
 import { scrubDiagnosticResultForPrivacy } from "./privacyService";
 import { parseGovernedJsonObject, validateFindingsModePayload } from "./jsonResponseService";
 import { reconcileEvidenceProvenance } from "./evidenceCheckService";
+import { applyLzForensicEvaluation, isLzEvidenceClass } from "./lzForensicEvaluation";
 import { maturityRunTraceProjection } from "./maturityModelService";
 import {
   lockScope,
@@ -221,6 +222,15 @@ const validateAndSanitizeLogs = (
       safeItem.antipattern_absence_status = item.antipattern_absence_status;
     }
     if (isAntipattern && typeof item.coverage_reason === 'string') safeItem.coverage_reason = item.coverage_reason;
+    if (item.lz_authority_cap && typeof item.lz_authority_cap === 'object') {
+      safeItem.lz_authority_cap = item.lz_authority_cap;
+    }
+    if (item.lz_contradiction_classes && typeof item.lz_contradiction_classes === 'object') {
+      safeItem.lz_contradiction_classes = item.lz_contradiction_classes;
+    }
+    if (typeof item.lz_evidence_authority_note === 'string') {
+      safeItem.lz_evidence_authority_note = item.lz_evidence_authority_note;
+    }
 
     if (Array.isArray(item.evidence_quotes)) {
       safeItem.evidence_quotes = item.evidence_quotes
@@ -237,7 +247,8 @@ const validateAndSanitizeLogs = (
           page_id: typeof q.page_id === 'string' ? q.page_id : undefined,
           chunk_id: typeof q.chunk_id === 'string' ? q.chunk_id : undefined,
           sheet_name: typeof q.sheet_name === 'string' ? q.sheet_name : undefined,
-          row_number: typeof q.row_number === 'number' && q.row_number > 0 ? q.row_number : undefined
+          row_number: typeof q.row_number === 'number' && q.row_number > 0 ? q.row_number : undefined,
+          evidence_class: isLzEvidenceClass(q.evidence_class) ? q.evidence_class : undefined,
         }));
     }
 
@@ -610,6 +621,14 @@ export const analyzeDocument = async (
         domains: [...new Set(provenanceReconciliation.adjustedCriteria.map(id => id.charAt(0)))].join(','),
         criteria_count: provenanceReconciliation.adjustedCriteria.length,
         removed_quotes: provenanceReconciliation.removedQuoteCount,
+      });
+    }
+    aggregatedRawData = applyLzForensicEvaluation(aggregatedRawData, sourceRegistry);
+    const forensicSummary = aggregatedRawData.meta?.lz_forensic_evaluation;
+    if (forensicSummary && (forensicSummary.authority_caps?.length > 0 || forensicSummary.contradictions?.length > 0)) {
+      serverLog(runId, 'info', 'lz_forensic_evaluation', {
+        authority_caps: forensicSummary.authority_caps.length,
+        contradictions: forensicSummary.contradictions.length,
       });
     }
     validatePreSynthesisIntegrity(

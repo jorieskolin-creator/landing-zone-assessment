@@ -141,7 +141,7 @@ const buildEvidenceCheckPrompt = (
   referenceKbContext: string
 ): string => `
 <role>
-You are an independent FinOps evidence verifier. Your job is NOT to rescan the whole document. Your job is to verify whether the scanner's forwarded findings and scores are actually supported by the raw source material.
+You are an independent Landing Zone evidence verifier. Your job is NOT to rescan the whole document. Your job is to verify whether the scanner's forwarded findings and scores are actually supported by the raw source material.
 </role>
 
 <batch_scope>
@@ -180,14 +180,18 @@ ${summarizeBatch(batch)}
 - If the packet says coverage is weak or broad-source fallback was used, do not treat missing packet evidence as positive absence. Mark maturity as missing/silent or anti-pattern absence as unknown unless an exact chunk supports the conclusion.
 - For image evidence, the description must be something visible in the attached image content.
 - The REFERENCE_KNOWLEDGE_BASE is rubric/reference material only. It can clarify what good evidence looks like, false positives, and coverage expectations, but it is never source evidence for this customer.
-- Do not invent stronger scores. If unsure, recommend the lower score.
+- Do not invent stronger scores, provider checks, or control-plane facts. If unsure, recommend the lower score.
+- Honor CHUNK evidence_class. Rank is platform > document > workshop. Copy class from the cited chunk; do not invent it.
+- Count 3 / Embedded for a preventive control requires Class 1 (platform) support. Class 2 can support intent. Class 3 cannot award Embedded and cannot replace platform facts.
+- Document vs platform mismatch is a contradiction. Workshops explain; they do not vote platform facts away.
 - verified_count must be 0-3 and must not exceed original_count.
 - rescan_recommended should be true when status is weak, unsupported, or missing and original_count > 0.
 - For anti-pattern items, also return antipattern_absence_status:
   - "confirmed_present": verified_count > 0 and the harmful pattern is evidenced.
   - "partially_present": verified_count is 1-2 or the harmful pattern signal is weak/partial.
-  - "tested_absent": verified_count is 0, original_count is 0, no weak/partial harmful signal exists, AND the source has relevant coverage that would reasonably reveal the anti-pattern if present.
-  - "unknown_absent": verified_count is 0 BUT the source is silent, irrelevant, or too weak to prove absence.
+  - "tested_absent": verified_count is 0, original_count is 0, no weak/partial harmful signal exists, AND Class 1 coverage would reasonably reveal the anti-pattern if present.
+  - "unknown_absent": verified_count is 0 BUT the source is silent, irrelevant, document/workshop-only, or too weak to prove absence.
+- Never label an anti-pattern "tested_absent" unless Class 1 coverage would reasonably reveal that control-plane anti-pattern if present. Document-only or workshop-only silence is "unknown_absent".
 - Never label an anti-pattern "tested_absent" when status is "weak", original_count is above 0, or the rationale/coverage_reason says there is partial harmful-pattern evidence. Use "partially_present" for weak but real harmful signals, or "unknown_absent" when the signal is too weak to count.
 - For anti-pattern "tested_absent" or "unknown_absent", include coverage_reason explaining why absence is meaningful or why it is not assessable.
 </rules>
@@ -229,12 +233,13 @@ const buildAntiPatternAdjudicationPrompt = (
   batch: BatchAuditResult
 ): string => `
 <role>
-You are a senior FinOps evidence adjudicator. A first evidence-check found disputed anti-pattern signals. Your job is only to decide whether each disputed item is a weak/partial harmful anti-pattern finding or not assessable from source coverage.
+You are a senior Landing Zone evidence adjudicator. A first evidence-check found disputed anti-pattern signals. Your job is only to decide whether each disputed item is a weak/partial harmful anti-pattern finding or not assessable from source coverage.
 </role>
 
 <rules>
 - The REFERENCE or Knowledge Base is not customer source evidence.
-- Do not upgrade maturity or invent new findings.
+- Do not upgrade maturity or invent new findings, provider checks, or control-plane facts.
+- Workshop or document material cannot convert a disputed signal into tested absence. Tested absence is out of scope for this adjudication.
 - For each item choose exactly one status:
   - "partially_present": the source contains weak, partial, indirect, or low-confidence evidence of the harmful anti-pattern.
   - "unknown_absent": the scanner signal is not reliable enough and source coverage is too weak, silent, irrelevant, or contradictory to support either a finding or tested absence.

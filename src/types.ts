@@ -18,6 +18,30 @@ export const EVIDENCE_CATEGORIES: EvidenceCategory[] = [
   'Cultural'
 ];
 
+export type LzEvidenceClass = 'platform' | 'document' | 'workshop';
+
+export type LzEvidenceClassContradictionKind =
+  | 'platform_document'
+  | 'platform_workshop'
+  | 'document_workshop';
+
+export interface LzEvidenceAuthorityCap {
+  schema: 'lz_evidence_authority_v1';
+  from_count: number;
+  to_count: number;
+  strongest_class: LzEvidenceClass | 'none';
+  reason:
+    | 'document_cannot_prove_current_enforcement'
+    | 'workshop_cannot_award_embedded'
+    | 'tested_absence_requires_platform_evidence';
+}
+
+export interface LzEvidenceClassContradiction {
+  schema: 'lz_evidence_class_contradiction_v1';
+  classes: LzEvidenceClass[];
+  kinds: LzEvidenceClassContradictionKind[];
+}
+
 export interface EvidenceQuote {
   quote: string;
   source_document?: string;
@@ -31,6 +55,8 @@ export interface EvidenceQuote {
   chunk_id?: string;
   sheet_name?: string;
   row_number?: number;
+  /** Copied from the cited CHUNK or source; models are not required to emit this. */
+  evidence_class?: LzEvidenceClass;
 }
 
 export type ImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp';
@@ -63,6 +89,9 @@ export interface AuditItem {
   verification_unresolved?: boolean;
   antipattern_absence_status?: AntiPatternAbsenceStatus;
   coverage_reason?: string;
+  lz_authority_cap?: LzEvidenceAuthorityCap;
+  lz_contradiction_classes?: LzEvidenceClassContradiction;
+  lz_evidence_authority_note?: string;
 }
 
 export interface AuditCategory {
