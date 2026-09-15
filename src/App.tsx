@@ -38,6 +38,10 @@ import {
   LZ_SOURCE_KIND_LABELS,
   type LzSourceClassification,
 } from './acquisition/landingZoneSourceClassification';
+import {
+  tryIngestQuestionnaireFromText,
+  type LzQuestionnaireSession,
+} from './acquisition/questionnaireIngestion';
 
 const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Demo Pack';
 const PERSISTENCE_PREFIX = persistencePrefix();
@@ -164,6 +168,7 @@ interface UploadedFile {
   visualUnits?: VisualEvidenceUnit[];
   kind?: 'pdf' | 'html' | 'csv' | 'tsv' | 'json' | 'xlsx' | 'image';
   lzClassification?: LzSourceClassification;
+  lzQuestionnaireSession?: LzQuestionnaireSession;
   status: 'parsed' | 'error';
   scan?: ScanResult;
   parseMetadata?: {
@@ -825,6 +830,7 @@ const App: React.FC = () => {
         let structuredTable: StructuredTableData | undefined;
         let structuredTables: StructuredTableData[] | undefined;
         let visualUnits: VisualEvidenceUnit[] | undefined;
+        let processedQuestionnaireSession: LzQuestionnaireSession | undefined;
         const lowerName = file.name.toLowerCase();
         let acquisition = await inspectEvidenceFile(file);
         if (acquisition.validation_status !== 'PASS') {
@@ -888,8 +894,17 @@ const App: React.FC = () => {
           visualUnits = [visualUnit];
         } else if (file.type === 'application/json' || lowerName.endsWith('.json')) {
           const raw = await file.text();
+          const questionnaireSession = tryIngestQuestionnaireFromText(raw, { fileName: file.name });
           text = `Format: JSON\n\n${raw}`;
           kind = 'json';
+          if (questionnaireSession) {
+            parseMetadata = {
+              warnings: [
+                `Class 3 questionnaire session · ${questionnaireSession.answered_observation_count} observations · ${questionnaireSession.evidence_lead_count} evidence leads (requests, not findings)`,
+              ],
+            };
+          }
+          processedQuestionnaireSession = questionnaireSession || undefined;
         } else {
           throw new Error(`File ${file.name} is not a supported format (PDF, HTML, CSV, TSV, XLSX, PNG, JPEG, WEBP, JSON).`);
         }
@@ -928,6 +943,7 @@ const App: React.FC = () => {
           visualUnits,
           kind,
           lzClassification,
+          lzQuestionnaireSession: processedQuestionnaireSession,
           status: 'parsed',
           scan: scanParseableFile(text, kind, false),
           parseMetadata
@@ -1495,6 +1511,11 @@ const App: React.FC = () => {
                                     {' · '}
                                     {LZ_SOURCE_KIND_LABELS[file.lzClassification.source_kind]}
                                     {file.lzClassification.out_of_locked_scope_providers.length > 0 ? ' · extra provider, not a scope expansion' : ''}
+                                  </div>
+                                )}
+                                {file.lzQuestionnaireSession && (
+                                  <div className="text-[10px] text-cyan-300/90 mt-1 truncate max-w-[240px]">
+                                    Questionnaire · {file.lzQuestionnaireSession.answered_observation_count} observations · {file.lzQuestionnaireSession.evidence_lead_count} evidence leads (requests, not findings)
                                   </div>
                                 )}
                                 {file.parseMetadata && (
