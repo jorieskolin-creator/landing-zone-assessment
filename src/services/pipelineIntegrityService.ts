@@ -171,6 +171,27 @@ const remoteKnowledgeReady = (index: RemoteKnowledgeBaseIndex): boolean =>
   && index.status.failure_count === 0
   && index.status.document_count > 0;
 
+const REJECTED_FINOPS_KB_MARKERS = [
+  'Cost Visibility & Allocation',
+  'Rate & Usage Optimization',
+  'Architecture & Engineering',
+  'Culture & Organization',
+  'GenAI & AI Cost Management',
+  'GenAI / Token Cost Management',
+];
+
+const indexUsesRejectedFinopsKnowledge = (index: RemoteKnowledgeBaseIndex): boolean =>
+  (index.documents || []).some((doc) => {
+    const haystack = `${doc.pathname || ''} ${doc.domain_name || ''} ${doc.title || ''}`;
+    return REJECTED_FINOPS_KB_MARKERS.some((marker) => haystack.includes(marker));
+  });
+
+const requiredLandingZoneKnowledgeMissing = (index: RemoteKnowledgeBaseIndex): boolean => {
+  const status = index.status.kb_content_status;
+  if (!status || status === 'contract_defined_content_pending') return false;
+  return index.status.document_count === 0 || (index.documents || []).length === 0;
+};
+
 const hasCompleteDelimitedPopulation = (source: SourceRecord): boolean => {
   if (source.kind !== 'csv' && source.kind !== 'tsv') return true;
   const table = source.structured_table;
@@ -291,6 +312,12 @@ export const validateKnowledgeAcquisition = (
     return Boolean(definition?.title && definition.maturity && definition.antipattern);
   });
   if (!builtInReady) {
+    throw new PipelineIntegrityError('KNOWLEDGE_PACKET_INTEGRITY_FAILED', 'knowledge');
+  }
+  if (indexUsesRejectedFinopsKnowledge(index)) {
+    throw new PipelineIntegrityError('KNOWLEDGE_PACKET_INTEGRITY_FAILED', 'knowledge');
+  }
+  if (requiredLandingZoneKnowledgeMissing(index)) {
     throw new PipelineIntegrityError('KNOWLEDGE_PACKET_INTEGRITY_FAILED', 'knowledge');
   }
 

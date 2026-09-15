@@ -75,5 +75,15 @@ assert.match(knowledgeIndex, /from '\.\/landingZoneKnowledge'/);
 assert.doesNotMatch(knowledgeIndex, /VITE_FINOPS_TACTICS_URL/);
 assert.doesNotMatch(knowledgeIndex, /FALLBACK_TACTICS/);
 assert.doesNotMatch(knowledgeIndex, /finops-tactic-playbook-knowledge-base\.vercel\.app/);
+assert.doesNotMatch(knowledgeIndex, /finops_criteria\.json/);
+assert.doesNotMatch(knowledgeIndex, /source: 'built_in'/);
+
+const kbIndexJs = await readFile(join(ROOT, "lib/kbIndex.js"), "utf8");
+assert.doesNotMatch(kbIndexJs, /LEGACY_FINOPS_DOMAIN_NAMES/);
+assert.match(kbIndexJs, /FinOps Knowledge Base content is rejected/);
+
+const apiKb = await readFile(join(ROOT, "api/kb-index.js"), "utf8");
+assert.doesNotMatch(apiKb, /FINOPS_KB_BLOB_PREFIX/);
+assert.match(apiKb, /LZ_KB_BLOB_PREFIX/);
 
 console.log("independence check passed");

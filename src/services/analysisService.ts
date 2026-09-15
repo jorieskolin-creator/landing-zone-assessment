@@ -549,6 +549,8 @@ export const analyzeDocument = async (
       documents: referenceKbIndex.status.document_count,
       failures: referenceKbIndex.status.failure_count,
       source: referenceKbIndex.status.source,
+      kb_content_status: referenceKbIndex.status.kb_content_status,
+      kb_pack_version: referenceKbIndex.status.kb_pack_version,
     });
     const knowledgeWarnings = referenceKbIndex.status.failure_count > 0
       || referenceKbIndex.status.source !== 'remote_blob'

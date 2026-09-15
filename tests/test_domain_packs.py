@@ -113,6 +113,40 @@ class LandingZonePackTests(unittest.TestCase):
         broken_kb["knowledgeBase"]["topics"] = [{"id": "topic-1", "criterion_ids": ["Z1"]}]
         with self.assertRaises(PackValidationError):
             validate_pack(broken_kb)
+        incomplete_kb = copy.deepcopy(pack)
+        incomplete_kb["knowledgeBase"]["topics"] = [{
+            "id": "topic-a1",
+            "applicable_design_area_ids": ["A"],
+            "applicable_criterion_ids": ["A1"],
+        }]
+        with self.assertRaises(PackValidationError):
+            validate_pack(incomplete_kb)
+        finops_kb = copy.deepcopy(pack)
+        finops_kb["knowledgeBase"]["topics"] = [{
+            "id": "topic-a1",
+            "title": "Cost Visibility & Allocation",
+            "applicable_design_area_ids": ["A"],
+            "applicable_criterion_ids": ["A1"],
+            "provider_applicability": ["azure"],
+            "allowed_interpretation_use": ["rubric_context"],
+            "prohibited_use": ["customer_current_state_claim", "source_evidence_quote"],
+            "citation": {"source": "FinOps Engine"},
+            "provenance": {"origin": "copied-finops"},
+        }]
+        with self.assertRaises(PackValidationError):
+            validate_pack(finops_kb)
+        valid_kb = copy.deepcopy(pack)
+        valid_kb["knowledgeBase"]["topics"] = [{
+            "id": "lz-kb-a1-maturity",
+            "applicable_design_area_ids": ["A"],
+            "applicable_criterion_ids": ["A1"],
+            "provider_applicability": "all",
+            "allowed_interpretation_use": ["rubric_context"],
+            "prohibited_use": ["customer_current_state_claim", "source_evidence_quote"],
+            "citation": {"source": "Landing Zone pack A1"},
+            "provenance": {"origin": "landing-zone-pack"},
+        }]
+        validate_pack(valid_kb)
         broken_tactic = copy.deepcopy(pack)
         broken_tactic["tactics"] = [{"id": "TAC-ORG-001", "criterion_ids": ["A99"]}]
         with self.assertRaises(PackValidationError):

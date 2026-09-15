@@ -509,10 +509,13 @@ export interface ShadowTelemetryPersistence {
 }
 
 export interface KnowledgeBaseRuntimeStatus {
-  source: 'remote_blob' | 'fallback' | 'built_in';
+  source: 'remote_blob' | 'fallback' | 'built_in' | 'lz_pack_index' | 'lz_pack_pending' | 'unavailable';
   prefix?: string;
   document_count: number;
   failure_count: number;
+  kb_pack_version?: string;
+  kb_schema_version?: string;
+  kb_content_status?: string;
   domains?: Record<string, number>;
   delivery?: {
     sectioned_document_count: number;
@@ -953,6 +956,10 @@ export interface RunTrace {
   taxonomy_hash: string;
   kb_index_hash?: string;
   kb_version_hashes: Record<string, string>;
+  kb_pack_version?: string;
+  kb_schema_version?: string;
+  kb_content_status?: string;
+  kb_source?: KnowledgeBaseRuntimeStatus['source'];
   tactic_db_version: string;
   tactic_db_hash: string;
   playbook_version: string;

@@ -33,6 +33,10 @@ assert.ok(pairs.pairs.some((pair) => pair.antipattern_id === "AP-H5" && pair.des
 assert.equal(knowledge.must_not_fallback_to_finops_content, true);
 assert.equal(knowledge.status, "contract_defined_content_pending");
 assert.deepEqual(knowledge.topics, []);
+assert.equal(knowledge.load_policy, "fail_visible_if_required_content_missing");
+assert.ok(knowledge.topic_contract.required_fields.includes("applicable_criterion_ids"));
+assert.ok(knowledge.topic_contract.required_fields.includes("citation"));
+assert.ok(knowledge.prohibited_use.includes("customer_current_state_claim"));
 assert.deepEqual(tactics.tactics, []);
 assert.equal(prompts.must_not_fallback_to_finops_prompts, true);
 assert.equal(prompts.status, "contract_defined_content_pending");
@@ -63,7 +67,9 @@ assert.match(knowledgeIndex, /mustNotFallbackToFinopsContent\(\)/);
 assert.doesNotMatch(knowledgeIndex, /VITE_FINOPS_TACTICS_URL/);
 assert.doesNotMatch(knowledgeIndex, /FALLBACK_TACTICS/);
 assert.match(knowledgeIndex, /expectedKnowledgeKeysFor/);
+assert.match(knowledgeIndex, /buildLandingZoneKnowledgeIndex/);
 assert.doesNotMatch(knowledgeIndex, /Array\.from\(\{ length: 5 \}/);
+assert.doesNotMatch(knowledgeIndex, /source: 'built_in'/);
 
 const titles = Object.fromEntries(taxonomy.design_areas.map((area) => [area.id, area.name]));
 assert.equal(titles.H, "Platform automation & DevOps");

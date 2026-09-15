@@ -498,6 +498,10 @@ export const buildRunTrace = (input: BuildRunTraceInput): RunTrace => {
       extracted_text_sha256: doc.extracted_text_sha256
     })))),
     kb_version_hashes: kbVersionHashes,
+    kb_pack_version: input.referenceKbIndex.status.kb_pack_version,
+    kb_schema_version: input.referenceKbIndex.status.kb_schema_version,
+    kb_content_status: input.referenceKbIndex.status.kb_content_status,
+    kb_source: input.referenceKbIndex.status.source,
     tactic_db_version: 'local-tactics-v1',
     tactic_db_hash: hashString(JSON.stringify(FINOPS_TACTICS_LOCAL)),
     playbook_version: FINOPS_TACTIC_PLAYBOOK_VERSION,

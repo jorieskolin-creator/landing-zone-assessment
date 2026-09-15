@@ -68,6 +68,16 @@ class IndependenceTests(unittest.TestCase):
         self.assertNotIn("VITE_FINOPS_TACTICS_URL", source)
         self.assertNotIn("FALLBACK_TACTICS", source)
         self.assertNotIn("finops-tactic-playbook-knowledge-base.vercel.app", source)
+        self.assertNotIn("finops_criteria.json", source)
+        self.assertNotIn("source: 'built_in'", source)
+
+    def test_kb_index_does_not_alias_finops_titles(self) -> None:
+        kb_index = (ROOT / "lib" / "kbIndex.js").read_text(encoding="utf-8")
+        self.assertNotIn("LEGACY_FINOPS_DOMAIN_NAMES", kb_index)
+        self.assertIn("FinOps Knowledge Base content is rejected", kb_index)
+        api = (ROOT / "api" / "kb-index.js").read_text(encoding="utf-8")
+        self.assertNotIn("FINOPS_KB_BLOB_PREFIX", api)
+        self.assertIn("LZ_KB_BLOB_PREFIX", api)
 
 
 if __name__ == "__main__":

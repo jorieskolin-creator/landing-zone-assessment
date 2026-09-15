@@ -1,6 +1,13 @@
 
 import type { KnowledgePacketStage, RemoteKnowledgeBaseDocument, RemoteKnowledgeBaseIndex, ShadowKnowledgePacket, StrategicTactic, TacticActivityPlaybookEntry } from '../types';
 import { LANDING_ZONE_PACK } from '../domain-packs/loadLandingZonePack';
+import {
+  annotateKnowledgeIndexWithPack,
+  buildLandingZoneKnowledgeIndex,
+  indexContainsRejectedFinopsKnowledge,
+  LZ_KNOWLEDGE_BLOB_PREFIX,
+  mergeKnowledgeIndexFailures,
+} from './landingZoneKnowledgeIndex';
 import { CHARACTERIZATION_FINOPS_EVIDENCE_TAXONOMY } from './characterizationFixtures';
 import {
   DOMAIN_ROUTING_TERMS,
@@ -25,6 +32,13 @@ import {
   landingZoneValidationRules,
   mustNotFallbackToFinopsContent,
 } from './landingZoneKnowledge';
+export {
+  buildLandingZoneKnowledgeIndex,
+  indexContainsRejectedFinopsKnowledge,
+  LZ_KNOWLEDGE_BLOB_PREFIX,
+  landingZoneKnowledgePackMetadata,
+  validateLandingZoneKnowledgeTopics,
+} from './landingZoneKnowledgeIndex';
 
 export { LANDING_ZONE_PACK } from '../domain-packs/loadLandingZonePack';
 export {
@@ -237,15 +251,19 @@ For every item with score > 0, include at least one evidence quote from the sour
 </output_format>
 `;
 
-const emptyRemoteKbIndex = (reason: string): RemoteKnowledgeBaseIndex => ({
-  status: {
-    source: 'built_in',
-    document_count: 0,
-    failure_count: reason ? 1 : 0,
-  },
-  documents: [],
-  failures: reason ? [{ pathname: 'Knowledge Base/', reason }] : [],
-});
+const emptyRemoteKbIndex = (reason: string): RemoteKnowledgeBaseIndex => {
+  const packIndex = buildLandingZoneKnowledgeIndex(LANDING_ZONE_PACK);
+  return mergeKnowledgeIndexFailures(
+    packIndex,
+    reason ? [{ pathname: LZ_KNOWLEDGE_BLOB_PREFIX, reason }] : [],
+  );
+};
+
+const knowledgeDocumentsAreUsable = (index: RemoteKnowledgeBaseIndex): boolean =>
+  (index.status.source === 'remote_blob' || index.status.source === 'lz_pack_index')
+  && index.status.document_count > 0
+  && (index.documents || []).length > 0
+  && !indexContainsRejectedFinopsKnowledge(index);
 
 let remoteKbIndexPromise: Promise<RemoteKnowledgeBaseIndex> | null = null;
 
@@ -479,16 +497,16 @@ const formatRemoteKbContext = (
     .filter(doc => !batchId || doc.domain_id === batchId)
     .sort((a, b) => `${a.stream}.${a.criterion_id}`.localeCompare(`${b.stream}.${b.criterion_id}`));
 
-  if (documents.length === 0) {
-    const reason = index.failures?.[0]?.reason || 'remote KB unavailable';
-    return `<REFERENCE_KNOWLEDGE_BASE status="unavailable">
+  if (documents.length === 0 || !knowledgeDocumentsAreUsable(index)) {
+    const reason = index.failures?.[0]?.reason || 'Landing Zone Knowledge Base unavailable';
+    return `<REFERENCE_KNOWLEDGE_BASE status="unavailable" kb_pack_version="${index.status.kb_pack_version || LANDING_ZONE_PACK.knowledgeBase.version}" kb_content_status="${index.status.kb_content_status || LANDING_ZONE_PACK.knowledgeBase.status}">
 Remote Landing Zone Knowledge Base unavailable or empty (${reason}). ${landingZoneContentPendingMessage('knowledge_base')}
 </REFERENCE_KNOWLEDGE_BASE>`;
   }
 
   const scope = batchId ? `Batch ${batchId}` : 'All domains';
-  return `<REFERENCE_KNOWLEDGE_BASE status="${index.status.source}" scope="${scope}" usage="rubric_reference_only_not_customer_evidence">
-Remote PDF Knowledge Base loaded: ${index.status.document_count} document(s), ${index.status.failure_count} parse/validation issue(s).
+  return `<REFERENCE_KNOWLEDGE_BASE status="${index.status.source}" scope="${scope}" usage="rubric_reference_only_not_customer_evidence" kb_pack_version="${index.status.kb_pack_version || LANDING_ZONE_PACK.knowledgeBase.version}" kb_content_status="${index.status.kb_content_status || LANDING_ZONE_PACK.knowledgeBase.status}">
+Landing Zone Knowledge Base loaded: ${index.status.document_count} document(s), ${index.status.failure_count} parse/validation issue(s).
 
 BOUNDARIES:
 - Use this KB only for rubric interpretation, evidence requirements, false-positive checks, validation questions, and roadmap/remediation patterns.
@@ -520,12 +538,23 @@ export const knowledgeBaseService = {
         if (!index?.documents) {
           return emptyRemoteKbIndex('remote KB index response was malformed');
         }
-        if (index.status?.source === 'remote_blob') {
-          console.info(`[Landing Zone KnowledgeBase] Remote PDF KB loaded: ${index.status.document_count} documents.`);
-        } else {
-          console.info('[Landing Zone KnowledgeBase] Landing Zone Knowledge Base content is pending; not substituting FinOps content (error_code=REMOTE_KB_UNAVAILABLE).');
+        if (indexContainsRejectedFinopsKnowledge(index)) {
+          console.warn('[Landing Zone KnowledgeBase] Remote KB contained FinOps-shaped documents; rejecting them and not substituting FinOps content (error_code=REMOTE_KB_FINOPS_CONTENT_REJECTED).');
+          return mergeKnowledgeIndexFailures(
+            buildLandingZoneKnowledgeIndex(LANDING_ZONE_PACK),
+            [{ pathname: LZ_KNOWLEDGE_BLOB_PREFIX, reason: 'REMOTE_KB_FINOPS_CONTENT_REJECTED' }],
+          );
         }
-        return index;
+        if (index.status?.source === 'remote_blob' && index.documents.length > 0) {
+          const annotated = annotateKnowledgeIndexWithPack(index, LANDING_ZONE_PACK);
+          console.info(`[Landing Zone KnowledgeBase] Remote PDF KB loaded: ${annotated.status.document_count} documents.`);
+          return annotated;
+        }
+        console.info('[Landing Zone KnowledgeBase] Landing Zone Knowledge Base content is pending; not substituting FinOps content (error_code=REMOTE_KB_UNAVAILABLE).');
+        return mergeKnowledgeIndexFailures(
+          buildLandingZoneKnowledgeIndex(LANDING_ZONE_PACK),
+          index.failures || [],
+        );
       } catch (error: any) {
         console.warn('[Landing Zone KnowledgeBase] Remote PDF KB unavailable; not substituting FinOps content (error_code=REMOTE_KB_UNAVAILABLE).');
         return emptyRemoteKbIndex(error?.message || String(error));
@@ -563,11 +592,12 @@ export const knowledgeBaseService = {
       + ` oversized=${shadowPacket.oversized_sections.length} page_limited=${shadowPacket.page_limit_documents.length}`
     );
     // Shadow packet readiness describes the future stage-packet contract only.
-    // It must never replace a healthy operational remote KB at runtime.
-    if (index.status.source !== 'remote_blob'
-      || index.status.failure_count > 0
-      || index.status.document_count === 0) {
-      return `<REFERENCE_KNOWLEDGE_BASE status="unavailable">
+    // Catalogue BATCH_DEFINITIONS are not a substitute Knowledge Base.
+    // Remote parse failures must not be used, but a valid pack index may still
+    // be used when the remote blob is simply unavailable.
+    if (!knowledgeDocumentsAreUsable(index)
+      || (index.status.source === 'remote_blob' && index.status.failure_count > 0)) {
+      return `<REFERENCE_KNOWLEDGE_BASE status="unavailable" kb_pack_version="${index.status.kb_pack_version || LANDING_ZONE_PACK.knowledgeBase.version}" kb_content_status="${index.status.kb_content_status || LANDING_ZONE_PACK.knowledgeBase.status}">
 ${landingZoneContentPendingMessage('knowledge_base')}
 Use only the Landing Zone criterion definitions in this packet. Do not use FinOps Engine knowledge.
 </REFERENCE_KNOWLEDGE_BASE>`;

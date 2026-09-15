@@ -1,10 +1,10 @@
 import { requireSession } from '../lib/auth.js';
-import { buildKbStatus, sanitizeKbDocument } from '../lib/kbIndex.js';
+import { buildKbStatus, sanitizeKbDocument, textLooksLikeFinopsKnowledge } from '../lib/kbIndex.js';
 import { createHash } from 'node:crypto';
 
 const BLOB_API_URL = 'https://vercel.com/api/blob';
 const BLOB_API_VERSION = '12';
-const DEFAULT_PREFIX = 'Knowledge Base/';
+const DEFAULT_PREFIX = 'Landing Zone Knowledge Base/';
 const CACHE_TTL_MS = 45 * 60 * 1000;
 const CACHE_FAILURE_TTL_MS = 30 * 1000;
 const MAX_BLOBS = 300;
@@ -30,6 +30,8 @@ const normalizePrefix = (prefix) => {
   const value = String(prefix || DEFAULT_PREFIX).trim();
   return value.endsWith('/') ? value : `${value}/`;
 };
+
+const kbBlobPrefix = () => normalizePrefix(process.env.LZ_KB_BLOB_PREFIX || DEFAULT_PREFIX);
 
 const blobHeaders = (token) => {
   const storeId = parseStoreIdFromReadWriteToken(token);
@@ -181,10 +183,10 @@ export async function fetchBlobBytes(blob, token) {
 
 async function buildRemoteIndex() {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  const prefix = normalizePrefix(process.env.FINOPS_KB_BLOB_PREFIX || DEFAULT_PREFIX);
+  const prefix = kbBlobPrefix();
   if (!token) {
     const failures = [{ pathname: prefix, reason: 'BLOB_READ_WRITE_TOKEN is not configured' }];
-    console.info('[FinOps KnowledgeBase] event=kb_index_fallback error_code=BLOB_TOKEN_MISSING');
+    console.info('[Landing Zone KnowledgeBase] event=kb_index_fallback error_code=BLOB_TOKEN_MISSING');
     return {
       status: buildKbStatus([], failures, 'fallback', prefix),
       documents: [],
@@ -210,6 +212,11 @@ async function buildRemoteIndex() {
       const pdfSha256 = sha256(pdfBytes);
       const cachedDocument = documentCache.get(blob.pathname);
       if (cachedDocument?.pdfSha256 === pdfSha256) {
+        if (textLooksLikeFinopsKnowledge(cachedDocument.document?.pathname, cachedDocument.document?.domain_name, cachedDocument.document?.title)) {
+          failures.push({ pathname: blob.pathname, reason: 'REMOTE_KB_FINOPS_CONTENT_REJECTED' });
+          documentCache.delete(blob.pathname);
+          continue;
+        }
         const documentChars = JSON.stringify(cachedDocument.document).length;
         if (indexChars + documentChars > MAX_INDEX_CHARS) {
           failures.push({ pathname: blob.pathname, reason: 'KB_INDEX_CHARACTER_LIMIT_EXCEEDED' });
@@ -232,6 +239,10 @@ async function buildRemoteIndex() {
         extractedTextSha256: sha256(extraction.sectionText),
         extraction,
       });
+      if (textLooksLikeFinopsKnowledge(document.pathname, document.domain_name, document.title, document.body_excerpt)) {
+        failures.push({ pathname: blob.pathname, reason: 'REMOTE_KB_FINOPS_CONTENT_REJECTED' });
+        continue;
+      }
       const documentChars = JSON.stringify(document).length;
       if (indexChars + documentChars > MAX_INDEX_CHARS) {
         failures.push({ pathname: blob.pathname, reason: 'KB_INDEX_CHARACTER_LIMIT_EXCEEDED' });
@@ -243,16 +254,16 @@ async function buildRemoteIndex() {
     } catch (error) {
       const reason = error?.message || String(error);
       failures.push({ pathname: blob.pathname || '(unknown)', reason });
-      console.warn('[FinOps KnowledgeBase] event=kb_document_invalid error_code=KB_DOCUMENT_INVALID');
+      console.warn('[Landing Zone KnowledgeBase] event=kb_document_invalid error_code=KB_DOCUMENT_INVALID');
     }
   }
 
   documents.sort((a, b) => String(a.criterion_id).localeCompare(String(b.criterion_id)));
   const status = buildKbStatus(documents, failures, documents.length > 0 ? 'remote_blob' : 'fallback', prefix);
   if (documents.length > 0) {
-    console.info(`[FinOps KnowledgeBase] event=kb_index_loaded documents=${documents.length} failures=${failures.length}`);
+    console.info(`[Landing Zone KnowledgeBase] event=kb_index_loaded documents=${documents.length} failures=${failures.length}`);
   } else {
-    console.info(`[FinOps KnowledgeBase] event=kb_index_fallback error_code=NO_VALID_DOCUMENTS failures=${failures.length}`);
+    console.info(`[Landing Zone KnowledgeBase] event=kb_index_fallback error_code=NO_VALID_DOCUMENTS failures=${failures.length}`);
   }
   return { status, documents, failures };
 }
@@ -291,11 +302,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...payload, cached: false });
   } catch (error) {
     const reason = error?.message || String(error);
-    console.error('[FinOps KnowledgeBase] event=kb_index_fallback error_code=KB_INDEX_FAILED');
+    console.error('[Landing Zone KnowledgeBase] event=kb_index_fallback error_code=KB_INDEX_FAILED');
     if (cacheIsHealthy) {
       return res.status(200).json({ ...cache.payload, cached: true, stale: true });
     }
-    const prefix = normalizePrefix(process.env.FINOPS_KB_BLOB_PREFIX || DEFAULT_PREFIX);
+    const prefix = kbBlobPrefix();
     const failures = [{ pathname: prefix, reason }];
     const payload = {
       status: buildKbStatus([], failures, 'fallback', prefix),
