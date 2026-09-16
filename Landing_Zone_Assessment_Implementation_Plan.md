@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.15 |
+| Current version | 1.16 |
 | Last updated | 2026-09-16 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -29,8 +29,10 @@ The plan is based on these repository documents:
 2. `Landing_Zone_Assessment_Engine_Criteria_Batch_Definitions.html`
 3. `Evidence_Driven_Landing_Zone_Assessment_Proposal.html`
 4. `Landing_Zone_Assessment_Interview_Evidence_Discovery_Questionnaire.html`
+5. `Landing_Zone_Assessment_Global_Source_Register_v1.0.0.html`
+6. `Landing_Zone_Assessment_Tactical_Playbook_v1.0.0_APPROVED.pdf`
 
-The architecture plan and criteria definitions specify the engine and domain model. The proposal and questionnaire describe how the assessment is prepared, performed, reviewed, and used with customers.
+The architecture plan and criteria definitions specify the engine and domain model. The proposal and questionnaire describe how the assessment is prepared, performed, reviewed, and used with customers. The Source Register owns publisher identity. The Tactical Playbook owns approved remediation identities and criterion mappings.
 
 ## 3. Fixed project assumptions
 
@@ -292,7 +294,7 @@ Verified against `origin/main` at `02cfbca` on 2026-09-16 after rebasing Works 7
 | 8 Forensic evaluation | Done | Dual-stream kernel plus Landing Zone authority overlay (`lzForensicEvaluation`). Quote `evidence_class`, Class 2/3 Count 3 caps, non-platform tested-absence → unknown, class contradictions. Runtime prompt prose remains FinOps until Work 12 |
 | 9 Pair scoring and gates | Done | Adapter scores after provenance and the Work 8 overlay. Single-provider results use Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed |
 | 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. Authoring folder is `GOOGLE_DRIVE_KB` (Drive letter folders A–H). Runtime ingest remains Vercel Blob. Drive currently holds design area A complete and design area B in progress. Source Register wording cleanup in those documents is author-owned |
-| 11 Tactic Playbook | Contract only, content-blocked | `tactics: []` and empty bindings. Fail visible. Do not invent playbook prose |
+| 11 Tactic Playbook | Playbook supplied, pack conversion pending | Approved PDF v1.0.0 is on main (80 tactics). Runtime `tactics.json` / bindings stay empty until transcribed. Do not parse the PDF at runtime. Do not invent IDs or prose |
 | 12 Prompts, personas, reports | Pack contracts ready, runtime FinOps | Personas and report vocabulary exist in the pack. `src/prompts.ts`, `src/constants.ts`, and export HTML still use FinOps language |
 | 13 Expert calibration | Not started | No calibration events or customer disposition model |
 
@@ -302,21 +304,21 @@ Supporting work already on main, outside the numbered Works:
 - Model routing authorizes Gemini, Spark, Astra, and GPT-5.4, with a `TEST_MODE` cheap chain. This does not change assessment criteria.
 - Knowledge Base pair-document schemas live in `docs/kb-authoring/` so authors can write two documents per pair in the form the indexer already consumes. `GOOGLE_DRIVE_KB` is the Drive folder ID for that authoring tree. The engine does not read Drive at runtime.
 
-Parallel content track, owned by the author rather than engine PRs: Tactic Playbook and 80 Knowledge Base documents (two per pair, A–H). The Global Source Register v1.0.0 is the Source Register for Engine composition (APPROVED, effective 2026-09-16). Leftover “Source Register is Preliminary” phrasing in Drive Knowledge Base documents is author cleanup in progress and is not an engine gate. Engine work must not invent Knowledge Base or Tactic Playbook prose.
+Parallel content track: 80 Knowledge Base documents remain author-owned in Drive. The Tactic Playbook v1.0.0 PDF is now in the repository (APPROVED - ACTIVE). Engine work transcribes that PDF into pack JSON; it must not invent tactic IDs or prose. The Global Source Register v1.0.0 is the Source Register for Engine composition (APPROVED, effective 2026-09-16). Leftover “Source Register is Preliminary” phrasing in Drive Knowledge Base documents is author cleanup in progress and is not an engine gate.
 
 Recommended next implementation order:
 
-1. Work 12 runtime prompt and report replacement can proceed in parallel with Knowledge Base authoring. Pack personas and forbidden-behavior contracts already exist.
-2. Work 11 wiring starts only after the Tactic Playbook is supplied. Empty tactics remain the correct pending state until then.
-3. Work 10 content integration finishes when the 80 documents are present: validate references, load the index, and test retrieval and clean-room separation.
+1. Work 11: transcribe the approved playbook into pack JSON and wire `landingZoneTactics()` / bindings. Empty arrays remain correct until that conversion lands.
+2. Work 12 runtime prompt and report replacement can proceed in parallel. Tactic ID tables in prompts should wait until pack JSON exists so they cite real `TAC-*` IDs.
+3. Work 10 content integration finishes when the 80 Knowledge Base documents are present: validate references, load the index, and test retrieval and clean-room separation.
 4. Work 13 follows a Landing Zone-shaped scoring path.
 5. Full pipeline verification and the first real assessment cases wait until Knowledge Base and Tactic Playbook content are integrated.
 
 Standing constraints for later chats:
 
 - Do not rebuild the 48-question questionnaire inside the engine.
-- Do not treat workshop “Live inventory: Yes” as a live cloud API. It records whether file-set exports are included.
-- Do not invent Knowledge Base topic bodies or Tactic Playbook content.
+- Do not treat workshop “Live inventory: Yes” as a live cloud API. It records whether file-set exports are included. Playbook phrases such as “live control-plane inventory” and “provider-pack queries” mean file-set exports against locked Step 0 scope, not live cloud APIs.
+- Do not invent Knowledge Base topic bodies or Tactic Playbook content. Transcribe playbook objects from the approved PDF only.
 - Do not fall back to FinOps knowledge, tactics, or prompts.
 - Keep forensic dashboard and results dark. Intake presentation may stay light paper.
 
@@ -517,29 +519,24 @@ When content becomes available:
 
 ### Work 11 — Integrate the Tactic Playbook
 
-Define the tactic contract before content completion:
+The approved playbook is in the repository: `Landing_Zone_Assessment_Tactical_Playbook_v1.0.0_APPROVED.pdf` (v1.0.0, APPROVED - ACTIVE, 16 September 2026). It is the human-readable controlled catalogue. Runtime must not parse the PDF. Conversion notes and the 80-ID index live in `docs/tactics-authoring/`.
 
-- stable tactic ID
-- title and objective
-- applicable criterion and anti-pattern IDs
-- PRIMARY, SUPPORTING, or RELATED relationship
-- activation conditions
-- prerequisites and dependencies
-- owners
-- acceptance evidence
-- risks and usage boundaries
-- `mandatory_when_activated` behavior
+The PDF contains **80 tactic objects**: one PRIMARY mapping per criterion (40 capability + 40 anti-pattern). IDs are `TAC-{NAMESPACE}-{CRITERION}-01`. Namespaces are ORG, IDENTITY, RESOURCE, NETWORK, SECURITY, OPERATIONS, GOVERNANCE, AUTOMATION. The empty pack’s guessed pattern `TAC-[A-Z]+-\d{3}` and prefixes `TAC-IAM` / `TAC-VEN` / `TAC-POL` / `TAC-OBS` / `TAC-IAC` are placeholders and must be replaced during conversion.
 
-When the playbook is ready:
+Capability objects activate when a locked finding shows the capability below target, a sub-criterion unsatisfied, or the paired anti-pattern requires the capability as the replacement control. Anti-pattern objects activate only when the finding is locked PRESENT or UNRESOLVED; no locked finding means no mandatory tactic. Supporting mappings are exact approved reuse. Title or similarity matching is forbidden.
 
-1. Validate all tactic and criterion references.
-2. Add Landing Zone tactic bindings.
-3. Permit tactics only from verified and sufficiently resolved findings.
-4. Suppress tactics for silent or unsupported areas.
-5. Verify that reference frameworks and accelerators never become customer evidence.
-6. Include tactic and playbook versions in RunTrace.
+How to add it to the codebase:
 
-The tactic contract files exist and are empty. `landingZoneTactics()` returns `[]` and must not fall back to FinOps playbook content. Work 11 cannot invent tactic titles, objectives, or bindings. The Global Source Register v1.0.0 is already approved. Wiring starts only after the author supplies the Tactic Playbook.
+1. Transcribe each PDF object into `src/domain-packs/landing-zone/tactics.json`. Do not invent titles, activities, owners, or source IDs.
+2. Transcribe mappings into `tactic-bindings.json`. PRIMARY is the exact primary criterion. The pair criterion is reciprocal. Remaining index mappings are SUPPORTING. `mandatory_when_activated` is true only on anti-pattern PRIMARY bindings (ADR-003). Capability PRIMARY bindings stay candidates, not auto-required.
+3. Expand pack `TacticDefinition` / `TacticBinding` to hold playbook fields (trigger, activities, outputs, acceptance, verification, do-not-use, reassessment, source IDs, owners).
+4. Stop hard-returning `[]` from `landingZoneTactics()` and `landingZoneTacticActivityPlaybook()`. Load pack JSON. Fail visible if content is missing. Never import FinOps tactic JSON in production.
+5. Adapt pack records onto existing kernel types `StrategicTactic` and `TacticActivityPlaybookEntry`. Keep ADR-003 grounding. Do not enable FinOps-style category-expansion similarity matching.
+6. Replace `validation-rules.json` `tactic_id_pattern` with the approved ID scheme.
+7. Record playbook version `1.0.0` on RunTrace.
+8. Validate: 80 unique IDs; every A–H criterion and anti-pattern has exactly one PRIMARY; mapped IDs exist in the pack catalogue; source IDs resolve to the Source Register; silent/unsupported areas suppress tactics; frameworks and accelerators never become customer evidence.
+
+Until that conversion lands, `tactics: []` and empty bindings remain the correct runtime state.
 
 The full Knowledge Base and Tactic Playbook must be integrated before full pipeline verification and the first real assessment test cases.
 
@@ -723,3 +720,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-16 | 1.13 | Record that Global Source Register v1.0.0 is approved and finalized. Remove PRELIMINARY / draft-register wording from the register document and stop treating the Source Register as pending authoring content. Work 11 still waits only on the Tactic Playbook. |
 | 2026-09-16 | 1.14 | Record `GOOGLE_DRIVE_KB` as the LZ Assessment KB authoring folder (A–H letter folders). Runtime ingest stays Vercel Blob. Add `scripts/validate-lz-kb-authoring.mjs` so Drive snapshots can be checked against the indexer without inventing remaining topic prose. |
 | 2026-09-16 | 1.15 | Record the repository Source Register upload as the Engine composition source (APPROVED, effective 2026-09-16). Stop treating leftover “Source Register is Preliminary” wording in Drive KB documents as an engine blocker; that cleanup is author-owned and already started. |
+| 2026-09-16 | 1.16 | Record Tactic Playbook v1.0.0 APPROVED PDF on main. Work 11 is pack conversion and kernel wiring, not inventing prose. Capture the real ID scheme `TAC-{NAMESPACE}-{CRITERION}-01`, 80 PRIMARY mappings, and fail-visible empty pack until transcription. |

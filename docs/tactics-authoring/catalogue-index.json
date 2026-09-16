@@ -1,0 +1,1132 @@
+{
+  "playbook": "Landing_Zone_Assessment_Tactical_Playbook_v1.0.0_APPROVED.pdf",
+  "version": "1.0.0",
+  "status": "APPROVED-ACTIVE",
+  "snapshot": "2026-09-16",
+  "tactic_count": 80,
+  "id_pattern": "TAC-(ORG|IDENTITY|RESOURCE|NETWORK|SECURITY|OPERATIONS|GOVERNANCE|AUTOMATION)-(AP-)?[A-H][1-5]-01",
+  "tactics": [
+    {
+      "id": "TAC-ORG-A1-01",
+      "title": "Establish the Authoritative Organization Root and Inventory Boundary",
+      "kind": "capability",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "A1",
+      "pair_criterion_id": "AP-A1",
+      "supporting_criterion_ids": [
+        "A3",
+        "A4",
+        "F2"
+      ]
+    },
+    {
+      "id": "TAC-ORG-A2-01",
+      "title": "Separate and Protect the Management Plane",
+      "kind": "capability",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "A2",
+      "pair_criterion_id": "AP-A2",
+      "supporting_criterion_ids": [
+        "B4",
+        "C2",
+        "E5"
+      ]
+    },
+    {
+      "id": "TAC-ORG-A3-01",
+      "title": "Align Billing, Contract and Technical Ownership",
+      "kind": "capability",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "A3",
+      "pair_criterion_id": "AP-A3",
+      "supporting_criterion_ids": [
+        "A1",
+        "A4",
+        "G4"
+      ]
+    },
+    {
+      "id": "TAC-ORG-A4-01",
+      "title": "Define and Lock Administrative Boundaries",
+      "kind": "capability",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "A4",
+      "pair_criterion_id": "AP-A4",
+      "supporting_criterion_ids": [
+        "A1",
+        "B4",
+        "G3"
+      ]
+    },
+    {
+      "id": "TAC-ORG-A5-01",
+      "title": "Implement Tested Root Recovery and Emergency Access",
+      "kind": "capability",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "A5",
+      "pair_criterion_id": "AP-A5",
+      "supporting_criterion_ids": [
+        "B5",
+        "F4",
+        "F3"
+      ]
+    },
+    {
+      "id": "TAC-ORG-AP-A1-01",
+      "title": "Contain Shadow Tenants and Reconcile the Production Estate",
+      "kind": "antipattern",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "AP-A1",
+      "pair_criterion_id": "A1",
+      "supporting_criterion_ids": [
+        "A3",
+        "A4",
+        "F2"
+      ]
+    },
+    {
+      "id": "TAC-ORG-AP-A2-01",
+      "title": "Remove Workloads and Daily Users from the Management Plane",
+      "kind": "antipattern",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "AP-A2",
+      "pair_criterion_id": "A2",
+      "supporting_criterion_ids": [
+        "B4",
+        "C2",
+        "E5"
+      ]
+    },
+    {
+      "id": "TAC-ORG-AP-A3-01",
+      "title": "Reconcile Orphaned Billing and Technical Estates",
+      "kind": "antipattern",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "AP-A3",
+      "pair_criterion_id": "A3",
+      "supporting_criterion_ids": [
+        "A1",
+        "A4",
+        "G4"
+      ]
+    },
+    {
+      "id": "TAC-ORG-AP-A4-01",
+      "title": "Bound External Root Access and Undeclared Estates",
+      "kind": "antipattern",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "AP-A4",
+      "pair_criterion_id": "A4",
+      "supporting_criterion_ids": [
+        "A1",
+        "B4",
+        "G3"
+      ]
+    },
+    {
+      "id": "TAC-ORG-AP-A5-01",
+      "title": "Recover Control of Unowned Root Credentials",
+      "kind": "antipattern",
+      "namespace": "ORG",
+      "design_area_id": "A",
+      "primary_criterion_id": "AP-A5",
+      "pair_criterion_id": "A5",
+      "supporting_criterion_ids": [
+        "B5",
+        "F4",
+        "F3"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-B1-01",
+      "title": "Federate Workforce Access Through the Corporate Identity Provider",
+      "kind": "capability",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "B1",
+      "pair_criterion_id": "AP-B1",
+      "supporting_criterion_ids": [
+        "B2",
+        "B5",
+        "A5"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-B2-01",
+      "title": "Implement Time-Bound Privileged Access",
+      "kind": "capability",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "B2",
+      "pair_criterion_id": "AP-B2",
+      "supporting_criterion_ids": [
+        "B1",
+        "B4",
+        "B5"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-B3-01",
+      "title": "Replace Long-Lived Credentials with Workload Identity",
+      "kind": "capability",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "B3",
+      "pair_criterion_id": "AP-B3",
+      "supporting_criterion_ids": [
+        "E4",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-B4-01",
+      "title": "Enforce Least Privilege Through the Resource Hierarchy",
+      "kind": "capability",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "B4",
+      "pair_criterion_id": "AP-B4",
+      "supporting_criterion_ids": [
+        "A4",
+        "B2",
+        "G1"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-B5-01",
+      "title": "Establish Monitored Break-Glass Access",
+      "kind": "capability",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "B5",
+      "pair_criterion_id": "AP-B5",
+      "supporting_criterion_ids": [
+        "A5",
+        "F3",
+        "E2"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-AP-B1-01",
+      "title": "Remove Standing Root-Equivalent Access",
+      "kind": "antipattern",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "AP-B1",
+      "pair_criterion_id": "B1",
+      "supporting_criterion_ids": [
+        "B2",
+        "B4",
+        "B5",
+        "A5"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-AP-B2-01",
+      "title": "Retire Cloud-Local Human Identity as the Primary Access Path",
+      "kind": "antipattern",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "AP-B2",
+      "pair_criterion_id": "B2",
+      "supporting_criterion_ids": [
+        "B1",
+        "B5",
+        "A5"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-AP-B3-01",
+      "title": "Discover, Revoke and Replace Long-Lived Keys",
+      "kind": "antipattern",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "AP-B3",
+      "pair_criterion_id": "B3",
+      "supporting_criterion_ids": [
+        "E4",
+        "H2",
+        "H5"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-AP-B4-01",
+      "title": "Remove Unscoped Root-Level Owner Access",
+      "kind": "antipattern",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "AP-B4",
+      "pair_criterion_id": "B4",
+      "supporting_criterion_ids": [
+        "A4",
+        "B2",
+        "G1"
+      ]
+    },
+    {
+      "id": "TAC-IDENTITY-AP-B5-01",
+      "title": "Create or Repair Missing and Unmonitored Break-Glass",
+      "kind": "antipattern",
+      "namespace": "IDENTITY",
+      "design_area_id": "B",
+      "primary_criterion_id": "AP-B5",
+      "pair_criterion_id": "B5",
+      "supporting_criterion_ids": [
+        "A5",
+        "F3",
+        "E2"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-C1-01",
+      "title": "Design a Policy-Bearing Resource Hierarchy",
+      "kind": "capability",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "C1",
+      "pair_criterion_id": "AP-C1",
+      "supporting_criterion_ids": [
+        "G1",
+        "A1",
+        "C5"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-C2-01",
+      "title": "Separate Platform and Application Landing Zones",
+      "kind": "capability",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "C2",
+      "pair_criterion_id": "AP-C2",
+      "supporting_criterion_ids": [
+        "A2",
+        "D1",
+        "E5"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-C3-01",
+      "title": "Enforce Naming and Tagging at Creation Time",
+      "kind": "capability",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "C3",
+      "pair_criterion_id": "AP-C3",
+      "supporting_criterion_ids": [
+        "G4",
+        "H2",
+        "F2"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-C4-01",
+      "title": "Implement Governed Isolation-Unit Vending",
+      "kind": "capability",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "C4",
+      "pair_criterion_id": "AP-C4",
+      "supporting_criterion_ids": [
+        "H2",
+        "H4",
+        "C3"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-C5-01",
+      "title": "Separate Production and Non-Production Boundaries",
+      "kind": "capability",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "C5",
+      "pair_criterion_id": "AP-C5",
+      "supporting_criterion_ids": [
+        "D5",
+        "B4",
+        "G1"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-AP-C1-01",
+      "title": "Restructure Flat Subscription, Account or Project Sprawl",
+      "kind": "antipattern",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "AP-C1",
+      "pair_criterion_id": "C1",
+      "supporting_criterion_ids": [
+        "G1",
+        "A1",
+        "C5"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-AP-C2-01",
+      "title": "Extract Applications from Platform Landing Zones",
+      "kind": "antipattern",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "AP-C2",
+      "pair_criterion_id": "C2",
+      "supporting_criterion_ids": [
+        "A2",
+        "D1",
+        "E5"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-AP-C3-01",
+      "title": "Replace Ad-Hoc Naming and Tag Theatre with Enforced Metadata",
+      "kind": "antipattern",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "AP-C3",
+      "pair_criterion_id": "C3",
+      "supporting_criterion_ids": [
+        "G4",
+        "H2",
+        "F2"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-AP-C4-01",
+      "title": "Replace ClickOps Birth with a Governed Vending Path",
+      "kind": "antipattern",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "AP-C4",
+      "pair_criterion_id": "C4",
+      "supporting_criterion_ids": [
+        "H2",
+        "H4",
+        "C3"
+      ]
+    },
+    {
+      "id": "TAC-RESOURCE-AP-C5-01",
+      "title": "Split Mixed Environments and Close Cross-Environment Paths",
+      "kind": "antipattern",
+      "namespace": "RESOURCE",
+      "design_area_id": "C",
+      "primary_criterion_id": "AP-C5",
+      "pair_criterion_id": "C5",
+      "supporting_criterion_ids": [
+        "D5",
+        "B4",
+        "G1"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-D1-01",
+      "title": "Establish a Governed Hub and Inspection Topology",
+      "kind": "capability",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "D1",
+      "pair_criterion_id": "AP-D1",
+      "supporting_criterion_ids": [
+        "D2",
+        "D5",
+        "E2"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-D2-01",
+      "title": "Centralize Ownership of Hybrid Connectivity",
+      "kind": "capability",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "D2",
+      "pair_criterion_id": "AP-D2",
+      "supporting_criterion_ids": [
+        "D1",
+        "D3",
+        "F3"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-D3-01",
+      "title": "Provide Central Private DNS Resolution",
+      "kind": "capability",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "D3",
+      "pair_criterion_id": "AP-D3",
+      "supporting_criterion_ids": [
+        "D2",
+        "D4",
+        "F4"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-D4-01",
+      "title": "Enforce Private-by-Default Service Access",
+      "kind": "capability",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "D4",
+      "pair_criterion_id": "AP-D4",
+      "supporting_criterion_ids": [
+        "G2",
+        "D3",
+        "E1"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-D5-01",
+      "title": "Enforce Landing-Zone Network Segmentation",
+      "kind": "capability",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "D5",
+      "pair_criterion_id": "AP-D5",
+      "supporting_criterion_ids": [
+        "C5",
+        "D1",
+        "B4"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-AP-D1-01",
+      "title": "Consolidate Per-Application Internet Edges",
+      "kind": "antipattern",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "AP-D1",
+      "pair_criterion_id": "D1",
+      "supporting_criterion_ids": [
+        "D2",
+        "D5",
+        "E2"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-AP-D2-01",
+      "title": "Segment the Flat Global Network",
+      "kind": "antipattern",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "AP-D2",
+      "pair_criterion_id": "D2",
+      "supporting_criterion_ids": [
+        "D5",
+        "D1",
+        "B4",
+        "G2"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-AP-D3-01",
+      "title": "Eliminate Split-Brain and Unowned Private DNS",
+      "kind": "antipattern",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "AP-D3",
+      "pair_criterion_id": "D3",
+      "supporting_criterion_ids": [
+        "D2",
+        "D4",
+        "F4"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-AP-D4-01",
+      "title": "Close Public-by-Default Endpoints",
+      "kind": "antipattern",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "AP-D4",
+      "pair_criterion_id": "D4",
+      "supporting_criterion_ids": [
+        "G2",
+        "D3",
+        "E1"
+      ]
+    },
+    {
+      "id": "TAC-NETWORK-AP-D5-01",
+      "title": "Dismantle the Unmanaged Peering Mesh",
+      "kind": "antipattern",
+      "namespace": "NETWORK",
+      "design_area_id": "D",
+      "primary_criterion_id": "AP-D5",
+      "pair_criterion_id": "D5",
+      "supporting_criterion_ids": [
+        "C5",
+        "D1",
+        "B4"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-E1-01",
+      "title": "Deploy a Preventive Landing-Zone Security Baseline",
+      "kind": "capability",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "E1",
+      "pair_criterion_id": "AP-E1",
+      "supporting_criterion_ids": [
+        "G1",
+        "G2",
+        "H1"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-E2-01",
+      "title": "Centralize Organization-Level Threat Detection ===== PAGE 7 =====",
+      "kind": "capability",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "E2",
+      "pair_criterion_id": "AP-E2",
+      "supporting_criterion_ids": [
+        "F1",
+        "F3",
+        "E5"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-E3-01",
+      "title": "Operationalize Encryption and Key Management",
+      "kind": "capability",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "E3",
+      "pair_criterion_id": "AP-E3",
+      "supporting_criterion_ids": [
+        "E4",
+        "F4",
+        "B3"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-E4-01",
+      "title": "Implement Managed Secrets and Rotation",
+      "kind": "capability",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "E4",
+      "pair_criterion_id": "AP-E4",
+      "supporting_criterion_ids": [
+        "B3",
+        "H2",
+        "E3"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-E5-01",
+      "title": "Establish the Security Operations Landing Zone and RACI",
+      "kind": "capability",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "E5",
+      "pair_criterion_id": "AP-E5",
+      "supporting_criterion_ids": [
+        "E2",
+        "F1",
+        "F3"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-AP-E1-01",
+      "title": "Convert Optional Security into Mandatory Guardrails",
+      "kind": "antipattern",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "AP-E1",
+      "pair_criterion_id": "E1",
+      "supporting_criterion_ids": [
+        "G1",
+        "G2",
+        "H1"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-AP-E2-01",
+      "title": "Consolidate SIEM and Detection Islands",
+      "kind": "antipattern",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "AP-E2",
+      "pair_criterion_id": "E2",
+      "supporting_criterion_ids": [
+        "F1",
+        "F3",
+        "E5"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-AP-E3-01",
+      "title": "Remove Keys from Code and Prove Real Key Use",
+      "kind": "antipattern",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "AP-E3",
+      "pair_criterion_id": "E3",
+      "supporting_criterion_ids": [
+        "E4",
+        "F4",
+        "B3"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-AP-E4-01",
+      "title": "Remove Secrets from Pipelines, Wikis and Spreadsheets",
+      "kind": "antipattern",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "AP-E4",
+      "pair_criterion_id": "E4",
+      "supporting_criterion_ids": [
+        "B3",
+        "H2",
+        "E3"
+      ]
+    },
+    {
+      "id": "TAC-SECURITY-AP-E5-01",
+      "title": "Replace After-the-Fact Security Tickets with Embedded Ownership",
+      "kind": "antipattern",
+      "namespace": "SECURITY",
+      "design_area_id": "E",
+      "primary_criterion_id": "AP-E5",
+      "pair_criterion_id": "E5",
+      "supporting_criterion_ids": [
+        "E2",
+        "F1",
+        "F3"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-F1-01",
+      "title": "Centralize and Protect Activity and Audit Logs",
+      "kind": "capability",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "F1",
+      "pair_criterion_id": "AP-F1",
+      "supporting_criterion_ids": [
+        "E2",
+        "F3",
+        "G5"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-F2-01",
+      "title": "Make Live Control-Plane Inventory the System of Record",
+      "kind": "capability",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "F2",
+      "pair_criterion_id": "AP-F2",
+      "supporting_criterion_ids": [
+        "A1",
+        "C1",
+        "G5"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-F3-01",
+      "title": "Monitor the Landing-Zone Platform Baseline",
+      "kind": "capability",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "F3",
+      "pair_criterion_id": "AP-F3",
+      "supporting_criterion_ids": [
+        "D2",
+        "E2",
+        "F1"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-F4-01",
+      "title": "Implement and Exercise Landing-Zone Backup and Restore",
+      "kind": "capability",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "F4",
+      "pair_criterion_id": "AP-F4",
+      "supporting_criterion_ids": [
+        "A5",
+        "D3",
+        "H1"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-F5-01",
+      "title": "Standardize the Platform Update and Agent Baseline",
+      "kind": "capability",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "F5",
+      "pair_criterion_id": "AP-F5",
+      "supporting_criterion_ids": [
+        "E1",
+        "H1",
+        "H5"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-AP-F1-01",
+      "title": "Recover Logs from Producing Accounts and Correct Retention",
+      "kind": "antipattern",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "AP-F1",
+      "pair_criterion_id": "F1",
+      "supporting_criterion_ids": [
+        "E2",
+        "F3",
+        "G5"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-AP-F2-01",
+      "title": "Replace Stale Diagrams with Current API Inventory",
+      "kind": "antipattern",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "AP-F2",
+      "pair_criterion_id": "F2",
+      "supporting_criterion_ids": [
+        "A1",
+        "C1",
+        "G5"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-AP-F3-01",
+      "title": "Extend Monitoring Beyond Applications",
+      "kind": "antipattern",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "AP-F3",
+      "pair_criterion_id": "F3",
+      "supporting_criterion_ids": [
+        "D2",
+        "E2",
+        "F1"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-AP-F4-01",
+      "title": "Recover Unprotected Platform State",
+      "kind": "antipattern",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "AP-F4",
+      "pair_criterion_id": "F4",
+      "supporting_criterion_ids": [
+        "A5",
+        "D3",
+        "H1"
+      ]
+    },
+    {
+      "id": "TAC-OPERATIONS-AP-F5-01",
+      "title": "Retire Snowflake Images and Unmanaged Agents",
+      "kind": "antipattern",
+      "namespace": "OPERATIONS",
+      "design_area_id": "F",
+      "primary_criterion_id": "AP-F5",
+      "pair_criterion_id": "F5",
+      "supporting_criterion_ids": [
+        "E1",
+        "H1",
+        "H5"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-G1-01",
+      "title": "Assign and Inherit Guardrails from the Root",
+      "kind": "capability",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "G1",
+      "pair_criterion_id": "AP-G1",
+      "supporting_criterion_ids": [
+        "C1",
+        "E1",
+        "H1"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-G2-01",
+      "title": "Deny High-Blast-Radius Insecure Defaults",
+      "kind": "capability",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "G2",
+      "pair_criterion_id": "AP-G2",
+      "supporting_criterion_ids": [
+        "D4",
+        "E1",
+        "G3"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-G3-01",
+      "title": "Govern Exceptions with Owner, Expiry and Review",
+      "kind": "capability",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "G3",
+      "pair_criterion_id": "AP-G3",
+      "supporting_criterion_ids": [
+        "G1",
+        "G2",
+        "H5"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-G4-01",
+      "title": "Enforce Cost, Tag and Region Guardrails",
+      "kind": "capability",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "G4",
+      "pair_criterion_id": "AP-G4",
+      "supporting_criterion_ids": [
+        "A3",
+        "C3",
+        "H2"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-G5-01",
+      "title": "Produce Queryable Compliance Evidence",
+      "kind": "capability",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "G5",
+      "pair_criterion_id": "AP-G5",
+      "supporting_criterion_ids": [
+        "F2",
+        "F1",
+        "E1"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-AP-G1-01",
+      "title": "Convert Policy Documents into Enforced Control-Plane Assignments",
+      "kind": "antipattern",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "AP-G1",
+      "pair_criterion_id": "G1",
+      "supporting_criterion_ids": [
+        "C1",
+        "E1",
+        "H1"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-AP-G2-01",
+      "title": "Replace Root Allow-All with a Minimal Preventive Baseline",
+      "kind": "antipattern",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "AP-G2",
+      "pair_criterion_id": "G2",
+      "supporting_criterion_ids": [
+        "D4",
+        "E1",
+        "G3"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-AP-G3-01",
+      "title": "Expire or Reauthorize Permanent Exemptions",
+      "kind": "antipattern",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "AP-G3",
+      "pair_criterion_id": "G3",
+      "supporting_criterion_ids": [
+        "G1",
+        "G2",
+        "H5"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-AP-G4-01",
+      "title": "Establish Minimum Commercial and Geographic Controls",
+      "kind": "antipattern",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "AP-G4",
+      "pair_criterion_id": "G4",
+      "supporting_criterion_ids": [
+        "A3",
+        "C3",
+        "H2"
+      ]
+    },
+    {
+      "id": "TAC-GOVERNANCE-AP-G5-01",
+      "title": "Replace Screenshot Compliance with Reproducible Exports",
+      "kind": "antipattern",
+      "namespace": "GOVERNANCE",
+      "design_area_id": "G",
+      "primary_criterion_id": "AP-G5",
+      "pair_criterion_id": "G5",
+      "supporting_criterion_ids": [
+        "F2",
+        "F1",
+        "E1"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-H1-01",
+      "title": "Codify and Version the Landing-Zone Platform",
+      "kind": "capability",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "H1",
+      "pair_criterion_id": "AP-H1",
+      "supporting_criterion_ids": [
+        "H3",
+        "H5",
+        "F4"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-H2-01",
+      "title": "Implement an End-to-End Landing-Zone Vending Pipeline",
+      "kind": "capability",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "H2",
+      "pair_criterion_id": "AP-H2",
+      "supporting_criterion_ids": [
+        "C4",
+        "H4",
+        "C3"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-H3-01",
+      "title": "Detect, Triage and Correct Platform Drift",
+      "kind": "capability",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "H3",
+      "pair_criterion_id": "AP-H3",
+      "supporting_criterion_ids": [
+        "H1",
+        "H5",
+        "G5"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-H4-01",
+      "title": "Provide Guardrailed Platform Self-Service",
+      "kind": "capability",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "H4",
+      "pair_criterion_id": "AP-H4",
+      "supporting_criterion_ids": [
+        "H2",
+        "C4",
+        "G4"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-H5-01",
+      "title": "Govern Platform Change and Emergency Hotfixes",
+      "kind": "capability",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "H5",
+      "pair_criterion_id": "AP-H5",
+      "supporting_criterion_ids": [
+        "H1",
+        "H3",
+        "F4"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-AP-H1-01",
+      "title": "Bring the ClickOps Platform Under Code Control",
+      "kind": "antipattern",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "AP-H1",
+      "pair_criterion_id": "H1",
+      "supporting_criterion_ids": [
+        "H3",
+        "H5",
+        "F4"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-AP-H2-01",
+      "title": "Replace Email Vending with a Controlled Product Workflow",
+      "kind": "antipattern",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "AP-H2",
+      "pair_criterion_id": "H2",
+      "supporting_criterion_ids": [
+        "C4",
+        "H4",
+        "C3"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-AP-H3-01",
+      "title": "Reconcile Accepted Drift and Restore Code Authority",
+      "kind": "antipattern",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "AP-H3",
+      "pair_criterion_id": "H3",
+      "supporting_criterion_ids": [
+        "H1",
+        "H5",
+        "G5"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-AP-H4-01",
+      "title": "Remove Ticket-Only Platform Bottlenecks",
+      "kind": "antipattern",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "AP-H4",
+      "pair_criterion_id": "H4",
+      "supporting_criterion_ids": [
+        "H2",
+        "C4",
+        "G4"
+      ]
+    },
+    {
+      "id": "TAC-AUTOMATION-AP-H5-01",
+      "title": "Reconcile Undocumented Hotfixes into the Controlled Baseline",
+      "kind": "antipattern",
+      "namespace": "AUTOMATION",
+      "design_area_id": "H",
+      "primary_criterion_id": "AP-H5",
+      "pair_criterion_id": "H5",
+      "supporting_criterion_ids": [
+        "H1",
+        "H3",
+        "F4"
+      ]
+    }
+  ]
+}
