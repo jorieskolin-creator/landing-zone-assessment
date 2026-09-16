@@ -55,15 +55,25 @@ assert.equal(antipattern.ok, true, antipattern.problems.join('; '));
 assert.equal(antipattern.key, 'antipattern:AP-A1');
 assert.equal(antipattern.warnings.length, 0);
 
-const stale = validateAuthoringText({
+const leftoverRegisterPhrase = validateAuthoringText({
   filename: 'PAIR-A1.capability.md',
   text: capabilityText.replace(
     'Questionnaire leads: A-Q1, A-Q2, A-Q6.',
     'Registered source identities (Source Register v1.0.0 PRELIMINARY): SRC-MS-CAF-LZ. Questionnaire leads: A-Q1, A-Q2, A-Q6.',
   ),
 });
-assert.equal(stale.ok, true);
-assert.ok(stale.warnings.some(warning => warning.includes('PRELIMINARY')));
+assert.equal(leftoverRegisterPhrase.ok, true);
+assert.equal(leftoverRegisterPhrase.warnings.length, 0);
+
+const approvedRegisterPhrase = validateAuthoringText({
+  filename: 'PAIR-A1.capability.md',
+  text: capabilityText.replace(
+    'Questionnaire leads: A-Q1, A-Q2, A-Q6.',
+    'Registered source identities (Source Register v1.0.0 APPROVED): SRC-MS-CAF-LZ. Questionnaire leads: A-Q1, A-Q2, A-Q6.',
+  ),
+});
+assert.equal(approvedRegisterPhrase.ok, true);
+assert.equal(approvedRegisterPhrase.warnings.length, 0);
 
 const dir = await mkdtemp(join(tmpdir(), 'lz-kb-authoring-'));
 await writeFile(join(dir, 'PAIR-A1.capability.md'), capabilityText);

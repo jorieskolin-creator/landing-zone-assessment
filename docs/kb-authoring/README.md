@@ -71,7 +71,7 @@ Use these exact heading strings, in this order. Skip FinOps-only headings (`Migr
 21. Remediation / Tactic Notes *(needed for roadmap; name tactics only when the playbook exists)*
 22. Prohibited Inference Rules *(required on anti-pattern)*
 23. Scoring Guidance Notes *(required for forensic audit)*
-24. Canonical Source Foundations
+24. Canonical Source Foundations *(cite Source Register v1.0.0 as APPROVED when naming it; leftover PRELIMINARY phrasing is author cleanup and does not fail the indexer)*
 
 ## Start from
 
