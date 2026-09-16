@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { renderMasterDataHtml } from './lz-master-data-html.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const criteria = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/criteria.json', import.meta.url), 'utf8'));
@@ -472,6 +473,22 @@ const html = `<!DOCTYPE html>
 `;
 
 const outPath = `${root}/public/Landing_Zone_Assessment_Summary_Report.html`;
+const masterPath = `${root}/public/Landing_Zone_Assessment_Master_Data_Report.html`;
 await mkdir(`${root}/public`, { recursive: true });
 await writeFile(outPath, html, 'utf8');
+const masterHtml = renderMasterDataHtml({
+  criteria,
+  antipatterns,
+  areaName,
+  capState,
+  apState,
+  escape,
+  gauge,
+  rowsFor,
+  domainCards,
+  capNote,
+  apNote,
+});
+await writeFile(masterPath, masterHtml, 'utf8');
 console.log(`wrote ${outPath}`);
+console.log(`wrote ${masterPath}`);
