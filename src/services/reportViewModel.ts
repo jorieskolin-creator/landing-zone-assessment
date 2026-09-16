@@ -84,8 +84,8 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
     sufficiency: {
       decision: sufficiency.decision,
       statement: sufficiency.decision === 'PASS'
-        ? `${sufficiency.warning_reasons?.length ? 'Assessment Sufficiency passed with evidence warnings.' : 'Assessment Sufficiency passed.'} The adjusted score can publish a ${result.phase_2_validation.crawl_walk_run} classification.`
-        : 'Assessment Sufficiency blocked CRAWL/WALK/RUN publication. Model values remain visible for calibration, but are not a maturity classification.',
+        ? `${sufficiency.warning_reasons?.length ? 'Assessment Sufficiency passed with evidence warnings.' : 'Assessment Sufficiency passed.'} The adjusted score can publish a ${result.phase_2_validation.lz_maturity_label || result.phase_2_validation.crawl_walk_run} classification.`
+        : 'Assessment Sufficiency blocked Foundation/Pilot/Rollout/Operate publication. Model values remain visible for calibration, but are not a maturity classification.',
       reasons: sufficiency.blocking_reasons,
       warnings: sufficiency.warning_reasons || [],
     },
@@ -115,8 +115,8 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
       },
       {
         value: metrics.adjusted_maturity,
-        label: 'Adjusted FinOps Maturity',
-        description: 'Observed Maturity adjusted by the square root of assessment resolution. This score drives CRAWL/WALK/RUN only when Assessment Sufficiency passes.',
+        label: 'Adjusted Landing Zone Maturity',
+        description: 'Observed Maturity adjusted by the square root of assessment resolution. This score drives Foundation/Pilot/Rollout/Operate publication only when Assessment Sufficiency passes. Kernel scoring still computes Crawl-Walk-Run internally.',
         denominator: `${metrics.observed_maturity === null ? 'N/A' : metrics.observed_maturity.toFixed(1)} observed × √${(metrics.assessment_resolution / 100).toFixed(3)} resolution · sufficiency ${sufficiency.decision}`,
         trend: 'positive',
         color: '#059669',

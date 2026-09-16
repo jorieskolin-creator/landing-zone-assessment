@@ -41,6 +41,7 @@
     "test:strategy-sanitation": "node scripts/test-strategy-sanitation.mjs",
     "test:fact-check-validation": "node scripts/test-fact-check-validation.mjs",
     "test:json-response": "node scripts/test-json-response.mjs",
+    "test:work12-runtime": "node scripts/test-work12-runtime-surfaces.mjs",
     "test:output-contracts": "node scripts/test-output-contracts.mjs",
     "test:model-routing": "node scripts/test-model-routing.mjs",
     "test:server-boot": "node scripts/test-server-boot.mjs",

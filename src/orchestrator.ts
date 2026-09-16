@@ -20,14 +20,14 @@ const parseAiResponse = (text: string): any => {
   cleaned = cleaned.replace(/```json/gi, '').replace(/```/g, '');
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.warn("[FinOps Orchestrator] AI response contained no JSON object; content omitted by logging policy.");
+    console.warn("[Landing Zone Orchestrator] AI response contained no JSON object; content omitted by logging policy.");
     return {};
   }
   const jsonString = jsonMatch[0];
   try {
     return JSON.parse(jsonString);
   } catch (e) {
-    console.error("[FinOps Orchestrator] JSON parse failed; response content omitted by logging policy.");
+    console.error("[Landing Zone Orchestrator] JSON parse failed; response content omitted by logging policy.");
     throw new Error("AI response was not valid JSON.");
   }
 };
@@ -418,7 +418,7 @@ export const runPhase1Audit = async (
       } catch (error: any) {
         lastError = error;
         const errorCode = batchFailureCode(error);
-        console.warn(`[FinOps] [${ctx.runId}] Batch ${batchId} attempt ${attempt} failed with error_code=${errorCode}.`);
+        console.warn(`[Landing Zone] [${ctx.runId}] Batch ${batchId} attempt ${attempt} failed with error_code=${errorCode}.`);
         serverLog(ctx.runId, 'warn', 'batch_attempt_failed', {
           batch: batchId,
           attempt,
@@ -428,7 +428,7 @@ export const runPhase1Audit = async (
     }
     if (lastError) {
       const errorCode = batchFailureCode(lastError);
-      console.error(`[FinOps] [${ctx.runId}] Batch ${batchId} failed after retry. Marking as failed.`);
+      console.error(`[Landing Zone] [${ctx.runId}] Batch ${batchId} failed after retry. Marking as failed.`);
       aggregated.failed_batches.push(batchId);
       evidenceResults.push(unavailableEvidenceCheck(batchId, errorCode));
       serverLog(ctx.runId, 'error', 'batch_failed', { batch: batchId, error_code: errorCode });

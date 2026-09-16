@@ -37,7 +37,7 @@ const formatKnowledgeBaseStatus = (kb: DiagnosticResult['meta']['knowledge_base'
   return 'Landing Zone Knowledge Base unavailable (not FinOps fallback)';
 };
 const ASSESSMENT_METHOD_DISCLAIMER =
-  'This assessment was created using the FinOps Engine, which combines deterministic analysis with governed generative-AI processing. Generative AI supports bounded evidence interpretation, verification, diagnosis and synthesis tasks. Scoring, calculations, evidence sufficiency, confidence thresholds and final GO/WARN/BLOCK decisions are controlled by deterministic system logic. Customer evidence remains the source of truth, and raw customer evidence is not supplied directly to generative reasoning models. Generated analytical content is validated against evidence and system rules before publication.';
+  'This assessment was created using the Landing Zone Assessment Engine, which combines deterministic analysis with governed generative-AI processing. Generative AI supports bounded evidence interpretation, verification, diagnosis and synthesis tasks. Scoring, calculations, evidence sufficiency, confidence thresholds and final GO/WARN/BLOCK decisions are controlled by deterministic system logic. Customer evidence remains the source of truth, and raw customer evidence is not supplied directly to generative reasoning models. Generated analytical content is validated against evidence and system rules before publication.';
 const renderAssessmentMethodDisclaimer = (): string =>
   `<p class="footer-disclaimer">${escapeHtml(ASSESSMENT_METHOD_DISCLAIMER)}</p>`;
 const renderTacticAction = (action: string): string =>
@@ -477,14 +477,14 @@ const resultWithoutRunTrace = (result: DiagnosticResult): DiagnosticResult => {
 export const downloadMasterDataReport = (result: DiagnosticResult) => {
   downloadHtml(
     generateReportHtml(result),
-    `FinOps_Master_Data_${new Date().toISOString().split('T')[0]}.html`
+    `Landing_Zone_Master_Data_${new Date().toISOString().split('T')[0]}.html`
   );
 };
 
 export const downloadSummaryReport = (result: DiagnosticResult) => {
   downloadHtml(
     generateSummaryReportHtml(result),
-    `FinOps_Summary_Report_${new Date().toISOString().split('T')[0]}.html`
+    `Landing_Zone_Summary_Report_${new Date().toISOString().split('T')[0]}.html`
   );
 };
 
@@ -492,7 +492,7 @@ export const downloadRunTraceJson = (result: DiagnosticResult) => {
   const trace = stripSourceFilenameMetadata(result).meta.run_trace;
   downloadJson(
     trace || { available: false, reason: 'RunTrace was not present on this assessment result.' },
-    `FinOps_RunTrace_${new Date().toISOString().split('T')[0]}.json`
+    `Landing_Zone_RunTrace_${new Date().toISOString().split('T')[0]}.json`
   );
 };
 
@@ -806,7 +806,7 @@ export const generateSummaryReportHtml = (unsafeResult: DiagnosticResult): strin
   const m = result.phase_2_validation.metrics;
   const reportView = buildReportViewModel(result);
   const summaryPayload = resultWithoutRunTrace(result);
-  const cwrClass = result.phase_2_validation.crawl_walk_run;
+  const publishedClass = result.phase_2_validation.lz_maturity_label || result.phase_2_validation.crawl_walk_run;
   const gauges = reportView.metrics;
   const qgTone = result.quality_gate.decision === 'GO' ? 'go' : result.quality_gate.decision === 'WARN' ? 'warn' : 'block';
   const kbStatus = result.meta.knowledge_base
@@ -824,7 +824,7 @@ export const generateSummaryReportHtml = (unsafeResult: DiagnosticResult): strin
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinOps Summary Report</title>
+  <title>Landing Zone Summary Report</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.55; }
@@ -983,12 +983,12 @@ export const generateSummaryReportHtml = (unsafeResult: DiagnosticResult): strin
 <body>
   <main class="page">
     <header class="hero">
-      <h1>FinOps Summary Report</h1>
+      <h1>Landing Zone Summary Report</h1>
       <p>A shareable view of the validated assessment: executive interpretation, evidence-gated maturity, diagnosis, planning decision, roadmap, and heatmap. Detailed forensic evidence remains in the Master Data report.</p>
       <div class="hero-meta">
         <span class="pill">Generated ${escapeHtml(result.meta.timestamp)}</span>
-        <span class="pill pill-${qgTone}">${result.quality_gate.decision === 'BLOCK' ? 'Roadmap actionability BLOCKED' : `Maturity band ${escapeHtml(cwrClass)}`}</span>
-        ${result.quality_gate.decision === 'BLOCK' ? `<span class="pill">Observed maturity band ${escapeHtml(cwrClass)}</span>` : ''}
+        <span class="pill pill-${qgTone}">${result.quality_gate.decision === 'BLOCK' ? 'Roadmap actionability BLOCKED' : `Maturity band ${escapeHtml(publishedClass)}`}</span>
+        ${result.quality_gate.decision === 'BLOCK' ? `<span class="pill">Observed maturity band ${escapeHtml(publishedClass)}</span>` : ''}
         <span class="pill pill-${qgTone}">Quality Gate ${escapeHtml(result.quality_gate.decision)}</span>
         <span class="pill">Evidence ${Math.round(m.evidence_density)}%</span>
         ${kbStatus ? `<span class="pill">${escapeHtml(kbStatus)}</span>` : ''}
@@ -1014,13 +1014,13 @@ export const generateSummaryReportHtml = (unsafeResult: DiagnosticResult): strin
     ${renderSourceRegistryPacketSummary(result)}
 
     <footer class="footer">
-      <p>FinOps Engine v.${escapeHtml(result.meta.engine_version)} · Summary Report</p>
+      <p>Landing Zone Assessment Engine v.${escapeHtml(result.meta.engine_version)} · Summary Report</p>
       ${renderAssessmentMethodDisclaimer()}
       <p>Full audit details are available in the Master Data report.</p>
       ${traceNote}
     </footer>
   </main>
-  <script id="finops-data" type="application/json">${serializeDiagnosticResultForHtml(summaryPayload)}</script>
+  <script id="lz-assessment-data" type="application/json">${serializeDiagnosticResultForHtml(summaryPayload)}</script>
 </body>
 </html>`;
 };
@@ -1040,7 +1040,7 @@ export const generateReportHtml = (unsafeResult: DiagnosticResult): string => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinOps Master Data Report</title>
+  <title>Landing Zone Master Data Report</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #ffffff; color: #0f172a; padding: 48px 32px; max-width: 1100px; margin: 0 auto; line-height: 1.55; }
@@ -1251,9 +1251,9 @@ export const generateReportHtml = (unsafeResult: DiagnosticResult): string => {
   </style>
 </head>
 <body>
-  <h1>FinOps Master Data</h1>
+  <h1>Landing Zone Master Data</h1>
   <div class="meta">
-    <p>Generated ${escapeHtml(result.meta.timestamp)} · FinOps Engine v.${escapeHtml(result.meta.engine_version)}</p>
+    <p>Generated ${escapeHtml(result.meta.timestamp)} · Landing Zone Assessment Engine v.${escapeHtml(result.meta.engine_version)}</p>
     ${result.meta.knowledge_base ? `<p>Knowledge Base: ${escapeHtml(formatKnowledgeBaseStatus(result.meta.knowledge_base))}${result.meta.knowledge_base.source === 'remote_blob' && result.meta.knowledge_base.failure_count ? `, ${escapeHtml(String(result.meta.knowledge_base.failure_count))} issue(s)` : ''}</p>` : ''}
     ${(result.meta.source_parse_warnings?.length ?? 0) > 0 ? `<p>Source coverage note: ${escapeHtml(displaySourceCoverageWarning(result.meta.source_parse_warnings![0]))}${result.meta.source_parse_warnings!.length > 1 ? ` (+${result.meta.source_parse_warnings!.length - 1} more)` : ''}</p>` : ''}
   </div>
@@ -1347,7 +1347,7 @@ export const generateReportHtml = (unsafeResult: DiagnosticResult): string => {
   ` : ''}
 
   ${renderEvidenceCheckSummary(result)}
-  ${renderForensicSection('Forensic Audit: FinOps Maturity', 'maturity', result.phase_1_audit_logs.maturity)}
+  ${renderForensicSection('Forensic Audit: Landing Zone Capability', 'maturity', result.phase_1_audit_logs.maturity)}
   ${renderForensicSection('Forensic Audit: Anti-Patterns', 'antipattern', result.phase_1_audit_logs.antipattern)}
   ${renderQualityGateAppendix(result.quality_gate)}
   ${renderAcquisitionQuality(result)}
@@ -1355,11 +1355,11 @@ export const generateReportHtml = (unsafeResult: DiagnosticResult): string => {
   ${renderRunTraceAppendix(result)}
 
   <div class="footer">
-    <p>FinOps Engine v.${escapeHtml(result.meta.engine_version)}</p>
+    <p>Landing Zone Assessment Engine v.${escapeHtml(result.meta.engine_version)}</p>
     ${renderAssessmentMethodDisclaimer()}
   </div>
 
-  <script id="finops-data" type="application/json">${serializeDiagnosticResultForHtml(result)}</script>
+  <script id="lz-assessment-data" type="application/json">${serializeDiagnosticResultForHtml(result)}</script>
 </body>
 </html>`;
 };

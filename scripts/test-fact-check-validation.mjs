@@ -129,7 +129,7 @@ const merged = mergeRequiredFactChecks(valid, failedSubcheck, 1);
 assert.equal(merged.failed, true, 'either required fact-check substage failing must fail the merged check');
 assert.equal(merged.total_claims, 0, 'partial verdicts must not be represented as complete coverage');
 
-const summaryDefect = { claim: 'Unsupported summary.', classification: 'unsupported', rationale: 'Missing.', source_location: 'cfo' };
+const summaryDefect = { claim: 'Unsupported summary.', classification: 'unsupported', rationale: 'Missing.', source_location: 'ciso_leadership' };
 const roadmapDefect = { claim: 'Unsupported roadmap.', classification: 'unsupported', rationale: 'Missing.', source_location: 'roadmap' };
 assert.equal(determineFactCheckRepairScope([summaryDefect]), 'summary');
 assert.equal(determineFactCheckRepairScope([roadmapDefect]), 'roadmap');

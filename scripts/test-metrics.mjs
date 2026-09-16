@@ -316,7 +316,7 @@ const logs = (maturityFactory, antiFactory) => ({
     },
   });
   assert.equal(view.metrics.length, 3, 'report summary should expose only the three active maturity gauges');
-  assert.deepEqual(view.metrics.map(metric => metric.label), ['Corroborated Maturity', 'Observed Maturity', 'Adjusted FinOps Maturity']);
+  assert.deepEqual(view.metrics.map(metric => metric.label), ['Corroborated Maturity', 'Observed Maturity', 'Adjusted Landing Zone Maturity']);
   assert.equal(view.sufficiency.decision, 'PASS', 'Quality Gate BLOCK must not alter Assessment Sufficiency');
   assert.equal(view.antipatternDisposition.unresolved, 0);
   assert.equal(

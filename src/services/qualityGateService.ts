@@ -299,13 +299,13 @@ export const runQualityGate = (
 // to write a plain-language explanation that grounds each reason in source
 // quotes. This does NOT change the decision; it only annotates it.
 
-const QG_PROMPT_PREAMBLE = `You are a senior FinOps reviewer. A deterministic Quality Gate has flagged issues with this assessment. Your job is to explain WHY each blocker / warning matters in plain English, and where possible, anchor the explanation in a direct quote from the source document.
+const QG_PROMPT_PREAMBLE = `You are a senior Landing Zone reviewer. A deterministic Quality Gate has flagged issues with this assessment. Your job is to explain WHY each blocker / warning matters in plain English, and where possible, anchor the explanation in a direct quote from the source document.
 
 Return STRICT JSON in this shape:
 {
   "summary": "2-3 sentences in plain language: what's wrong with this assessment and what the reader should do.",
   "blocking_details": [
-    { "reason": "<verbatim text of the blocking reason>", "explanation": "1-2 sentences why this matters for the FinOps maturity reading", "quote": "<short quote from source if relevant, else omit>", "source_location": "<section name / page / 'unknown'>" }
+    { "reason": "<verbatim text of the blocking reason>", "explanation": "1-2 sentences why this matters for the Landing Zone maturity reading", "quote": "<short quote from source if relevant, else omit>", "source_location": "<section name / page / 'unknown'>" }
   ],
   "warning_details": [
     { "reason": "<verbatim text of the warning>", "explanation": "...", "quote": "...", "source_location": "..." }

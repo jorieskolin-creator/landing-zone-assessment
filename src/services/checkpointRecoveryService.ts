@@ -25,12 +25,17 @@ const recoveredStrategy = (phase2: any): any => {
   const summary = `The accepted analysis was recovered from temporary storage after pipeline interruption. Evidence density was ${density}%, adjusted maturity was ${adjusted}, and Assessment Sufficiency was ${sufficiency}. A full summary and roadmap cannot be safely reconstructed without a validated synthesis, so roadmap actionability is BLOCK / NO_GO.`;
   return {
     executive_summary: summary,
-    executive_summaries: { finops_lead: summary, cfo: summary, engineering_lead: summary },
-    active_persona: 'finops_lead',
+    executive_summaries: {
+      ciso_leadership: summary,
+      platform_owner: summary,
+      security_owners: summary,
+      application_delivery: summary,
+    },
+    active_persona: 'ciso_leadership',
     evidence_summary: {
       headline: 'Recovered analysis — insufficient validated synthesis',
       maturity_classification: phase2?.crawl_walk_run || 'Insufficient Evidence',
-      key_metrics: [`Adjusted FinOps Maturity: ${adjusted}`, `Assessment Sufficiency: ${sufficiency}`, `Evidence density: ${density}%`],
+      key_metrics: [`Adjusted Landing Zone Maturity: ${adjusted}`, `Assessment Sufficiency: ${sufficiency}`, `Evidence density: ${density}%`],
       confirmed_strengths: [],
       confirmed_gaps: gaps.slice(0, 8),
       confirmed_antipatterns: antipatterns.slice(0, 8),

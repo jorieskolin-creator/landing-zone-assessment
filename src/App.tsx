@@ -12,7 +12,7 @@ import { forensicSanitizeImport } from './services/securityService';
 import { extractDiagnosticResultFromHtmlReport, isDiagnosticResultPayload, parseDiagnosticResultJson, serializeDiagnosticResultForHtml } from './services/reportImportService';
 import { findGeneratedReportPrivacyFindings, scrubDiagnosticResultForPrivacy } from './services/privacyService';
 import { PerformanceMonitor } from './services/debugService';
-import { DiagnosticResult, EvidenceSourceAcquisition, ScanResult, PersonaId, PERSONA_IDS, PERSONA_LABELS, PipelineProgressStage, PipelineProgressUpdate, SourcePage, SourceRecord, StructuredTableData, VisualEvidenceUnit } from './types';
+import { DiagnosticResult, EvidenceSourceAcquisition, ScanResult, PersonaId, PERSONA_IDS, PERSONA_LABELS, DEFAULT_PERSONA_ID, PipelineProgressStage, PipelineProgressUpdate, SourcePage, SourceRecord, StructuredTableData, VisualEvidenceUnit } from './types';
 import { METRIC_DESCRIPTIONS } from './constants';
 import { GaugeCard, AuditGrid, StrategicRoadmap, ComparisonChart, ReferenceLibrary, QualityGateBanner, BenchmarkingChart, TransferProtocol, MarkdownRenderer, NeuralLoadingGrid } from './components/DashboardComponents';
 import { ReportView } from './components/ReportView';
@@ -90,7 +90,7 @@ const saveAssessmentToSession = (result: DiagnosticResult, source: SavedAssessme
       documentAnalyzed: result.meta?.document_analyzed
     } satisfies SavedAssessmentMeta));
   } catch (error) {
-    console.warn('[FinOps] Could not save assessment recovery payload (error_code=RECOVERY_SAVE_FAILED).');
+    console.warn('[Landing Zone] Could not save assessment recovery payload (error_code=RECOVERY_SAVE_FAILED).');
   }
 };
 
@@ -309,19 +309,19 @@ const PrivacyReviewPanel: React.FC<{
       <div className="space-y-8">
         <section>
           <h4 className="text-sm font-bold uppercase tracking-widest text-emerald-300 mb-4">Executive summaries</h4>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {PERSONA_IDS.map(persona => (
               <label key={persona} className="block">
                 <span className={labelClass}>{PERSONA_LABELS[persona]}</span>
                 <textarea
                   className={textareaClass}
-                  value={strategy.executive_summaries?.[persona] || (persona === 'finops_lead' ? strategy.executive_summary || '' : '')}
+                  value={strategy.executive_summaries?.[persona] || (persona === DEFAULT_PERSONA_ID ? strategy.executive_summary || '' : '')}
                   onChange={(e) => onChange(draft => {
                     draft.phase_3_strategy.executive_summaries = {
                       ...(draft.phase_3_strategy.executive_summaries || {}),
                       [persona]: e.target.value
                     } as any;
-                    if (persona === 'finops_lead') draft.phase_3_strategy.executive_summary = e.target.value;
+                    if (persona === DEFAULT_PERSONA_ID) draft.phase_3_strategy.executive_summary = e.target.value;
                   })}
                 />
               </label>
@@ -510,7 +510,7 @@ const App: React.FC = () => {
   const [scanResult, setScanResult] = useState<ScanResult>({ score: 0, status: 'Insufficient', message: 'Waiting...', details: [], canRun: false });
   const [authenticated, setAuthenticated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [activePersona, setActivePersona] = useState<PersonaId>('finops_lead');
+  const [activePersona, setActivePersona] = useState<PersonaId>(DEFAULT_PERSONA_ID);
   const [deepMode, setDeepMode] = useState(false);
   const [lockedScope, setLockedScope] = useState<AssessmentScope | null>(null);
   const [workshopSession, setWorkshopSession] = useState<LzEngineWorkshopSession>(emptyWorkshopSession);
@@ -679,10 +679,10 @@ const App: React.FC = () => {
     status: 'PassWithWarning',
     message: kind === 'csv' || kind === 'tsv' || kind === 'xlsx' ? 'Tabular input accepted' : 'Low relevance warning',
     canRun: true,
-    confidence_warning: scan.confidence_warning || 'This file has weak FinOps keyword signal. The assessment will run, but unsupported areas should be treated as insufficient evidence.',
+    confidence_warning: scan.confidence_warning || 'This file has weak Landing Zone keyword signal. The assessment will run, but unsupported areas should be treated as insufficient evidence.',
     details: [
       ...scan.details,
-      'Accepted as parseable source material; evidence gates will determine whether it supports FinOps findings.'
+      'Accepted as parseable source material; evidence gates will determine whether it supports Landing Zone findings.'
     ]
   });
 
@@ -747,7 +747,7 @@ const App: React.FC = () => {
       const lowSignalFiles = files.filter(f => f.scan && (f.scan.status === 'Insufficient' || f.scan.status === 'PassWithWarning'));
       if (lowSignalFiles.length > 0) {
         globalScan.status = globalScan.status === 'Ready' ? 'PassWithWarning' : globalScan.status;
-        globalScan.details.push(`${lowSignalFiles.length} file(s) have low FinOps keyword signal and will be assessed with evidence-gated confidence.`);
+        globalScan.details.push(`${lowSignalFiles.length} file(s) have low Landing Zone keyword signal and will be assessed with evidence-gated confidence.`);
       }
       setScanResult(globalScan);
       PerformanceMonitor.end('GlobalScan');
@@ -767,7 +767,7 @@ const App: React.FC = () => {
         if (imported.kind === 'report') {
           setPreparedResult(imported.result, 'html_import');
           setViewMode('dashboard');
-          setRecoveryNotice('Imported a saved FinOps report from HTML.');
+          setRecoveryNotice('Imported a saved Landing Zone report from HTML.');
           setError(null);
           clearFileInput();
           return;
@@ -784,7 +784,7 @@ const App: React.FC = () => {
           if (imported.kind === 'report' && isDiagnosticResultPayload(imported.result)) {
             setPreparedResult(imported.result, 'json_import');
             setViewMode('dashboard');
-            setRecoveryNotice('Imported a saved FinOps report from JSON.');
+            setRecoveryNotice('Imported a saved Landing Zone report from JSON.');
             setError(null);
             clearFileInput();
             return;
@@ -1166,7 +1166,7 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `FinOps_Recovered_Assessment_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `Landing_Zone_Recovered_Assessment_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1925,8 +1925,8 @@ const App: React.FC = () => {
                   <div className="glass-panel p-10 md:p-16 rounded-[3rem] bg-slate-900/40">
                     <div className="text-center mb-16 max-w-2xl mx-auto">
                       <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-3 block">Phase 3</span>
-                      <h2 className="text-4xl font-display font-bold text-white mb-4">Optimization Roadmap</h2>
-                      <p className="text-slate-400">A structured Crawl-Walk-Run path to FinOps excellence.</p>
+                      <h2 className="text-4xl font-display font-bold text-white mb-4">Remediation Roadmap</h2>
+                      <p className="text-slate-400">A structured Foundation–Pilot–Rollout–Operate path for the landing-zone estate.</p>
                     </div>
                     <StrategicRoadmap steps={result.phase_3_strategy.remediation_roadmap} />
                   </div>

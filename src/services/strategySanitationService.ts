@@ -323,11 +323,12 @@ export const sanitizeBlockedStrategy = (
     : {
       executive_summary: 'Strategy unavailable because required validation did not complete.',
       executive_summaries: {
-        finops_lead: 'Strategy unavailable because required validation did not complete.',
-        cfo: 'Strategy unavailable because required validation did not complete.',
-        engineering_lead: 'Strategy unavailable because required validation did not complete.'
+        ciso_leadership: 'Strategy unavailable because required validation did not complete.',
+        platform_owner: 'Strategy unavailable because required validation did not complete.',
+        security_owners: 'Strategy unavailable because required validation did not complete.',
+        application_delivery: 'Strategy unavailable because required validation did not complete.',
       },
-      active_persona: 'finops_lead',
+      active_persona: 'ciso_leadership',
       visual_scorecard: { headline: 'Validation required', maturity_score: 'N/A', burden_score: 'N/A' }
     };
   data.phase_3_strategy = strategy;

@@ -11,7 +11,7 @@ import { bracketFromValidation, explainBracket } from "./confidenceBracket";
 import { runPhase1Audit } from "../orchestrator";
 import { tacticIdCaptureRx } from "../kernel/tacticIds";
 import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TAXONOMY_REGISTRY, FINOPS_MATURITY_PAIR_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
-import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
+import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, DEFAULT_PERSONA_ID, filledPersonaSummaries, mapLegacyPersonaSummaries, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
 import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
 import { EVIDENCE_DENSITY_BLOCK, runQualityGate, runQualityGateExplanation } from "./qualityGateService";
 import { scoreLandingZoneAssessment } from "./landingZoneScoringAdapter";
@@ -129,31 +129,18 @@ Regenerate the full output with the same shape. Replace every invalid ID with a 
 const MATURITY_CRITERIA_IDS = expectedPhase1IdsForStream('maturity');
 const ANTIPATTERN_CRITERIA_IDS = expectedPhase1IdsForStream('antipattern');
 
-const DEFAULT_PERSONA: PersonaId = 'finops_lead';
+const DEFAULT_PERSONA: PersonaId = DEFAULT_PERSONA_ID;
 
 const normalizePersonaSummaries = (rawStrategy: any): {
   executive_summaries: Record<PersonaId, string>;
   executive_summary: string;
   active_persona: PersonaId;
 } => {
-  const incoming = rawStrategy?.executive_summaries;
   const legacy = typeof rawStrategy?.executive_summary === 'string' ? rawStrategy.executive_summary : '';
-  const result: Record<PersonaId, string> = { finops_lead: '', cfo: '', engineering_lead: '' };
-  if (incoming && typeof incoming === 'object') {
-    for (const p of PERSONA_IDS) {
-      if (typeof incoming[p] === 'string' && incoming[p].length > 0) {
-        result[p] = incoming[p];
-      }
-    }
-  }
-  const firstAvailable = PERSONA_IDS.find(p => result[p].length > 0);
-  const fallback = firstAvailable ? result[firstAvailable] : legacy;
-  for (const p of PERSONA_IDS) {
-    if (!result[p]) result[p] = fallback;
-  }
+  const result = mapLegacyPersonaSummaries(rawStrategy?.executive_summaries, legacy);
   return {
     executive_summaries: result,
-    executive_summary: result[DEFAULT_PERSONA] || fallback,
+    executive_summary: result[DEFAULT_PERSONA] || legacy,
     active_persona: DEFAULT_PERSONA
   };
 };
@@ -368,7 +355,7 @@ export const analyzeDocument = async (
     fact_check_high: modelRouting.routes.fact_check_high[0].id,
   };
 
-  console.log(`[FinOps] === Pipeline start === run=${runId} deepMode=${!!options.deepMode}`);
+    console.log(`[Landing Zone] === Pipeline start === run=${runId} deepMode=${!!options.deepMode}`);
   serverLog(runId, 'info', 'pipeline_start', {
     source_chars: sources.reduce((n,s) => n + (s.text?.length || 0) + (s.pages?.reduce((m,p)=>m+p.text.length,0) || 0), 0),
     images: 0,
@@ -546,11 +533,11 @@ export const analyzeDocument = async (
     if (privacy.decision.redaction_count > 0) {
       sourceParseWarnings.push(`Deterministic privacy controls redacted ${privacy.decision.redaction_count} prohibited contact, identifier, or financial-value occurrence(s) before packet assembly.`);
     }
-    console.log("[FinOps] Deterministic privacy scan passed. Phase 1 is the first generative stage.");
+    console.log("[Landing Zone] Deterministic privacy scan passed. Phase 1 is the first generative stage.");
     const privacyWarnings = dlpScan.caution_hits.length > 0 || privacy.decision.redaction_count > 0;
     emitProgress({ stage: 'privacy', status: privacyWarnings ? 'completed_with_warnings' : 'completed' });
 
-    console.log("[FinOps] Pre-fetching Tactics Database for Phase 3...");
+    console.log("[Landing Zone] Pre-fetching Tactics Database for Phase 3...");
     emitProgress({ stage: 'knowledge', status: 'in_progress' });
     const tacticsPromise = knowledgeBaseService.fetchStrategicPlaybook();
     const referenceKbPromise = knowledgeBaseService.fetchReferenceKnowledgeBaseIndex();
@@ -665,7 +652,7 @@ export const analyzeDocument = async (
       throw new PipelineIntegrityError('ANALYSIS_OUTPUT_INCOMPLETE', 'pre_synthesis');
     }
     if (phase1Validation.warnings.length > 0) {
-      console.warn(`[FinOps] Phase 1 validation produced ${phase1Validation.warnings.length} warning(s); content omitted by logging policy.`);
+      console.warn(`[Landing Zone] Phase 1 validation produced ${phase1Validation.warnings.length} warning(s); content omitted by logging policy.`);
     }
     await checkpoint('phase1', 'accepted', {
       phase_1_audit_logs: auditLogs,
@@ -722,7 +709,7 @@ export const analyzeDocument = async (
     });
     emitProgress({ stage: 'calculation', status: 'completed' });
 
-      console.log(`[FinOps] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}`);
+      console.log(`[Landing Zone] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}`);
 
     // Confidence bracket: drives which synthesis prompt runs.
     // LOW   → findings (no roadmap, no case studies)
@@ -736,7 +723,7 @@ export const analyzeDocument = async (
       delivery_integrity: validationData.metrics.delivery_integrity,
       silent_areas_count: validationData.silent_areas.length,
     });
-    console.log(`[FinOps] [${runId}] Synthesis confidence: ${bracketDetail}`);
+    console.log(`[Landing Zone] [${runId}] Synthesis confidence: ${bracketDetail}`);
     serverLog(runId, 'info', 'synthesis_confidence', {
       bracket: confidenceBracket,
       evidence_density: Math.round(validationData.metrics.evidence_density),
@@ -760,7 +747,7 @@ export const analyzeDocument = async (
       : autoEscalate
         ? `auto:readiness=${Math.round(validationData.metrics.finops_readiness)},burden=${Math.round(validationData.metrics.antipattern_burden)},antipatterns=${validationData.antipattern_findings.length},gaps=${validationData.maturity_gaps.length},class=${validationData.crawl_walk_run}`
         : 'none';
-    console.log(`[FinOps] [${runId}] Synthesis stage: ${synthesisStage} (${escalationReason})`);
+    console.log(`[Landing Zone] [${runId}] Synthesis stage: ${synthesisStage} (${escalationReason})`);
     serverLog(runId, 'info', 'synthesis_routing', {
       stage: synthesisStage,
       reason_code: options.deepMode ? 'USER_DEEP_MODE' : autoEscalate ? 'AUTO_ESCALATION' : 'STANDARD',
@@ -808,15 +795,16 @@ ${tacticsContext}`;
 
 
     const handoffSummary = `
-FINOPS DIAGNOSTIC REPORT SUMMARY (Computed by System):
+LANDING ZONE DIAGNOSTIC REPORT SUMMARY (Computed by System):
 -------------------------------------------------------
-Adjusted FinOps Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100`}${overallScoreAvailable ? '' : ' — diagnostic only; Assessment Sufficiency BLOCK'}
+Adjusted Landing Zone Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100`}${overallScoreAvailable ? '' : ' — diagnostic only; Assessment Sufficiency BLOCK'}
 Corroborated Maturity: ${validationData.metrics.corroborated_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.corroborated_maturity)}%`}
 Observed Maturity: ${validationData.metrics.observed_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.observed_maturity)}%`}
 Assessment Resolution: ${Math.round(validationData.metrics.assessment_resolution)}%
 Assessment Sufficiency: ${validationData.assessment_sufficiency.decision}
 Assessment Sufficiency Warnings: ${validationData.assessment_sufficiency.warning_reasons.join(' ') || 'None'}
-Maturity Classification: ${validationData.crawl_walk_run}
+Published Maturity Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}
+Kernel Maturity Band: ${validationData.crawl_walk_run}
 Maturity Depth Index: ${Math.round(validationData.metrics.maturity_depth)}%
 Anti-Pattern Burden: ${Math.round(validationData.metrics.antipattern_burden)}%
 Anti-Pattern Burden Confidence: ${validationData.metrics.antipattern_burden_confidence || 'unknown'}
@@ -825,7 +813,7 @@ Anti-Pattern Coverage: ${Math.round(validationData.metrics.antipattern_coverage)
 Delivery Integrity: ${validationData.metrics.delivery_integrity}% (criteria the audit returned data for)
 Evidence Density: ${validationData.metrics.evidence_density}% (criteria with verified source coverage, including quote-backed gaps)
 Capability 0/3 Concentration: ${validationData.metrics.maturity_zero_ratio || 0}% (${validationData.metrics.maturity_zero_count || 0} of ${validationData.metrics.maturity_assessed_count || 0} assessed maturity criteria; an evidence-backed low-maturity signal, not missing evidence)
-Anti-Pattern Findings: ${validationData.metrics.antipattern_finding_count || 0} of 30 anti-patterns have confirmed or partial signals (${validationData.metrics.antipattern_finding_ratio || 0}%); ${validationData.metrics.score_gap_breakdown?.antipattern_tested_absent || 0} tested absences raise control, unknown absence does not
+Anti-Pattern Findings: ${validationData.metrics.antipattern_finding_count || 0} of ${ANTIPATTERN_CRITERIA_IDS.length} anti-patterns have confirmed or partial signals (${validationData.metrics.antipattern_finding_ratio || 0}%); ${validationData.metrics.score_gap_breakdown?.antipattern_tested_absent || 0} tested absences raise control, unknown absence does not
 Verified Anti-Pattern Absences: ${validationData.verified_antipattern_absences.length}
 Unknown / Not-Assessable Anti-Pattern Absences: ${validationData.unknown_antipattern_absences.length}
 Maturity Gaps: ${validationData.maturity_gaps.length}
@@ -1148,13 +1136,13 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
 
     const buildFallbackEvidenceSummary = () => ({
       headline: overallScoreAvailable
-        ? `${validationData.crawl_walk_run} FinOps maturity with a ${Math.round(validationData.metrics.adjusted_maturity!)}/100 resolution-adjusted score`
+        ? `${validationData.lz_maturity_label || validationData.crawl_walk_run} landing-zone maturity with a ${Math.round(validationData.metrics.adjusted_maturity!)}/100 resolution-adjusted score`
         : 'Maturity classification unavailable because Assessment Sufficiency did not pass',
       maturity_classification: validationData.crawl_walk_run,
       key_metrics: [
         overallScoreAvailable
-          ? `Adjusted FinOps Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
-          : `Adjusted FinOps Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
+          ? `Adjusted Landing Zone Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
+          : `Adjusted Landing Zone Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
         `Corroborated maturity: ${validationData.metrics.corroborated_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.corroborated_maturity)}%`}`,
         `Observed maturity: ${validationData.metrics.observed_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.observed_maturity)}%`}`,
         `Assessment resolution: ${Math.round(validationData.metrics.assessment_resolution)}%`,
@@ -1222,9 +1210,9 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         ...validationData.unknown_antipattern_absences
       ].slice(0, 8),
       validation_plan: [
-        'Provide source material that documents current FinOps ownership, cadence, and decision rights.',
-        'Attach evidence of tagging, allocation, budget, and forecasting practices.',
-        'Include recent cost review outputs or optimization decision records before rerunning the assessment.'
+        'Provide source material that documents current landing-zone ownership, vending path, and control-plane exports.',
+        'Attach hierarchy, role-assignment, policy, logging, and IaC evidence for in-scope providers.',
+        'Include the exemption register and recent platform-change records before rerunning the assessment.'
       ]
     });
 
@@ -1234,9 +1222,10 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       return {
         phase_3_strategy: {
           executive_summaries: {
-            finops_lead: `${outcome}\n\n${boundary}`,
-            cfo: `${outcome}\n\nThe available evidence is insufficient to support investment prioritization or claimed financial outcomes. ${boundary}`,
-            engineering_lead: `${outcome}\n\nThe available evidence is insufficient to prescribe engineering controls or operating changes. ${boundary}`,
+            ciso_leadership: `${outcome}\n\n${boundary}`,
+            platform_owner: `${outcome}\n\nThe available evidence is insufficient to prescribe platform-foundation controls or operating changes. ${boundary}`,
+            security_owners: `${outcome}\n\nThe available evidence is insufficient to confirm privileged-access, forced-path, or detection controls. ${boundary}`,
+            application_delivery: `${outcome}\n\nThe available evidence is insufficient to describe what application teams may request or what the platform will stop. ${boundary}`,
           },
           executive_summary: `${outcome}\n\n${boundary}`,
           active_persona: DEFAULT_PERSONA,
@@ -1311,7 +1300,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       let regen = 0;
       while (invalid.length > 0 && regen < ID_VALIDATION_MAX_REGENS) {
         regen++;
-        console.warn(`[FinOps] [${runId}] Strategy cites ${invalid.length} invalid tactic ID(s); regen ${regen}/${ID_VALIDATION_MAX_REGENS}.`);
+        console.warn(`[Landing Zone] [${runId}] Strategy cites ${invalid.length} invalid tactic ID(s); regen ${regen}/${ID_VALIDATION_MAX_REGENS}.`);
         serverLog(runId, 'warn', 'invalid_tactic_ids', {
           invalid_count: invalid.length,
           regen,
@@ -1322,7 +1311,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         invalid = findInvalidTacticIds(data, validIds);
       }
       if (invalid.length > 0) {
-        console.error(`[FinOps] [${runId}] Strategy still contains ${invalid.length} invalid tactic ID(s) after ${ID_VALIDATION_MAX_REGENS} regens.`);
+        console.error(`[Landing Zone] [${runId}] Strategy still contains ${invalid.length} invalid tactic ID(s) after ${ID_VALIDATION_MAX_REGENS} regens.`);
         serverLog(runId, 'error', 'invalid_tactic_ids_persisted', {
           invalid_count: invalid.length,
         });
@@ -1354,7 +1343,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       tacticGroundingWarnings = grounding.warnings;
       tacticGroundingAdjustments = grounding.adjustments;
       if (grounding.adjustments.length > 0) {
-        console.warn(`[FinOps] [${runId}] Roadmap tactic grounding adjusted ${grounding.adjustments.length} tactic reference(s) before fact-check.`);
+        console.warn(`[Landing Zone] [${runId}] Roadmap tactic grounding adjusted ${grounding.adjustments.length} tactic reference(s) before fact-check.`);
         serverLog(runId, 'warn', 'roadmap_tactic_grounding_adjusted', {
           adjustments: grounding.adjustments.length,
           tactic_ids: grounding.adjustments.map(a => a.tactic_id).join(','),
@@ -1433,7 +1422,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       lastUnsupported.length > 0 &&
       attempt <= FACT_CHECK_MAX_RETRIES
     ) {
-      console.log(`[FinOps] Fact-check pass ${attempt}: ${lastUnsupported.length} unsupported claims, regenerating...`);
+      console.log(`[Landing Zone] Fact-check pass ${attempt}: ${lastUnsupported.length} unsupported claims, regenerating...`);
       try {
         const requestedScope = confidenceBracket === 'LOW'
           ? 'both'
@@ -1492,12 +1481,12 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
     factCheck.trajectory = trajectory;
 
     if (factCheck.failed) {
-      console.warn('[FinOps] Fact-check unavailable; failure details retained in the governed result, not operational logs.');
+      console.warn('[Landing Zone] Fact-check unavailable; failure details retained in the governed result, not operational logs.');
     } else {
-      console.log(`[FinOps] Fact-check complete after ${factCheck.attempts} pass(es): ${factCheck.supported_count}/${factCheck.total_claims} claims supported, ${lastUnsupported.length} unsupported.`);
+      console.log(`[Landing Zone] Fact-check complete after ${factCheck.attempts} pass(es): ${factCheck.supported_count}/${factCheck.total_claims} claims supported, ${lastUnsupported.length} unsupported.`);
       if (trajectory.length > 1) {
         const traj = trajectory.map(p => `pass${p.attempt}:${p.supported_count}/${p.total_claims}supp,${p.unsupported_count}unsupp`).join(' → ');
-        console.log(`[FinOps] [${runId}] Fact-check trajectory: ${traj}`);
+        console.log(`[Landing Zone] [${runId}] Fact-check trajectory: ${traj}`);
         serverLog(runId, 'info', 'fact_check_trajectory', { trajectory: traj, passes: trajectory.length });
       }
     }
@@ -1508,7 +1497,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         const removed = sanitation.sanitized.filter(i => i.action === 'removed').length;
         const rewritten = sanitation.sanitized.filter(i => i.action === 'rewritten').length;
         const quarantined = sanitation.sanitized.filter(i => i.action === 'quarantined').length;
-        console.warn(`[FinOps] [${runId}] Strategy sanitation handled ${sanitation.sanitized.length} unsupported item(s): removed=${removed}, rewritten=${rewritten}, quarantined=${quarantined}.`);
+        console.warn(`[Landing Zone] [${runId}] Strategy sanitation handled ${sanitation.sanitized.length} unsupported item(s): removed=${removed}, rewritten=${rewritten}, quarantined=${quarantined}.`);
         serverLog(runId, 'warn', event, {
           total: sanitation.sanitized.length,
           removed,
@@ -1608,10 +1597,10 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
     }
     groundingValidation.warnings.push(...tacticGroundingWarnings);
     if (groundingValidation.errors.length > 0) {
-      console.error(`[FinOps] Phase 3 grounding produced ${groundingValidation.errors.length} error(s); content omitted by logging policy.`);
+      console.error(`[Landing Zone] Phase 3 grounding produced ${groundingValidation.errors.length} error(s); content omitted by logging policy.`);
     }
     if (groundingValidation.warnings.length > 0) {
-      console.warn(`[FinOps] Phase 3 grounding produced ${groundingValidation.warnings.length} warning(s); content omitted by logging policy.`);
+      console.warn(`[Landing Zone] Phase 3 grounding produced ${groundingValidation.warnings.length} warning(s); content omitted by logging policy.`);
     }
 
     let qualityGate = runQualityGate(auditLogs, validationData, phase1Validation, groundingValidation, aggregatedRawData.evidence_check, factCheck, sourceRegistryStatus);
@@ -1667,7 +1656,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         ...(highFactCheck.failed ? { error_code: 'FACT_CHECK_FAILED' } : {}),
       });
     }
-    console.log(`[FinOps] [${runId}] Quality Gate decision: ${qualityGate.decision}`);
+    console.log(`[Landing Zone] [${runId}] Quality Gate decision: ${qualityGate.decision}`);
     if (qualityGate.decision === 'WARN' && strategyData?.phase_3_strategy?.planning_decision?.decision === 'GO') {
       const decision = strategyData.phase_3_strategy.planning_decision;
       decision.decision = 'CONDITIONAL_GO';
@@ -1721,19 +1710,19 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
     if (qualityGate.decision === 'BLOCK' && strategyData?.phase_3_strategy?.evidence_summary) {
       const summary = strategyData.phase_3_strategy.evidence_summary;
       summary.headline = overallScoreAvailable
-        ? `Roadmap actionability BLOCKED · ${validationData.crawl_walk_run} · Adjusted FinOps Maturity ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
+        ? `Roadmap actionability BLOCKED · ${validationData.lz_maturity_label || validationData.crawl_walk_run} · Adjusted Landing Zone Maturity ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
         : 'Roadmap actionability BLOCKED · maturity classification unavailable because Assessment Sufficiency did not pass';
       summary.key_metrics = [
         overallScoreAvailable
-          ? `Adjusted FinOps Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
-          : `Adjusted FinOps Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
+          ? `Adjusted Landing Zone Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
+          : `Adjusted Landing Zone Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
         `Assessment resolution: ${Math.round(validationData.metrics.assessment_resolution)}%`,
         `Assessment sufficiency: ${validationData.assessment_sufficiency.decision}`,
-        ...((summary.key_metrics || []).filter((metric: string) => !/maturity score|adjusted finops maturity|assessment resolution|assessment sufficiency|readiness|capability attainment|anti-pattern control/i.test(metric))),
+        ...((summary.key_metrics || []).filter((metric: string) => !/maturity score|adjusted landing zone maturity|adjusted finops maturity|assessment resolution|assessment sufficiency|readiness|capability attainment|anti-pattern control/i.test(metric))),
       ];
     }
     if (effectiveBracket !== confidenceBracket) {
-      console.warn(`[FinOps] [${runId}] Strategy downgraded by QG: ${confidenceBracket} → ${effectiveBracket} (decision=${qualityGate.decision})`);
+      console.warn(`[Landing Zone] [${runId}] Strategy downgraded by QG: ${confidenceBracket} → ${effectiveBracket} (decision=${qualityGate.decision})`);
       serverLog(runId, 'warn', 'strategy_downgraded', {
         from: confidenceBracket,
         to: effectiveBracket,
@@ -1750,11 +1739,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
 
     const fallbackStrategy = {
       executive_summary: "Strategy incomplete.",
-      executive_summaries: {
-        finops_lead: "Strategy incomplete.",
-        cfo: "Strategy incomplete.",
-        engineering_lead: "Strategy incomplete."
-      },
+      executive_summaries: filledPersonaSummaries('Strategy incomplete.'),
       active_persona: DEFAULT_PERSONA,
       evidence_summary: buildFallbackEvidenceSummary(),
       diagnosis: buildFallbackDiagnosis(),
@@ -1867,7 +1852,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       shadowTelemetryPersistence(boundedRetrieval, derivedAnalyticalEvidence, dataSignalCoverage)
     );
     const totalDuration = Date.now() - pipelineStarted;
-    console.log(`[FinOps] [${runId}] === Pipeline complete === duration_ms=${totalDuration} quality_gate=${qualityGate.decision} bracket=${effectiveBracket}`);
+    console.log(`[Landing Zone] [${runId}] === Pipeline complete === duration_ms=${totalDuration} quality_gate=${qualityGate.decision} bracket=${effectiveBracket}`);
     serverLog(runId, 'info', 'pipeline_complete', {
       outcome: 'ok',
       duration_ms: totalDuration,
@@ -1915,7 +1900,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         domains: integrityError.domains.join(',') || 'none',
       });
     }
-    console.error(`[FinOps] [${runId}] === Pipeline FAILED === duration_ms=${duration} error_code=${errorCode}`);
+    console.error(`[Landing Zone] [${runId}] === Pipeline FAILED === duration_ms=${duration} error_code=${errorCode}`);
     serverLog(runId, 'error', 'pipeline_failed', {
       duration_ms: duration,
       error_code: errorCode,

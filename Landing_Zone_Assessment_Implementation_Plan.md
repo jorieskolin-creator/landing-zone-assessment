@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.17 |
+| Current version | 1.18 |
 | Last updated | 2026-09-16 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -291,11 +291,11 @@ Verified against `origin/main` at `02cfbca` on 2026-09-16 after rebasing Works 7
 | 5 File acquisition | Done | Class 1/2/3 source kinds. Extra providers found in files do not expand Step 0 |
 | 6 Questionnaire ingestion | Done | 48-question JSON becomes Class 3 records. The engine does not rebuild the interview UI |
 | 7 A–H routing and packets | Done | Kind priors, criterion-token boosts, exclusive out-of-scope withhold, G/H expansion terms, and acquisition diagnostics. Out-of-scope provider evidence is withheld from packets |
-| 8 Forensic evaluation | Done | Dual-stream kernel plus Landing Zone authority overlay (`lzForensicEvaluation`). Quote `evidence_class`, Class 2/3 Count 3 caps, non-platform tested-absence → unknown, class contradictions. Runtime prompt prose remains FinOps until Work 12 |
+| 8 Forensic evaluation | Done | Dual-stream kernel plus Landing Zone authority overlay (`lzForensicEvaluation`). Quote `evidence_class`, Class 2/3 Count 3 caps, non-platform tested-absence → unknown, class contradictions. Work 12 replaced remaining FinOps synthesis/report prose |
 | 9 Pair scoring and gates | Done | Adapter scores after provenance and the Work 8 overlay. Single-provider results use Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed |
 | 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. Authoring folder is `GOOGLE_DRIVE_KB` (Drive letter folders A–H). Runtime ingest remains Vercel Blob. Drive currently holds design area A complete and design area B in progress. Source Register wording cleanup in those documents is author-owned |
 | 11 Tactic Playbook | Pack conversion done, KB still pending | Approved PDF v1.0.0 transcribed into 80 pack tactics and 240 bindings. Runtime loaders adapt onto kernel types. No FinOps fallback. Mapping is exact IDs only |
-| 12 Prompts, personas, reports | Pack contracts ready, runtime FinOps | Personas and report vocabulary exist in the pack. `src/prompts.ts`, `src/constants.ts`, and export HTML still use FinOps language |
+| 12 Prompts, personas, reports | Done | Runtime personas are the four pack IDs. Synthesis prompts, fact-check, Quality Gate, exports, and dashboard copy use Landing Zone vocabulary and transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Kernel Crawl-Walk-Run math is unchanged; published labels remain Foundation/Pilot/Rollout/Operate. Knowledge Base topic bodies were not invented |
 | 13 Expert calibration | Not started | No calibration events or customer disposition model |
 
 Supporting work already on main, outside the numbered Works:
@@ -308,11 +308,10 @@ Parallel content track: 80 Knowledge Base documents remain author-owned in Drive
 
 Recommended next implementation order:
 
-1. Work 11 pack JSON is transcribed. Remaining Work 11 hardening is tests against silent-domain suppression and roadmap citation of real `TAC-*` IDs. Work 12 runtime prompt replacement should cite those IDs instead of FinOps `TAC-XXX-NNN` examples.
-2. Work 12 runtime prompt and report replacement can proceed in parallel. Tactic ID tables in prompts should wait until pack JSON exists so they cite real `TAC-*` IDs.
-3. Work 10 content integration finishes when the 80 Knowledge Base documents are present: validate references, load the index, and test retrieval and clean-room separation.
-4. Work 13 follows a Landing Zone-shaped scoring path.
-5. Full pipeline verification and the first real assessment cases wait until Knowledge Base and Tactic Playbook content are integrated.
+1. Work 12 runtime prompts, personas, and reports now cite transcribed `TAC-*` IDs. Do not invent remaining Knowledge Base topic bodies.
+2. Work 10 content integration finishes when the 80 Knowledge Base documents are present: validate references, load the index, and test retrieval and clean-room separation.
+3. Work 13 follows a Landing Zone-shaped scoring path after local engine analysis can use the Knowledge Base.
+4. Full pipeline verification and the first real assessment cases wait until Knowledge Base content is integrated.
 
 Standing constraints for later chats:
 
@@ -466,7 +465,7 @@ For every applicable A–H batch:
 
 Models may explain approved evidence and metrics; they may not invent provider checks or control-plane facts.
 
-Work 8 is rebased onto Work 7. The dual-stream loop, verification, and targeted rescan remain. The Landing Zone authority overlay stamps quote `evidence_class`, caps document/workshop Count 3, converts non-platform `tested_absent` to unknown, and flags class contradictions. Runtime prompt prose remains FinOps until Work 12. Phase 1 logs stay criterion-keyed; they are not split per provider.
+Work 8 is rebased onto Work 7. The dual-stream loop, verification, and targeted rescan remain. The Landing Zone authority overlay stamps quote `evidence_class`, caps document/workshop Count 3, converts non-platform `tested_absent` to unknown, and flags class contradictions. Phase 1 logs stay criterion-keyed; they are not split per provider.
 
 ### Work 9 — Adapt pair scoring and gates
 
@@ -575,7 +574,7 @@ The report must present:
 - Assessment Sufficiency and Quality Gate outcomes
 - RunTrace and methodology appendices
 
-Pack `personas.json`, `prompts.json` (template contracts), and `report-vocabulary.json` already use Landing Zone names and forbidden behaviors. Runtime `src/prompts.ts`, `src/constants.ts`, and `src/services/exportService.ts` still emit FinOps auditor language, Crawl-Walk-Run methodology, and FinOps export titles. Work 12 replaces those runtime surfaces. It does not invent Knowledge Base or tactic bodies.
+Pack `personas.json`, `prompts.json` (template contracts), and `report-vocabulary.json` already used Landing Zone names and forbidden behaviors. Work 12 replaced the runtime surfaces: `PersonaId` is the four pack IDs (`ciso_leadership`, `platform_owner`, `security_owners`, `application_delivery`) with a legacy map from `finops_lead` / `cfo` / `engineering_lead`; `src/constants.ts` and `src/prompts.ts` use Landing Zone Forensic Auditor language, Foundation/Pilot/Rollout/Operate publication, A–H design-area labels, forbidden behaviors, and transcribed tactic IDs such as `TAC-ORG-A1-01` and `TAC-IDENTITY-AP-B1-01`; exports and the dashboard use Landing Zone Assessment Engine titles, `#lz-assessment-data`, and the kernel tactic-ID highlighter. Kernel Crawl-Walk-Run math and characterization FinOps fixtures are unchanged. Knowledge Base topic bodies were not invented.
 
 ### Work 13 — Add expert calibration and customer decisions
 
@@ -722,3 +721,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-16 | 1.15 | Record the repository Source Register upload as the Engine composition source (APPROVED, effective 2026-09-16). Stop treating leftover “Source Register is Preliminary” wording in Drive KB documents as an engine blocker; that cleanup is author-owned and already started. |
 | 2026-09-16 | 1.16 | Record Tactic Playbook v1.0.0 APPROVED PDF on main. Work 11 is pack conversion and kernel wiring, not inventing prose. Capture the real ID scheme `TAC-{NAMESPACE}-{CRITERION}-01`, 80 PRIMARY mappings, and fail-visible empty pack until transcription. |
 | 2026-09-16 | 1.17 | Transcribe the approved Tactical Playbook PDF into pack JSON (80 tactics, 240 bindings) and load them through `landingZoneTactics()` / activity playbook accessors. Exact mappings only. No FinOps fallback. Runtime does not parse the PDF. |
+| 2026-09-16 | 1.18 | Work 12: replace leftover FinOps runtime prompts, personas, and reports with Landing Zone pack vocabulary. Cite transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Keep kernel Crawl-Walk-Run math. Do not invent Knowledge Base topic bodies. |

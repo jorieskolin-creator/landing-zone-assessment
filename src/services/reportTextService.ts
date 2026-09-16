@@ -1,7 +1,7 @@
 import type { QualityGateDecision } from '../types';
 
 export const insufficientEvidenceLabel = 'Insufficient evidence';
-export const sourceObservationLabel = 'Source observations outside FinOps scope';
+export const sourceObservationLabel = 'Source observations outside Landing Zone scope';
 export const confirmedStrengthsLabel = 'Confirmed strengths';
 
 export const isInsufficientEvidenceReport = (
