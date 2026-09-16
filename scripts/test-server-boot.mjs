@@ -34,7 +34,15 @@ const server = await readFile(new URL('../server.js', import.meta.url), 'utf8');
 assert.match(server, /inspectServerBoot\(process\.env\)/);
 assert.doesNotMatch(server, /STARTUP_FAILED code=MODEL_ROUTING_CONFIGURATION_INVALID/);
 assert.match(server, /MODEL_ROUTING_UNAVAILABLE/);
-assert.match(server, /boot\.startWorkers/);
+assert.match(server, /boot\.startWorkers && infrastructure/);
 assert.match(server, /publisher\?\.stop/);
+assert.doesNotMatch(server, /STARTUP_FAILED code=\$\{code==='INTERNAL_ERROR'\?'INFRASTRUCTURE_UNAVAILABLE'/);
+assert.match(server, /INFRASTRUCTURE_UNAVAILABLE code=/);
+assert.match(server, /serving UI; workers not started/);
+assert.match(server, /mode:'ui_only'/);
+
+const railway = await readFile(new URL('../railway.json', import.meta.url), 'utf8');
+assert.match(railway, /"healthcheckPath": "\/livez"/);
+assert.doesNotMatch(railway, /preDeployCommand/);
 
 console.log('server boot allows UI without model routing; analysis workers stay off');
