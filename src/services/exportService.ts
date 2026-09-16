@@ -1,5 +1,6 @@
 
 import { AuditItem, DiagnosticResult, QualityGateResult } from '../types';
+import { BATCH_TITLES, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
 import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { SVG_CSS, svgGaugeCard } from './svgChartService';
 import {

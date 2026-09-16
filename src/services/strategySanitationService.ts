@@ -1,3 +1,4 @@
+import { FactCheckClaim, FactCheckResult, StrategySanitationItem } from '../types';
 import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import {
   isBlockingUnsupportedClaim,
