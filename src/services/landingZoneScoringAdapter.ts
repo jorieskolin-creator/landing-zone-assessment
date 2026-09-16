@@ -8,8 +8,8 @@
  * - maps Crawl/Walk/Run onto Foundation/Pilot/Rollout/Operate
  * - never publishes a blended multi-provider headline
  *
- * Work 7 (A–H packet routing) and Work 8 (per-provider forensic logs) are
- * still pending. Phase 1 maps remain keyed by criterion id. When more than
+ * Work 7 A–H packet routing and Work 8 evidence-authority overlay run before
+ * this adapter. Phase 1 maps remain keyed by criterion id. When more than
  * one provider is in Step 0 scope, estate logs are not copied onto each
  * provider — that would be blending.
  */
@@ -32,9 +32,9 @@ import { calculateMetrics } from './metricsService';
 
 const GAMMA = 0.5;
 const SCHEMA_VERSION = 'lz_provider_scoring_v1' as const;
-const PENDING_WORK = ['packet_routing_work_7', 'forensic_evaluation_work_8'] as const;
+const PENDING_WORK: Array<'packet_routing_work_7' | 'forensic_evaluation_work_8'> = [];
 const UNATTRIBUTED_REASON =
-  'Estate Phase 1 logs are keyed by criterion id, not provider. Copying them onto every in-scope provider would publish a blended headline. Per-provider forensic evaluation (Work 8) is required before this slot can resolve.';
+  'Estate Phase 1 logs are keyed by criterion id, not provider. Copying them onto every in-scope provider would publish a blended headline. Per-provider forensic packets are required before this slot can resolve.';
 
 export interface LzScoringPolicy {
   version: string;

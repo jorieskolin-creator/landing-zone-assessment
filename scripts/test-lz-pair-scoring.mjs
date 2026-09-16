@@ -390,11 +390,11 @@ const azureSurface = surfaceFor(["azure"], [
     assert.equal(slot.attribution, "unattributed_pending_provider_forensic");
     assert.equal(slot.lz_maturity_label, "Insufficient evidence");
     assert.equal(slot.blended, false);
-    assert.match(slot.publication_blocked_reason, /Work 8/);
+    assert.match(slot.publication_blocked_reason, /keyed by criterion id/);
     assert.equal(slot.phase_2.metrics.adjusted_maturity, null);
   }
   assert.notEqual(scored.estate_phase2.metrics.adjusted_maturity, null, "estate diagnostic remains available; it is not the published headline");
-  assert.deepEqual(scored.pending_work, ["packet_routing_work_7", "forensic_evaluation_work_8"]);
+  assert.deepEqual(scored.pending_work, []);
 }
 
 const analysis = await readFile(new URL("../src/services/analysisService.ts", import.meta.url), "utf8");

@@ -32,10 +32,10 @@ const provenanceIndex = analysis.indexOf("reconcileEvidenceProvenance(");
 const forensicIndex = analysis.indexOf("applyLzForensicEvaluation(");
 const integrityIndex = analysis.indexOf("validatePreSynthesisIntegrity(");
 const sanitationIndex = analysis.indexOf("const auditLogs = validateAndSanitizeLogs(");
-const calculationIndex = analysis.indexOf("calculateMetrics(auditLogs");
+const calculationIndex = analysis.indexOf("scoreLandingZoneAssessment(");
 assert.ok(provenanceIndex > 0 && forensicIndex > provenanceIndex, "authority overlay must run after provenance");
 assert.ok(forensicIndex < integrityIndex && integrityIndex < sanitationIndex && sanitationIndex < calculationIndex,
-  "authority overlay must run before integrity, sanitation, and pair/metrics calculation");
+  "authority overlay must run before integrity, sanitation, and pair scoring");
 assert.match(analysis, /evidence_class: isLzEvidenceClass\(q\.evidence_class\)/);
 assert.match(analysis, /safeItem\.lz_authority_cap = item\.lz_authority_cap/);
 assert.match(analysis, /safeItem\.lz_contradiction_classes = item\.lz_contradiction_classes/);
