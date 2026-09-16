@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.13 |
+| Current version | 1.15 |
 | Last updated | 2026-09-16 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -291,7 +291,7 @@ Verified against `origin/main` at `02cfbca` on 2026-09-16 after rebasing Works 7
 | 7 A–H routing and packets | Done | Kind priors, criterion-token boosts, exclusive out-of-scope withhold, G/H expansion terms, and acquisition diagnostics. Out-of-scope provider evidence is withheld from packets |
 | 8 Forensic evaluation | Done | Dual-stream kernel plus Landing Zone authority overlay (`lzForensicEvaluation`). Quote `evidence_class`, Class 2/3 Count 3 caps, non-platform tested-absence → unknown, class contradictions. Runtime prompt prose remains FinOps until Work 12 |
 | 9 Pair scoring and gates | Done | Adapter scores after provenance and the Work 8 overlay. Single-provider results use Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed |
-| 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. 78 of 80 documents still to author |
+| 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. Authoring folder is `GOOGLE_DRIVE_KB` (Drive letter folders A–H). Runtime ingest remains Vercel Blob. Drive currently holds design area A complete and design area B in progress. Source Register wording cleanup in those documents is author-owned |
 | 11 Tactic Playbook | Contract only, content-blocked | `tactics: []` and empty bindings. Fail visible. Do not invent playbook prose |
 | 12 Prompts, personas, reports | Pack contracts ready, runtime FinOps | Personas and report vocabulary exist in the pack. `src/prompts.ts`, `src/constants.ts`, and export HTML still use FinOps language |
 | 13 Expert calibration | Not started | No calibration events or customer disposition model |
@@ -300,9 +300,9 @@ Supporting work already on main, outside the numbered Works:
 
 - Step 0 and landing hero follow the questionnaire paper visual language. Overlapping metadata maps onto `AssessmentScope`. Facilitator, date, times, assessment reference, and participants are optional workshop-session notes and do not affect scoring. Intake may be light paper; forensic results stay dark.
 - Model routing authorizes Gemini, Spark, Astra, and GPT-5.4, with a `TEST_MODE` cheap chain. This does not change assessment criteria.
-- Knowledge Base pair-document schemas live in `docs/kb-authoring/` so authors can write two documents per pair in the form the indexer already consumes.
+- Knowledge Base pair-document schemas live in `docs/kb-authoring/` so authors can write two documents per pair in the form the indexer already consumes. `GOOGLE_DRIVE_KB` is the Drive folder ID for that authoring tree. The engine does not read Drive at runtime.
 
-Parallel content track, owned by the author rather than engine PRs: Tactic Playbook and 80 Knowledge Base documents (two per pair, A–H). The Global Source Register v1.0.0 is approved and finalized; it is not a draft and is not pending authoring. Engine work must not invent Knowledge Base or Tactic Playbook prose.
+Parallel content track, owned by the author rather than engine PRs: Tactic Playbook and 80 Knowledge Base documents (two per pair, A–H). The Global Source Register v1.0.0 is the Source Register for Engine composition (APPROVED, effective 2026-09-16). Leftover “Source Register is Preliminary” phrasing in Drive Knowledge Base documents is author cleanup in progress and is not an engine gate. Engine work must not invent Knowledge Base or Tactic Playbook prose.
 
 Recommended next implementation order:
 
@@ -505,7 +505,7 @@ Define its contract early:
 
 The contract, pack-local index, packet/RunTrace version metadata, FinOps rejection, and fail-closed load policy are on main. Topic bodies remain empty (`contract_defined_content_pending`). Catalogue batch definitions are not an integrated Knowledge Base.
 
-Authoring form is defined in `docs/kb-authoring/`: JSON front matter, canonical heading order, and two documents per pack pair. Engine keys are `maturity:A1`…`maturity:H5` and `antipattern:AP-A1`…`antipattern:AP-H5`. `stream` is `maturity` or `antipattern`, never `capability`. PAIR-A1 samples exist; the remaining 39 pairs are authored outside engine PRs. Do not invent topic prose in implementation work.
+Authoring form is defined in `docs/kb-authoring/`: JSON front matter, canonical heading order, and two documents per pack pair. Engine keys are `maturity:A1`…`maturity:H5` and `antipattern:AP-A1`…`antipattern:AP-H5`. `stream` is `maturity` or `antipattern`, never `capability`. PAIR-A1 samples exist. Authoring continues in the Drive folder named by `GOOGLE_DRIVE_KB` (letter folders A–H, canonical PDF filenames, optional `PAIR-*.md` companions). Validate a snapshot with `node scripts/validate-lz-kb-authoring.mjs`. Blob ingest uses design-area folder names under `LZ_KB_BLOB_PREFIX`, not the Drive letter folders. Do not invent topic prose in implementation work. The Source Register is already the composition source; leftover PRELIMINARY phrasing in Canonical Source Foundations is author cleanup and does not fail the authoring validator.
 
 When content becomes available:
 
@@ -721,3 +721,5 @@ Material changes should update the date and append a short entry below.
 | 2026-09-15 | 1.11 | Status review against `origin/main` `02cfbca`. Works 1–6 and the Work 10 contract are on main. Works 7–9 exist as unmerged kernel adaptations that currently conflict with main and must rebase without rewriting 1.10–1.11 history. Work 10 content, Work 11 playbook bodies, Work 12 runtime prompts/reports, and Work 13 remain open. Records Step 0 workshop-session mapping, questionnaire visual intake, pair-document authoring schemas, TEST_MODE routing, and the constraint that engine work must not invent KB or tactic prose. |
 | 2026-09-16 | 1.12 | Rebased and stacked Works 7, 8, then 9 onto current main without rewriting 1.10–1.11 history. Runtime path is packet routing → forensic authority overlay → pair scoring. Multi-provider headlines remain withheld because Phase 1 logs are still criterion-keyed. Next engine work is Work 12. |
 | 2026-09-16 | 1.13 | Record that Global Source Register v1.0.0 is approved and finalized. Remove PRELIMINARY / draft-register wording from the register document and stop treating the Source Register as pending authoring content. Work 11 still waits only on the Tactic Playbook. |
+| 2026-09-16 | 1.14 | Record `GOOGLE_DRIVE_KB` as the LZ Assessment KB authoring folder (A–H letter folders). Runtime ingest stays Vercel Blob. Add `scripts/validate-lz-kb-authoring.mjs` so Drive snapshots can be checked against the indexer without inventing remaining topic prose. |
+| 2026-09-16 | 1.15 | Record the repository Source Register upload as the Engine composition source (APPROVED, effective 2026-09-16). Stop treating leftover “Source Register is Preliminary” wording in Drive KB documents as an engine blocker; that cleanup is author-owned and already started. |

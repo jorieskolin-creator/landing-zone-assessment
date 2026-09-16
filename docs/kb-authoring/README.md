@@ -4,17 +4,35 @@ Author **two documents per pack pair**. Pair identity already lives in `src/doma
 
 The engine loads **80 documents**, keyed `maturity:A1` … `maturity:H5` and `antipattern:AP-A1` … `antipattern:AP-H5`. It does not ingest the authoring envelope JSON. Split each envelope into two PDFs (JSON front matter first, then headings).
 
-## Filename
+Authoring lives in the Google Drive folder identified by `GOOGLE_DRIVE_KB` (LZ Assessment KB). Drive uses letter folders `A`–`H`. Runtime ingest is still Vercel Blob under `LZ_KB_BLOB_PREFIX` (`Landing Zone Knowledge Base/<Design Area Name>/`). Copy only the canonical PDFs into Blob; keep `PAIR-*.md` / `PAIR-*.json` as authoring companions.
+
+Validate a local snapshot with:
 
 ```
-Knowledge Base/<Design Area Name>/<ID> - <Design Area Name> - <Criterion ID> - <Short Title>.pdf
+node scripts/validate-lz-kb-authoring.mjs /path/to/lz-assessment-kb
+```
+
+## Filename
+
+Drive (authoring):
+
+```
+<A–H>/<ID> - <Design Area Name> - <Criterion ID> - <Short Title>.pdf
+```
+
+Blob (runtime ingest):
+
+```
+Landing Zone Knowledge Base/<Design Area Name>/<ID> - <Design Area Name> - <Criterion ID> - <Short Title>.pdf
 ```
 
 Examples:
 
 ```
-Knowledge Base/Tenant, billing & organization construct/A - Tenant, billing & organization construct - A1 - Authoritative organization root.pdf
-Knowledge Base/Tenant, billing & organization construct/A - Tenant, billing & organization construct - AP-A1 - Shadow tenants and unmanaged orgs.pdf
+A/A - Tenant, billing & organization construct - A1 - Authoritative organization root.pdf
+Landing Zone Knowledge Base/Tenant, billing & organization construct/A - Tenant, billing & organization construct - A1 - Authoritative organization root.pdf
+A/A - Tenant, billing & organization construct - AP-A1 - Shadow tenants and unmanaged orgs.pdf
+Landing Zone Knowledge Base/Tenant, billing & organization construct/A - Tenant, billing & organization construct - AP-A1 - Shadow tenants and unmanaged orgs.pdf
 ```
 
 ## Front matter rules the indexer will reject if broken
@@ -53,7 +71,7 @@ Use these exact heading strings, in this order. Skip FinOps-only headings (`Migr
 21. Remediation / Tactic Notes *(needed for roadmap; name tactics only when the playbook exists)*
 22. Prohibited Inference Rules *(required on anti-pattern)*
 23. Scoring Guidance Notes *(required for forensic audit)*
-24. Canonical Source Foundations
+24. Canonical Source Foundations *(cite Source Register v1.0.0 as APPROVED when naming it; leftover PRELIMINARY phrasing is author cleanup and does not fail the indexer)*
 
 ## Start from
 

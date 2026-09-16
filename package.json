@@ -57,6 +57,7 @@
     "test:run-trace-tactics": "node scripts/test-run-trace-tactics.mjs",
     "test:kb-index": "node scripts/test-kb-index.mjs",
     "test:kb-pair-samples": "node scripts/test-kb-pair-samples.mjs",
+    "test:lz-kb-authoring": "node scripts/test-lz-kb-authoring.mjs",
     "test:acquisition-quality": "node scripts/test-acquisition-quality.mjs",
     "test:structured-data": "node scripts/test-structured-data-analysis.mjs",
     "test:crucial-item-coverage": "node scripts/test-crucial-item-coverage.mjs",
