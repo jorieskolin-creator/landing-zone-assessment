@@ -1,6 +1,7 @@
 
 import { AuditItem, DiagnosticResult, QualityGateResult } from '../types';
 import { BATCH_TITLES, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { SVG_CSS, svgGaugeCard } from './svgChartService';
 import {
   displayPlanningDecisionRationale,
@@ -40,7 +41,7 @@ const ASSESSMENT_METHOD_DISCLAIMER =
 const renderAssessmentMethodDisclaimer = (): string =>
   `<p class="footer-disclaimer">${escapeHtml(ASSESSMENT_METHOD_DISCLAIMER)}</p>`;
 const renderTacticAction = (action: string): string =>
-  escapeHtml(action).replace(/\[(TAC-[A-Z]+-\d{3})\]/g, (_match, id: string) =>
+  escapeHtml(action).replace(tacticIdCaptureRx(), (_match, id: string) =>
     `<a href="${FINOPS_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}" target="_blank" rel="noreferrer">[${id}]</a>`
   );
 

@@ -9,6 +9,7 @@ import {
 } from "../constants";
 import { bracketFromValidation, explainBracket } from "./confidenceBracket";
 import { runPhase1Audit } from "../orchestrator";
+import { tacticIdCaptureRx } from "../kernel/tacticIds";
 import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TAXONOMY_REGISTRY, FINOPS_MATURITY_PAIR_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
 import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
 import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
@@ -102,7 +103,7 @@ const ENGINE_VERSION = "2.0.0";
 const findInvalidTacticIds = (strategyData: any, validIds: Set<string>): string[] => {
   const blob = JSON.stringify(strategyData ?? {});
   const found = new Set<string>();
-  const RX = /\[(TAC-[A-Z]+-\d+(?:-[A-Z]+)?)\]/g;
+  const RX = tacticIdCaptureRx();
   let m: RegExpExecArray | null;
   while ((m = RX.exec(blob)) !== null) {
     const id = m[1];

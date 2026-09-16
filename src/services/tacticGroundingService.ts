@@ -1,5 +1,6 @@
 import type { Phase1AuditLogs, Phase2Validation, RequiredTacticDisposition, StrategicTactic, StrategySanitationItem, TacticActivityPlaybookEntry } from '../types';
 import { CRITERION_REFERENCE_RX, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TACTICS_LOCAL } from '../knowledge_base';
+import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { hasVerifiedSourceCoverage } from './metricsService';
 
@@ -43,7 +44,7 @@ interface UnsupportedActionRule {
   reason: string;
 }
 
-const TACTIC_RX = /\[(TAC-[A-Z]+-\d+(?:-[A-Z]+)?)\]/g;
+const TACTIC_RX = tacticIdCaptureRx;
 
 const UNSUPPORTED_ACTION_RULES: UnsupportedActionRule[] = [
   {
@@ -196,7 +197,7 @@ export const findMissingRequiredTacticIds = (strategyData: any, plan: TacticSele
   const text: string = (strategyData?.phase_3_strategy?.remediation_roadmap || [])
     .flatMap((phase: any) => Array.isArray(phase?.actions) ? phase.actions : [])
     .join('\n');
-  const present = new Set<string>(Array.from(text.matchAll(TACTIC_RX), match => match[1]));
+  const present = new Set<string>(Array.from(text.matchAll(TACTIC_RX()), match => match[1]));
   return plan.required.map(candidate => candidate.tactic_id).filter(id => !present.has(id));
 };
 
@@ -218,7 +219,7 @@ export const classifyFinalRequiredTactics = (
       && claim.severity === 'WARN_TACTIC_HYGIENE'
       && claim.tactic_disposition != null
       && ['quarantined', 'removed', 'rewritten'].includes(claim.action))
-    .forEach(claim => Array.from(claim.claim.matchAll(TACTIC_RX), match => match[1])
+    .forEach(claim => Array.from(claim.claim.matchAll(TACTIC_RX()), match => match[1])
       .forEach(tacticId => reviewedByTactic.set(tacticId, claim)));
   const dispositions = plan.required.map(candidate => {
     if (!absent.includes(candidate.tactic_id)) {
@@ -290,7 +291,7 @@ export const sanitizeRoadmapTacticGrounding = (
   const adjustments: TacticGroundingAdjustment[] = [];
   const silentDomainSet = new Set(silentDomains);
   const silentOnlyTacticFor = (action: string): string | undefined =>
-    Array.from(action.matchAll(TACTIC_RX)).map(match => match[1]).find(id => {
+    Array.from(action.matchAll(TACTIC_RX())).map(match => match[1]).find(id => {
       const domains = tacticDomainsById.get(id);
       return domains && domains.size > 0 && Array.from(domains).every(domain => silentDomainSet.has(domain));
     });

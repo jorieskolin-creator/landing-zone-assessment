@@ -1,4 +1,5 @@
 import { FactCheckClaim, FactCheckResult, StrategySanitationItem } from '../types';
+import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import {
   isBlockingUnsupportedClaim,
   isDomainTaxonomyHygieneClaim,
@@ -154,7 +155,7 @@ const removeRoadmapAction = (strategy: any, claim: FactCheckClaim): boolean => {
   return changed;
 };
 
-const TACTIC_REFERENCE_RX = /\[(TAC-[A-Z]+-\d+(?:-[A-Z]+)?)\]/g;
+const TACTIC_REFERENCE_RX = tacticIdCaptureRx;
 
 const removeTacticReferences = (value: string, tacticIds: Set<string>): string => {
   let next = value;
@@ -176,7 +177,7 @@ const removeTacticReferences = (value: string, tacticIds: Set<string>): string =
 const preserveRoadmapActionWithoutRejectedTactic = (strategy: any, claim: FactCheckClaim): boolean => {
   const roadmap = strategy?.phase_3_strategy?.remediation_roadmap;
   if (!Array.isArray(roadmap)) return false;
-  const tacticIds = new Set(Array.from(claim.claim.matchAll(TACTIC_REFERENCE_RX), match => match[1]));
+  const tacticIds = new Set(Array.from(claim.claim.matchAll(TACTIC_REFERENCE_RX()), match => match[1]));
   const claimText = compact(claim.claim);
   if (tacticIds.size === 0 || !claimText) return false;
   const claimLower = claimText.toLowerCase();

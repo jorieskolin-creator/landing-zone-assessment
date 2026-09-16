@@ -55,7 +55,7 @@ for (const item of index.tactics) {
   }
 }
 
-assert.equal(tacticsManifest.tactics.length, 0, 'runtime pack stays empty until PDF objects are transcribed');
-assert.equal(tacticsManifest.status, 'contract_defined_content_pending');
+assert.equal(tacticsManifest.tactics.length, 80);
+assert.equal(tacticsManifest.status, 'approved_active');
 
-console.log('lz tactic catalogue index passed (80 approved IDs; runtime pack still empty)');
+console.log('lz tactic catalogue index passed (80 approved IDs; runtime pack approved_active)');

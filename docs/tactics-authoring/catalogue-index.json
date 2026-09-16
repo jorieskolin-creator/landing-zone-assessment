@@ -584,7 +584,7 @@
     },
     {
       "id": "TAC-SECURITY-E2-01",
-      "title": "Centralize Organization-Level Threat Detection ===== PAGE 7 =====",
+        "title": "Centralize Organization-Level Threat Detection",
       "kind": "capability",
       "namespace": "SECURITY",
       "design_area_id": "E",

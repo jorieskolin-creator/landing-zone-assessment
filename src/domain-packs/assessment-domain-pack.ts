@@ -124,7 +124,30 @@ export interface KnowledgeBaseDescriptor {
 export interface TacticDefinition {
   id: string;
   title?: string;
+  canonical_name?: string;
+  version?: string;
+  status?: string;
+  kind?: "capability" | "antipattern";
+  namespace?: string;
+  design_area_id?: string;
+  primary_criterion_id?: string;
+  pair_criterion_id?: string;
+  supporting_criterion_ids?: string[];
   criterion_ids?: string[];
+  primary_owner?: string;
+  supporting_roles?: string[];
+  approved_source_ids?: string[];
+  source_grounding?: string;
+  activation_trigger?: string;
+  purpose?: string;
+  implementation_activities?: string[];
+  required_outputs?: string[];
+  acceptance_criteria?: string[];
+  verification?: string[];
+  implementation_risk?: string;
+  risk_control?: string;
+  do_not_use?: string;
+  reassessment?: string;
 }
 
 export interface TacticBinding {
@@ -132,6 +155,7 @@ export interface TacticBinding {
   relationship?: "PRIMARY" | "SUPPORTING" | "RELATED";
   criterion_ids?: string[];
   antipattern_ids?: string[];
+  mandatory_when_activated?: boolean;
 }
 
 export interface ScoringPolicy {
