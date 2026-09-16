@@ -11,8 +11,16 @@ const bindingsDoc = await readJson('../src/domain-packs/landing-zone/tactic-bind
 const index = await readJson('../docs/tactics-authoring/catalogue-index.json');
 const criteria = await readJson('../src/domain-packs/landing-zone/criteria.json');
 const antipatterns = await readJson('../src/domain-packs/landing-zone/antipatterns.json');
+const validationRules = await readJson('../src/domain-packs/landing-zone/validation-rules.json');
 const knowledge = await readFile(new URL('../src/knowledge_base/landingZoneKnowledge.ts', import.meta.url), 'utf8');
 const knowledgeIndex = await readFile(new URL('../src/knowledge_base/index.ts', import.meta.url), 'utf8');
+const sourceRegister = await readFile(
+  new URL('../Landing_Zone_Assessment_Global_Source_Register_v1.0.0.html', import.meta.url),
+  'utf8',
+);
+const registerIds = new Set(
+  [...sourceRegister.matchAll(/id="(SRC-[A-Z0-9-]+)"/g)].map(match => match[1]),
+);
 
 assert.equal(tacticsDoc.status, 'approved_active');
 assert.equal(tacticsDoc.version, '1.0.0');
@@ -37,6 +45,10 @@ for (const tactic of tacticsDoc.tactics) {
   assert.ok(tactic.implementation_activities.length >= 3, tactic.id);
   assert.ok(tactic.acceptance_criteria.length >= 3, tactic.id);
   assert.ok(tactic.approved_source_ids.every(id => id.startsWith('SRC-')), tactic.id);
+  for (const sourceId of tactic.approved_source_ids) {
+    assert.ok(registerIds.has(sourceId), `${tactic.id} ${sourceId}`);
+  }
+  assert.match(tactic.id, new RegExp(`^${validationRules.phase3.tactic_id_pattern}$`), tactic.id);
   assert.ok(!JSON.stringify(tactic).includes('Approved source identity appendix'), tactic.id);
   const indexRow = index.tactics.find(row => row.id === tactic.id);
   assert.ok(indexRow, tactic.id);
@@ -50,6 +62,8 @@ assert.ok(apPrimary.every(item => item.antipattern_ids.length === 1));
 const capPrimary = bindingsDoc.bindings.filter(item => item.relationship === 'PRIMARY' && !item.mandatory_when_activated);
 assert.equal(capPrimary.length, 40);
 assert.ok(capPrimary.every(item => item.criterion_ids.length === 1));
+assert.equal(bindingsDoc.bindings.filter(item => item.relationship === 'RELATED').length, 80);
+assert.equal(bindingsDoc.bindings.filter(item => item.relationship === 'SUPPORTING').length, 80);
 
 assert.match(knowledge, /LANDING_ZONE_PACK\.tactics\.map/);
 assert.doesNotMatch(knowledge, /export const landingZoneTactics = \(\): StrategicTactic\[\] => \[\];/);

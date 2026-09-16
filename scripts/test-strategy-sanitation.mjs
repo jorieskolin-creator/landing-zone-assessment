@@ -25,10 +25,14 @@ await writeFile(
   'utf8'
 );
 
+const tacticIdsSource = await readFile(new URL('../src/kernel/tacticIds.ts', import.meta.url), 'utf8');
+await writeFile(join(dir, 'tacticIds.mjs'), compile(tacticIdsSource), 'utf8');
 const sanitationSource = await readFile(new URL('../src/services/strategySanitationService.ts', import.meta.url), 'utf8');
 await writeFile(
   join(dir, 'strategySanitationService.mjs'),
-  compile(sanitationSource).replace("from './qualityGateService'", "from './qualityGateService.mjs'"),
+  compile(sanitationSource)
+    .replace("from '../kernel/tacticIds'", "from './tacticIds.mjs'")
+    .replace("from './qualityGateService'", "from './qualityGateService.mjs'"),
   'utf8'
 );
 

@@ -82,12 +82,15 @@ export const inferAntiPatternAbsenceStatus = item => item.antipattern_absence_st
   'utf8'
 );
 
+const tacticIdsSource = await readFile(new URL('../src/kernel/tacticIds.ts', import.meta.url), 'utf8');
+await writeFile(join(dir, 'tacticIds.mjs'), compile(tacticIdsSource), 'utf8');
 const source = await readFile(new URL('../src/services/tacticGroundingService.ts', import.meta.url), 'utf8');
 const modulePath = join(dir, 'tacticGroundingService.mjs');
 await writeFile(
   modulePath,
   compile(source)
     .replace("from '../knowledge_base'", "from './knowledge_base.mjs'")
+    .replace("from '../kernel/tacticIds'", "from './tacticIds.mjs'")
     .replace("from './antiPatternSemantics'", "from './tacticTestHelpers.mjs'")
     .replace("from './metricsService'", "from './tacticTestHelpers.mjs'"),
   'utf8'

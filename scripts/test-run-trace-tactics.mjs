@@ -48,10 +48,13 @@ export const hasVerifiedSourceCoverage = item => !item.verification_unresolved &
 export const scrubGeneratedText = value => ({ text: value });
 `, 'utf8');
 
+const tacticIdsSource = await readFile(new URL('../src/kernel/tacticIds.ts', import.meta.url), 'utf8');
+await writeFile(join(dir, 'tacticIds.mjs'), compile(tacticIdsSource), 'utf8');
 const source = await readFile(new URL('../src/services/runTraceService.ts', import.meta.url), 'utf8');
 const modulePath = join(dir, 'runTraceService.mjs');
 await writeFile(modulePath, compile(source)
   .replace("from '../knowledge_base'", "from './knowledgeBase.mjs'")
+  .replace("from '../kernel/tacticIds'", "from './tacticIds.mjs'")
   .replace("from './antiPatternSemantics'", "from './helpers.mjs'")
   .replace("from './metricsService'", "from './helpers.mjs'")
   .replace("from './privacyService'", "from './helpers.mjs'"), 'utf8');
