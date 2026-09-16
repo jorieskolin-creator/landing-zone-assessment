@@ -78,7 +78,7 @@ const result = {
   phase_2_validation: { metrics: {}, raw_counts: {}, maturity_gaps: [], antipattern_findings: [], verified_antipattern_absences: [], unknown_antipattern_absences: [], silent_areas: [], category_scores: {}, crawl_walk_run: 'Crawl' },
   phase_3_strategy: {
     executive_summary: 'Prepared by Toni Eskolin. HUS has contact toni@example.com.',
-    executive_summaries: { finops_lead: 'Prepared by Toni Eskolin.' },
+    executive_summaries: { ciso_leadership: 'Prepared by Toni Eskolin.' },
     diagnosis: { primary_bottleneck: 'Owner: Toni Eskolin', root_causes: [], domain_diagnosis: {}, confidence: 'medium', confidence_rationale: '' },
     planning_decision: { decision: 'NO_GO', rationale: 'HUS needs more evidence.', safe_to_act_on: [], evidence_needed_before_action: [] },
     visual_scorecard: { headline: 'HUS scorecard', maturity_score: '', burden_score: '' },

@@ -14,7 +14,7 @@ import {
 import { hashRoutedSourcePacket } from './pipelineIntegrityService';
 
 const PERMITTED_USES = [
-  'Assess customer evidence only for the routed FinOps domain.',
+  'Assess customer evidence only for the routed Landing Zone design area.',
   'Explain report-eligible deterministic metrics without recalculating or overriding them.',
   'Report insufficient coverage and withheld content explicitly.'
 ];

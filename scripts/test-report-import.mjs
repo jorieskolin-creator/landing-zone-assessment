@@ -44,6 +44,28 @@ const html = `<!doctype html><script id="finops-data" type="application/json">${
 const imported = extractDiagnosticResultFromHtmlReport(html);
 assert.equal(imported.kind, 'report');
 assert.equal(imported.result.phase_3_strategy.executive_summary, 'safe </script> text');
+assert.equal(imported.result.phase_3_strategy.active_persona, 'ciso_leadership');
+assert.equal(imported.result.phase_3_strategy.executive_summaries.ciso_leadership, 'safe </script> text');
+
+const lzHtml = `<!doctype html><script id="lz-assessment-data" type="application/json">${serialized}</script>`;
+const lzImported = extractDiagnosticResultFromHtmlReport(lzHtml);
+assert.equal(lzImported.kind, 'report');
+
+const legacyPersonaPayload = {
+  ...payload,
+  phase_3_strategy: {
+    executive_summary: 'legacy lead',
+    executive_summaries: { finops_lead: 'legacy lead', engineering_lead: 'legacy platform' },
+    active_persona: 'engineering_lead',
+    remediation_roadmap: [],
+  },
+};
+const remapped = parseDiagnosticResultJson(JSON.stringify(legacyPersonaPayload));
+assert.equal(remapped.kind, 'report');
+assert.equal(remapped.result.phase_3_strategy.active_persona, 'platform_owner');
+assert.equal(remapped.result.phase_3_strategy.executive_summaries.ciso_leadership, 'legacy lead');
+assert.equal(remapped.result.phase_3_strategy.executive_summaries.platform_owner, 'legacy platform');
+assert.equal(remapped.result.phase_3_strategy.executive_summaries.security_owners, 'legacy lead');
 
 const ordinaryHtml = '<!doctype html><main><h1>Source material</h1></main>';
 assert.deepEqual(extractDiagnosticResultFromHtmlReport(ordinaryHtml), { kind: 'not_report' });

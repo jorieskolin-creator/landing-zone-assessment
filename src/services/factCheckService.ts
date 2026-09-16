@@ -3,7 +3,13 @@ import { AuditItem, FactCheckClaim, FactCheckResult, Phase1AuditLogs, Phase2Vali
 
 const VALID_FAILURE_TYPES: ClaimFailureType[] = ['fabricated_number', 'unverifiable_entity', 'unsupported_org_claim', 'out_of_scope', 'other'];
 const VALID_SEVERITIES: ClaimSeverity[] = ['BLOCKING_UNSUPPORTED_FACT', 'BLOCKING_UNSAFE_ROADMAP', 'WARN_MISCLASSIFIED_BUT_REAL', 'WARN_TACTIC_HYGIENE', 'SUPPORTED'];
-const VALID_SOURCE_LOCATIONS: ClaimSourceLocation[] = ['finops_lead', 'cfo', 'engineering_lead', 'diagnosis', 'planning_decision', 'roadmap'];
+const PERSONA_SOURCE_LOCATIONS: ClaimSourceLocation[] = [
+  'ciso_leadership',
+  'platform_owner',
+  'security_owners',
+  'application_delivery',
+];
+const VALID_SOURCE_LOCATIONS: ClaimSourceLocation[] = [...PERSONA_SOURCE_LOCATIONS, 'diagnosis', 'planning_decision', 'roadmap'];
 const VALID_CLASSIFICATIONS = ['supported_by_source', 'supported_by_audit', 'supported_by_tactics_db', 'unsupported'] as const;
 const VALID_TACTIC_DISPOSITIONS: TacticReviewDisposition[] = ['contraindicated', 'citation_rejected'];
 const VALID_ROADMAP_TACTIC_DISPOSITIONS = ['not_applicable', ...VALID_TACTIC_DISPOSITIONS] as const;
@@ -17,7 +23,7 @@ export interface FactCheckParseContract {
 
 export const SUMMARY_FACT_CHECK_CONTRACT: FactCheckParseContract = {
   allowedClassifications: ['supported_by_source', 'supported_by_audit', 'unsupported'],
-  allowedSourceLocations: ['finops_lead', 'cfo', 'engineering_lead', 'diagnosis'],
+  allowedSourceLocations: [...PERSONA_SOURCE_LOCATIONS, 'diagnosis'],
   allowedUnsupportedSeverities: ['BLOCKING_UNSUPPORTED_FACT', 'WARN_MISCLASSIFIED_BUT_REAL', 'WARN_TACTIC_HYGIENE']
 };
 
@@ -30,7 +36,7 @@ export const ROADMAP_FACT_CHECK_CONTRACT: FactCheckParseContract = {
 
 export type FactCheckRepairScope = 'summary' | 'roadmap' | 'both';
 
-const SUMMARY_LOCATIONS = new Set<ClaimSourceLocation>(['finops_lead', 'cfo', 'engineering_lead', 'diagnosis']);
+const SUMMARY_LOCATIONS = new Set<ClaimSourceLocation>([...PERSONA_SOURCE_LOCATIONS, 'diagnosis']);
 const ROADMAP_LOCATIONS = new Set<ClaimSourceLocation>(['planning_decision', 'roadmap']);
 
 export const determineFactCheckRepairScope = (claims: FactCheckClaim[]): FactCheckRepairScope => {
@@ -57,7 +63,7 @@ export interface FactCheckInputs {
   imageCount?: number;
   // Compact index of the Verified Tactics Database that the synthesis step
   // was instructed to draw from. Prescription claims (e.g. "modeled on
-  // Spotify's tag governance" or "Implement [TAC-VIS-002]") are verified
+  // "Inventory extra-directory production [TAC-ORG-AP-A1-01]") are verified
   // against THIS, not the customer source document.
   tactics?: StrategicTactic[];
   tacticActivityPlaybook?: TacticActivityPlaybookEntry[];
@@ -158,7 +164,7 @@ const compactMetrics = (phase2: Phase2Validation): string => {
 
 export const buildFactCheckPrompt = (inputs: FactCheckInputs): string => `
 <role>
-You are a fact-checker for a FinOps maturity assessment.
+You are a fact-checker for a Landing Zone assessment.
 Your job: extract every distinct factual claim from the STRATEGY OUTPUT below, then classify each claim against the source material the strategy was generated from.
 </role>
 
@@ -170,8 +176,8 @@ CURRENT-STATE CLAIMS (about the audited organization — what they have, what th
 - "supported_by_audit": derived from PHASE_1_EVIDENCE or PHASE_2_METRICS (both produced by this engine from the source).
 
 PRESCRIPTION CLAIMS (about external best-practice patterns the strategy is recommending — tactic IDs, mechanism names, named companies cited as exemplars):
-- "supported_by_tactics_db": the claim references a tactic ID (e.g. "TAC-VIS-002"), mechanism, or company case study (e.g. "modeled on Spotify") that EXISTS in the VERIFIED_TACTICS_DB section below. This is a legitimate prescription pattern, NOT a hallucination. The synthesis step is explicitly instructed to use this database — these references are sanctioned.
-  IMPORTANT: a company name (Spotify, Netflix, Airbnb, etc.) is supported_by_tactics_db ONLY if the database actually pairs that company with the specific tactic/mechanism being prescribed. "Implement TAC-VIS-002 modeled on Spotify" → supported only if TAC-VIS-002's case_study references Spotify. "Implement TAC-VIS-002 modeled on Datadog" → unsupported (Datadog not in the DB at all). "Implement TAC-OPT-001 modeled on Spotify" → unsupported (Spotify is in TAC-VIS-001's case study, not TAC-OPT-001's).
+- "supported_by_tactics_db": the claim references a tactic ID (e.g. "TAC-ORG-A1-01" or "TAC-IDENTITY-AP-B1-01") or mechanism that EXISTS in the VERIFIED_TACTICS_DB section below. This is a legitimate prescription pattern, NOT a hallucination. The synthesis step is explicitly instructed to use this database — these references are sanctioned.
+  IMPORTANT: a tactic ID is supported_by_tactics_db ONLY if the database actually contains that exact ID. "Implement TAC-ORG-AP-A1-01" → supported only if TAC-ORG-AP-A1-01 is in the supplied database. Invented IDs such as TAC-VIS-001 or TAC-ORG-001 are unsupported. Do not treat framework names as proof that a tactic exists.
 
 NEITHER:
 - "unsupported": the claim cannot be traced to any of the three sources above. This includes invented numbers, named entities not in the source AND not in the tactics DB, organizational claims with no evidence, mismatched pairings (right company / wrong tactic), and confident assertions about facts not present in any input.
@@ -179,12 +185,12 @@ NEITHER:
 
 <image_verification_rule>
 ${(inputs.imageCount ?? 0) > 0
-  ? `This submission includes ${inputs.imageCount} source image(s) attached as additional content parts after this prompt. When verifying claims, inspect those images for visible evidence — a claim asserting "the dashboard breaks down cost per team" is supported_by_source if a screenshot visibly shows that breakdown. A claim asserting facts about a diagram or screenshot that are NOT actually visible in the attached image must be classified as unsupported.`
+  ? `This submission includes ${inputs.imageCount} source image(s) attached as additional content parts after this prompt. When verifying claims, inspect those images for visible evidence — a claim asserting "the hierarchy export shows production under a landing-zone node" is supported_by_source if a screenshot visibly shows that hierarchy. A claim asserting facts about a diagram or screenshot that are NOT actually visible in the attached image must be classified as unsupported.`
   : `No source images are attached for this submission. Verify against text only.`}
 </image_verification_rule>
 
 <rules>
-- ONLY flag CONCRETE FACTUAL CLAIMS. Skip stylistic adjectives ("dangerously misleading"), generic FinOps principles ("FinOps requires culture change"), and uncontroversial truths.
+- ONLY flag CONCRETE FACTUAL CLAIMS. Skip stylistic adjectives ("dangerously misleading"), generic landing-zone principles ("landing zones require a control plane"), and uncontroversial truths.
 - Specifically check: percentages, named tools/companies/teams/products, numerical counts (e.g. "22 anti-patterns"), claims about specific organizational structures, claims about specific named processes.
 - Be skeptical: if a claim is specific enough to be falsifiable but you cannot find it in the inputs, classify as "unsupported".
 - Maximum 15 claims per pass — focus on the most consequential.
@@ -198,7 +204,7 @@ ${(inputs.imageCount ?? 0) > 0
     - "WARN_TACTIC_HYGIENE" when the only problem is tactic citation placement/omission/removal while the action itself is grounded.
   - If a planning_decision contains tactic IDs but the action itself is grounded, classify as unsupported with severity "WARN_TACTIC_HYGIENE", not blocking.
   - If a roadmap action is grounded in locked findings but has no tactic ID, do NOT flag it; no tactic ID is better than a wrong tactic ID.
-  - "missing_material": one short sentence describing what specific evidence in a future source document would make this claim supportable (e.g., "a tagging policy document", "a monthly cost review meeting note", "a named FinOps team headcount").
+  - "missing_material": one short sentence describing what specific evidence in a future source document would make this claim supportable (e.g., "a hierarchy export", "a privileged-role assignment dump", "an exemption register with expiry").
 - Output JSON ONLY, no prose.
 </rules>
 
@@ -209,7 +215,7 @@ ${(inputs.imageCount ?? 0) > 0
       "claim": "exact phrase from the strategy output",
       "classification": "supported_by_source" | "supported_by_audit" | "supported_by_tactics_db" | "unsupported",
       "rationale": "one short sentence",
-      "source_location": "finops_lead | cfo | engineering_lead | diagnosis | planning_decision | roadmap",
+      "source_location": "ciso_leadership | platform_owner | security_owners | application_delivery | diagnosis | planning_decision | roadmap",
       "failure_type": "fabricated_number | unverifiable_entity | unsupported_org_claim | out_of_scope | other (REQUIRED when classification is unsupported, otherwise omit)",
       "severity": "BLOCKING_UNSUPPORTED_FACT | BLOCKING_UNSAFE_ROADMAP | WARN_MISCLASSIFIED_BUT_REAL | WARN_TACTIC_HYGIENE | SUPPORTED",
       "missing_material": "what additional source content would make this claim supportable (REQUIRED when classification is unsupported, otherwise omit)"
@@ -368,7 +374,7 @@ export const mergeRequiredFactChecks = (
 
 const FAILURE_TYPE_GUIDANCE: Record<ClaimFailureType, string> = {
   fabricated_number: 'You invented a number not present in Phase 2 metrics or the source. Do not replace it with another invented number. Reference the relevant metric generically ("the audit shows significant burden") or omit the figure.',
-  unverifiable_entity: 'You named a tool, team, company, or product that is NOT in the source AND NOT in the Verified Tactics Database. Legitimate KB-sanctioned references (tactic IDs like [TAC-VIS-002], or companies paired with their actual tactic in the database) are allowed — DO NOT strip those. For the flagged items below, the entity is genuinely not in any source: remove it, reference it generically ("the deployment pipeline", "the central team"), or replace with a verified tactic ID from the database.',
+  unverifiable_entity: 'You named a tool, team, company, or product that is NOT in the source AND NOT in the Verified Tactics Database. Legitimate KB-sanctioned references (tactic IDs like [TAC-ORG-A1-01], or mechanism names paired with their actual tactic in the database) are allowed — DO NOT strip those. For the flagged items below, the entity is genuinely not in any source: remove it, reference it generically ("the deployment pipeline", "the central team"), or replace with a verified tactic ID from the database.',
   unsupported_org_claim: 'You asserted something about the organization (structure, behavior, ownership) that is not in the source. Remove the assertion or qualify it as a recommended state, not a current one.',
   out_of_scope: 'You made a claim about something the source simply does not address. Do not address it at all in the regenerated output.',
   other: 'The claim could not be verified. Remove it or replace with a verified statement from the Phase 1 evidence.'
@@ -425,7 +431,7 @@ ${regenerationInstruction} The repaired output:
 
 export const buildSummaryFactCheckPrompt = (inputs: FactCheckInputs): string => `
 <role>
-You are the evidence-summary fact-checker for a FinOps maturity assessment.
+You are the evidence-summary fact-checker for a Landing Zone assessment.
 Your job: verify ONLY the evidence summaries and diagnosis. The tactics database is intentionally absent because summaries must be grounded only in source evidence and Phase 1/2 findings.
 </role>
 
@@ -455,7 +461,7 @@ Your job: verify ONLY the evidence summaries and diagnosis. The tactics database
       "claim": "exact phrase from the summary or diagnosis",
       "classification": "supported_by_source | supported_by_audit | unsupported",
       "rationale": "one short sentence",
-      "source_location": "finops_lead | cfo | engineering_lead | diagnosis",
+      "source_location": "ciso_leadership | platform_owner | security_owners | application_delivery | diagnosis",
       "failure_type": "fabricated_number | unverifiable_entity | unsupported_org_claim | out_of_scope | other | not_applicable",
       "severity": "BLOCKING_UNSUPPORTED_FACT | WARN_MISCLASSIFIED_BUT_REAL | WARN_TACTIC_HYGIENE | SUPPORTED",
       "missing_material": "what evidence would make this claim supportable (REQUIRED when unsupported)"
@@ -483,7 +489,7 @@ ${inputs.contentToCheck}
 
 export const buildRoadmapFactCheckPrompt = (inputs: RoadmapFactCheckInputs): string => `
 <role>
-You are the roadmap-grounding reviewer for a FinOps maturity assessment.
+You are the roadmap-grounding reviewer for a Landing Zone assessment.
 Your job: verify that the planning decision and roadmap are logical, grounded responses to the LOCKED FINDINGS, and that any tactic references are valid in the Verified Tactics Database.
 </role>
 

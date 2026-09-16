@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip } from 'recharts';
 import { AuditCategory, AuditItem, PipelineProgressStage, PipelineProgressStatus, PipelineProgressUpdate, QualityGateResult, RemediationStep } from '../types';
 import { BATCH_DEFINITIONS, BATCH_TITLES, expectedPhase1IdsForStream, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { antiPatternStatusLabel, inferAntiPatternAbsenceStatus } from '../services/antiPatternSemantics';
 import { displayQualityGateDiagnostic, scannerEvidenceCheckDisagreementTitle, splitQualityGateDiagnostics } from '../services/reportDiagnosticsService';
 
@@ -41,25 +42,35 @@ interface BenchmarkingProps {
 const MATURITY_CRITERIA_IDS = expectedPhase1IdsForStream('maturity');
 const ANTIPATTERN_CRITERIA_IDS = expectedPhase1IdsForStream('antipattern');
 
-export const TacticLinkedText: React.FC<{ content: string }> = ({ content }) => (
-  <>
-    {content.split(/(\[TAC-[A-Z]+-\d{3}\])/g).map((part, index) => {
-      const match = part.match(/^\[(TAC-[A-Z]+-\d{3})\]$/);
-      if (!match) return <React.Fragment key={index}>{part}</React.Fragment>;
-      return (
-        <a
-          key={index}
-          href={`${FINOPS_TACTIC_PLAYBOOK_URL}#${match[1].toLowerCase()}`}
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono font-semibold text-emerald-600 hover:text-emerald-500 underline underline-offset-2"
-        >
-          {part}
-        </a>
-      );
-    })}
-  </>
-);
+export const TacticLinkedText: React.FC<{ content: string }> = ({ content }) => {
+  const nodes: React.ReactNode[] = [];
+  const rx = tacticIdCaptureRx();
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = rx.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(<React.Fragment key={`t${key++}`}>{content.slice(lastIndex, match.index)}</React.Fragment>);
+    }
+    const id = match[1];
+    nodes.push(
+      <a
+        key={`a${key++}`}
+        href={`${FINOPS_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}`}
+        target="_blank"
+        rel="noreferrer"
+        className="font-mono font-semibold text-emerald-600 hover:text-emerald-500 underline underline-offset-2"
+      >
+        {match[0]}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < content.length) {
+    nodes.push(<React.Fragment key={`t${key++}`}>{content.slice(lastIndex)}</React.Fragment>);
+  }
+  return <>{nodes}</>;
+};
 
 export const MarkdownRenderer: React.FC<{ content: string; textColor?: string }> = ({ content, textColor = "text-slate-200" }) => {
   if (!content) return null;
@@ -233,15 +244,15 @@ export const TransferProtocol: React.FC = () => (
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent rounded-full blur-3xl -z-10"></div>
     <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-8 flex items-center justify-center gap-2 font-mono">
       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-      FinOps Action Protocol
+      Landing Zone Action Protocol
     </h4>
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative max-w-4xl mx-auto">
       <div className="hidden md:block absolute top-6 left-[15%] right-[15%] h-px bg-gradient-to-r from-slate-800 via-emerald-900 to-slate-800 z-0"></div>
       {[
         { id: 1, title: "Save Report", desc: "Download HTML" },
         { id: 2, title: "Share Findings", desc: "Stakeholder Brief" },
-        { id: 3, title: "Plan Roadmap", desc: "Crawl-Walk-Run" },
-        { id: 4, title: "Execute", desc: "Optimize & Track", color: "emerald" }
+        { id: 3, title: "Plan Roadmap", desc: "Foundation–Operate" },
+        { id: 4, title: "Execute", desc: "Harden & Operate", color: "emerald" }
       ].map((step) => (
         <div key={step.id} className="relative z-10 group cursor-default">
           <div className={`w-12 h-12 mx-auto rounded-2xl flex items-center justify-center font-bold text-sm mb-4 border transition-all duration-500 ${step.color === 'emerald' ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'bg-slate-900 text-slate-400 border-slate-700 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-500 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]'}`}>
@@ -266,8 +277,8 @@ export const BenchmarkingChart: React.FC<BenchmarkingProps> = ({ x, y, evidenceD
   const insufficientEvidence = qualityGateDecision === 'BLOCK' || evidenceDensity < 30 || antipatternCoverage < 60;
 
   const quadrants = [
-    { id: 'q1', label: 'Cost Blindness', sub: 'Reactive Spend', desc: 'High anti-pattern burden with low maturity. Cloud costs are unmanaged, unoptimized, and invisible to stakeholders.', position: 'top-0 left-0', style: 'bg-gradient-to-br from-rose-950/30 via-slate-900/50 to-transparent border-r border-b border-white/5', text: 'text-rose-400' },
-    { id: 'q2', label: 'FinOps Theater', sub: 'Process Without Outcomes', desc: 'Some maturity exists but anti-patterns persist. FinOps meetings happen but optimization outcomes are minimal.', position: 'top-0 right-0', style: 'bg-gradient-to-bl from-amber-950/30 via-slate-900/50 to-transparent border-b border-white/5', text: 'text-amber-400' },
+    { id: 'q1', label: 'Unmanaged Estate', sub: 'Reactive Foundation', desc: 'High anti-pattern burden with low capability maturity. The control plane is unmanaged, undocumented, or invisible to owners.', position: 'top-0 left-0', style: 'bg-gradient-to-br from-rose-950/30 via-slate-900/50 to-transparent border-r border-b border-white/5', text: 'text-rose-400' },
+    { id: 'q2', label: 'Control Theater', sub: 'Declared Without Configured', desc: 'Some maturity exists but anti-patterns persist. Workshops and documents claim a landing zone while the control plane does not enforce it.', position: 'top-0 right-0', style: 'bg-gradient-to-bl from-amber-950/30 via-slate-900/50 to-transparent border-b border-white/5', text: 'text-amber-400' },
     { id: 'q3', label: 'Unproven / Low Signal', sub: 'Evidence Gap', desc: 'Low validated maturity and low confirmed burden. This may indicate immature practice, sparse evidence, or an irrelevant source document.', position: 'bottom-0 left-0', style: 'bg-gradient-to-tr from-slate-900/80 via-slate-900/50 to-transparent border-r border-white/5', text: 'text-slate-500' },
     { id: 'q4', label: 'Validated Strength', sub: 'High Confidence Only', desc: 'High validated maturity with low confirmed anti-pattern burden. This quadrant requires enough source evidence to trust both dimensions.', position: 'bottom-0 right-0', style: 'bg-gradient-to-tl from-emerald-950/30 via-slate-900/50 to-transparent', text: 'text-emerald-400' }
   ];
@@ -276,7 +287,7 @@ export const BenchmarkingChart: React.FC<BenchmarkingProps> = ({ x, y, evidenceD
     <div className="p-8 rounded-[2.5rem] relative flex flex-col h-full min-h-[550px] bg-slate-900/70 border border-white/10 shadow-lg backdrop-blur-sm">
       <div className="flex justify-between items-start mb-2 relative z-20 pointer-events-none">
         <div>
-          <h3 className="text-white font-display font-bold text-2xl tracking-tight pointer-events-auto">FinOps Maturity Matrix</h3>
+          <h3 className="text-white font-display font-bold text-2xl tracking-tight pointer-events-auto">Landing Zone Maturity Matrix</h3>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <p className="text-slate-300 text-[11px] font-bold uppercase tracking-widest">Validated Maturity (X) vs. Confirmed Burden (Y)</p>
@@ -625,7 +636,7 @@ export const AuditGrid: React.FC<AuditGridProps> = ({ title, data, isAntipattern
               )}
               <div className={`flex items-start gap-2 text-xs font-medium p-3 rounded-lg ${isAntipattern ? 'text-rose-300 bg-rose-900/20' : 'text-emerald-300 bg-emerald-900/20'}`}>
                 <span className="text-lg leading-none">&#9889;</span>
-                <span><strong>Action:</strong> {isAntipattern ? `Address ${item.title.toLowerCase()} to reduce anti-pattern burden.` : `Implement ${item.title.toLowerCase()} to advance FinOps maturity.`}</span>
+                <span><strong>Action:</strong> {isAntipattern ? `Address ${item.title.toLowerCase()} to reduce anti-pattern burden.` : `Implement ${item.title.toLowerCase()} to advance landing-zone capability maturity.`}</span>
               </div>
             </div>
           ))}
@@ -759,11 +770,11 @@ export const ReferenceLibrary: React.FC = () => {
   }, [activeStream]);
 
   return (
-    <div className="max-w-[90rem] mx-auto animate-fade-in pb-32">
+    <div className="max-w-[90rem] mx-auto animate-fade-in pb-32 rounded-[2rem] bg-slate-950 text-white px-4 py-10 md:px-8">
       <div className="text-center mb-12 relative z-10 px-4">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-700 mb-6 shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Knowledge Base</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">A–H catalogue</span>
         </div>
         <h2 className="text-5xl md:text-7xl font-display font-black text-white mb-6 tracking-tight drop-shadow-lg">Landing Zone Forensic Lens</h2>
         <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-light">

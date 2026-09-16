@@ -11,7 +11,7 @@ import {
 
 const evidence = {
   phase_3_strategy: {
-    executive_summaries: { finops_lead: 'Lead', cfo: 'CFO', engineering_lead: 'Engineering' },
+    executive_summaries: { ciso_leadership: 'Lead', platform_owner: 'Platform', security_owners: 'Security', application_delivery: 'Delivery' },
     evidence_summary: {
       headline: 'Walk', maturity_classification: 'Walk', key_metrics: [], confirmed_strengths: [],
       confirmed_gaps: [], confirmed_antipatterns: [], silent_or_missing_evidence: [],
@@ -32,6 +32,13 @@ assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynth
 assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({ ...evidence, extra: true })), /INVALID_OUTPUT_CONTRACT/);
 assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({ phase_3_strategy: {} })), /INVALID_OUTPUT_CONTRACT/);
 assert.throws(() => authorizeOutputContract('roadmap_synthesis', OUTPUT_CONTRACT_IDS.evidenceSynthesis), /INVALID_OUTPUT_CONTRACT/);
+assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({
+  ...evidence,
+  phase_3_strategy: {
+    ...evidence.phase_3_strategy,
+    executive_summaries: { finops_lead: 'Lead', cfo: 'CFO', engineering_lead: 'Engineering' },
+  },
+})), /INVALID_OUTPUT_CONTRACT/, 'evidence synthesis must require Landing Zone personas, not FinOps aliases');
 assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynthesis, JSON.stringify({
   ...evidence,
   phase_3_strategy: {
@@ -164,6 +171,11 @@ assert.match(forensicPrompts, /no recommendations or repeated definitions/);
 const synthesisPrompts = await readFile(new URL('../src/constants.ts', import.meta.url), 'utf8');
 assert.match(synthesisPrompts, /ASSESSMENT-STATUS FIDELITY/);
 assert.match(synthesisPrompts, /unsupported, verification_unresolved, and not_assessed criteria only as evidence\/verification gaps/);
+assert.match(synthesisPrompts, /ciso_leadership/);
+assert.match(synthesisPrompts, /TAC-ORG-A1-01/);
+assert.match(synthesisPrompts, /TAC-IDENTITY-AP-B1-01/);
+assert.doesNotMatch(synthesisPrompts, /FinOps Strategic Architect/);
+assert.doesNotMatch(synthesisPrompts, /"finops_lead"/);
 
 const factCheckPrompts = await readFile(new URL('../src/services/factCheckService.ts', import.meta.url), 'utf8');
 assert.match(factCheckPrompts, /marks a criterion unsupported, verification_unresolved, or not_assessed/);

@@ -17,17 +17,6 @@ export const IntakeHero: React.FC<{
     </p>
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
       <a
-        href="https://evidence-driven-finops-assessment.vercel.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="lz-btn inline-flex items-center gap-2"
-      >
-        <span>How the Landing Zone Assessment thinks</span>
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-        </svg>
-      </a>
-      <a
         href="/Landing_Zone_Assessment_Summary_Report.html"
         target="_blank"
         rel="noopener noreferrer"

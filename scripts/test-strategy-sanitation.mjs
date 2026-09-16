@@ -72,7 +72,7 @@ const strongPhase2 = {
 const strategyData = {
   phase_3_strategy: {
     executive_summaries: {
-      cfo: 'The anti-pattern burden is confirmed at 7%, meaning a material but bounded share of cloud spend is affected by identified inefficiency patterns. Governance is otherwise documented.'
+      ciso_leadership: 'The anti-pattern burden is confirmed at 7%, meaning a material but bounded share of cloud spend is affected by identified inefficiency patterns. Governance is otherwise documented.'
     },
     diagnosis: {
       primary_bottleneck: 'The bottleneck is known.',
@@ -105,7 +105,7 @@ const factCheck = {
     {
       claim: 'The anti-pattern burden is confirmed at 7%, meaning a material but bounded share of cloud spend is affected by identified inefficiency patterns.',
       classification: 'unsupported',
-      source_location: 'cfo',
+      source_location: 'ciso_leadership',
       failure_type: 'fabricated_number',
       severity: 'BLOCKING_UNSUPPORTED_FACT',
       rationale: 'Phase 2 defines a 7% anti-pattern burden but does not state that this percentage represents share of cloud spend.'
@@ -132,7 +132,7 @@ const factCheck = {
 const hygieneStrategyData = {
   phase_3_strategy: {
     executive_summaries: {
-      cfo: 'The confirmed anti-pattern is low-severity anomaly escalation, and every confirmed gap maps to exact verified tactics database patterns.'
+      ciso_leadership: 'The confirmed anti-pattern is low-severity anomaly escalation, and every confirmed gap maps to exact verified tactics database patterns.'
     },
     diagnosis: {
       primary_bottleneck: 'The confirmed anti-pattern is low-severity anomaly escalation.',
@@ -211,8 +211,8 @@ assert.equal(roadmapHygieneSanitized.sanitized[0].tactic_disposition, 'contraind
 const sanitized = sanitizeStrategyAfterFactCheck(strategyData, factCheck);
 assert.equal(sanitized.sanitized.length, 2);
 assert.equal(sanitized.factCheck.unsupported_claims.length, 1);
-assert.match(sanitized.strategyData.phase_3_strategy.executive_summaries.cfo, /burden index is 7%/);
-assert.doesNotMatch(sanitized.strategyData.phase_3_strategy.executive_summaries.cfo, /share of cloud spend/);
+assert.match(sanitized.strategyData.phase_3_strategy.executive_summaries.ciso_leadership, /burden index is 7%/);
+assert.doesNotMatch(sanitized.strategyData.phase_3_strategy.executive_summaries.ciso_leadership, /share of cloud spend/);
 assert.deepEqual(sanitized.strategyData.phase_3_strategy.remediation_roadmap[0].actions, [
   'Enforce object storage lifecycle tiering for product telemetry.'
 ]);

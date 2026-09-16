@@ -343,14 +343,65 @@ export interface VisualScorecard {
   burden_score: string;
 }
 
-export type PersonaId = 'finops_lead' | 'cfo' | 'engineering_lead';
+export type PersonaId =
+  | 'ciso_leadership'
+  | 'platform_owner'
+  | 'security_owners'
+  | 'application_delivery';
 
-export const PERSONA_IDS: PersonaId[] = ['finops_lead', 'cfo', 'engineering_lead'];
+export const PERSONA_IDS: PersonaId[] = [
+  'ciso_leadership',
+  'platform_owner',
+  'security_owners',
+  'application_delivery',
+];
 
 export const PERSONA_LABELS: Record<PersonaId, string> = {
-  finops_lead: 'FinOps Lead',
-  cfo: 'CFO',
-  engineering_lead: 'Engineering Lead'
+  ciso_leadership: 'CISO and leadership',
+  platform_owner: 'Platform Owner and Cloud Foundation',
+  security_owners: 'Identity, Network, Security, and SOC owners',
+  application_delivery: 'Application and delivery teams',
+};
+
+export const DEFAULT_PERSONA_ID: PersonaId = 'ciso_leadership';
+
+export const LEGACY_PERSONA_ID_MAP: Record<string, PersonaId> = {
+  finops_lead: 'ciso_leadership',
+  cfo: 'ciso_leadership',
+  engineering_lead: 'platform_owner',
+};
+
+export const emptyPersonaSummaries = (): Record<PersonaId, string> =>
+  Object.fromEntries(PERSONA_IDS.map((id) => [id, ''])) as Record<PersonaId, string>;
+
+export const filledPersonaSummaries = (text: string): Record<PersonaId, string> =>
+  Object.fromEntries(PERSONA_IDS.map((id) => [id, text])) as Record<PersonaId, string>;
+
+export const normalizePersonaId = (value: unknown): PersonaId | undefined => {
+  if (typeof value !== 'string') return undefined;
+  if ((PERSONA_IDS as string[]).includes(value)) return value as PersonaId;
+  return LEGACY_PERSONA_ID_MAP[value];
+};
+
+export const mapLegacyPersonaSummaries = (
+  incoming: unknown,
+  fallback = '',
+): Record<PersonaId, string> => {
+  const result = emptyPersonaSummaries();
+  if (incoming && typeof incoming === 'object') {
+    for (const [key, value] of Object.entries(incoming as Record<string, unknown>)) {
+      const id = normalizePersonaId(key);
+      if (!id || typeof value !== 'string' || value.length === 0) continue;
+      const isPackKey = (PERSONA_IDS as string[]).includes(key);
+      if (!result[id] || isPackKey) result[id] = value;
+    }
+  }
+  const firstAvailable = PERSONA_IDS.find((id) => result[id].length > 0);
+  const fill = firstAvailable ? result[firstAvailable] : fallback;
+  for (const id of PERSONA_IDS) {
+    if (!result[id]) result[id] = fill;
+  }
+  return result;
 };
 
 

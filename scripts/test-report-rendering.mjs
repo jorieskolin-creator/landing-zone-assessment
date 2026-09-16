@@ -40,7 +40,7 @@ try {
   const { svgGaugeCard } = await import(`file://${join(dir, 'svgChartService.mjs')}`);
 
   assert.equal(strengthsSectionTitle(false), 'Confirmed strengths');
-  assert.equal(strengthsSectionTitle(true), 'Source observations outside FinOps scope');
+  assert.equal(strengthsSectionTitle(true), 'Source observations outside Landing Zone scope');
   assert.equal(isInsufficientEvidenceReport('Insufficient evidence', 0, 'BLOCK'), true);
   assert.equal(isInsufficientEvidenceReport('Run', 90, 'GO'), false);
   assert.equal(
@@ -58,7 +58,7 @@ try {
   assert.equal(renderInlineMarkdownHtml('Tracked in *My Projects*'), 'Tracked in <em>My Projects</em>');
 
   const html = renderMarkdownSummaryHtml([
-    '**1. What the audit found:** The source contains *project cost* but no FinOps signal.',
+    '**1. What the audit found:** The source contains *project cost* but no Landing Zone signal.',
     '',
     '**2. What is missing:** No cloud bill data.',
     '',
@@ -87,15 +87,27 @@ assert.match(reportViewSource, /Maturity signal/, 'React report should label mat
 assert.match(reportViewSource, /Anti-pattern finding rate/, 'React report should label anti-pattern traffic lights');
 assert.doesNotMatch(reportViewSource, /FinOps Maturity Score/, 'React summary should not duplicate the score-detail panel');
 assert.doesNotMatch(reportViewSource, /Capability Attainment/, 'React summary should not duplicate calculated score components');
+assert.match(reportViewSource, /Landing Zone Assessment/, 'React report should use the Landing Zone product title');
+assert.doesNotMatch(reportViewSource, /FinOps Engine/, 'React report should not keep the FinOps Engine product label');
+assert.doesNotMatch(reportViewSource, /FinOps Maturity Assessment/, 'React report should not keep the FinOps assessment title');
 
 const dashboardSource = await readFile(new URL('../src/components/DashboardComponents.tsx', import.meta.url), 'utf8');
 assert.match(dashboardSource, />Why</, 'Dashboard roadmap should render WHY context');
 assert.match(dashboardSource, />What</, 'Dashboard roadmap should render WHAT context');
 assert.match(dashboardSource, />How</, 'Dashboard roadmap should preserve HOW action list');
 assert.match(dashboardSource, /Landing Zone Forensic Lens/, 'Criteria reference should use the Landing Zone forensic-lens title');
+assert.match(dashboardSource, /A–H catalogue/, 'Criteria reference kicker should name the frozen catalogue, not Knowledge Base');
+assert.doesNotMatch(dashboardSource, />Knowledge Base</, 'Criteria reference must not label the catalogue as Knowledge Base');
+assert.match(dashboardSource, /bg-slate-950 text-white/, 'Criteria reference must keep a dark forensic panel so white titles stay readable on light intake');
 assert.match(dashboardSource, /Landing Zone Assessment Engine/, 'Criteria reference should name the Landing Zone Assessment Engine');
 assert.doesNotMatch(dashboardSource, /FinOps Forensic Lens/, 'Criteria reference should not keep the FinOps forensic-lens title');
 assert.doesNotMatch(dashboardSource, /behavioral signals used by the AI to detect/, 'Criteria reference should not keep FinOps behavioral-signal copy');
+assert.match(dashboardSource, /tacticIdCaptureRx/, 'Dashboard tactic highlighter must use the kernel LZ/characterization capture');
+assert.doesNotMatch(dashboardSource, /TAC-\[A-Z\]\+-\\d\{3\}/, 'Dashboard must not keep the FinOps TAC-XXX-NNN highlighter');
+assert.match(dashboardSource, /Landing Zone Action Protocol/, 'Dashboard protocol should use Landing Zone vocabulary');
+assert.match(dashboardSource, /Landing Zone Maturity Matrix/, 'Dashboard matrix should use Landing Zone vocabulary');
+assert.doesNotMatch(dashboardSource, /FinOps Theater/, 'Dashboard must not keep FinOps Theater copy');
+assert.doesNotMatch(dashboardSource, /advance FinOps maturity/, 'Dashboard actions must not keep FinOps maturity copy');
 
 const exportSource = await readFile(new URL('../src/services/exportService.ts', import.meta.url), 'utf8');
 const summaryExportSource = exportSource.slice(
@@ -115,7 +127,11 @@ assert.doesNotMatch(exportSource, /Evidence summary for the/, 'HTML exports shou
 assert.match(exportSource, /Candidate inclusion measures/, 'Master Data should distinguish retrieval candidate inclusion from evidence sufficiency');
 assert.doesNotMatch(exportSource, /How the maturity score is measured/, 'HTML exports should rely on the concise explanation attached to each gauge');
 assert.match(exportSource, /Roadmap actionability BLOCKED/, 'HTML exports should distinguish blocked actionability from maturity classification');
-assert.match(exportSource, /FinOps Engine v\.\$\{escapeHtml\(result\.meta\.engine_version\)\}/, 'HTML exports should render the current FinOps Engine product version');
+assert.match(exportSource, /id="lz-assessment-data"/, 'HTML exports should embed payload as lz-assessment-data');
+assert.doesNotMatch(exportSource, /id="finops-data"/, 'HTML exports should not keep the FinOps payload script id');
+assert.match(exportSource, /<h1>Landing Zone Summary Report<\/h1>/, 'Summary HTML should use the Landing Zone product title');
+assert.match(exportSource, /<h1>Landing Zone Master Data<\/h1>/, 'Master Data HTML should use the Landing Zone product title');
+assert.doesNotMatch(exportSource, /FinOps Engine/, 'HTML exports should not keep the FinOps Engine product label');
 assert.doesNotMatch(exportSource, /Engine \$\{escapeHtml\(result\.meta\.engine_version\)\}/, 'HTML exports should not expose the internal version value without the product label');
 assert.equal((exportSource.match(/grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/g) || []).length, 2, 'both HTML reports should keep all three active gauges on one desktop row');
 assert.doesNotMatch(exportSource, /Anti-pattern disposition|renderAntiPatternDisposition/, 'HTML reports should omit the redundant anti-pattern disposition card');
@@ -142,7 +158,7 @@ assert.doesNotMatch(exportSource, /This report is generated deterministically fr
 const reportViewModelSource = await readFile(new URL('../src/services/reportViewModel.ts', import.meta.url), 'utf8');
 assert.match(reportViewModelSource, /label: 'Corroborated Maturity'/, 'report gauges should expose corroborated paired maturity');
 assert.match(reportViewModelSource, /label: 'Observed Maturity'/, 'report gauges should expose observed paired maturity');
-assert.match(reportViewModelSource, /label: 'Adjusted FinOps Maturity'/, 'report gauges should expose resolution-adjusted maturity');
+assert.match(reportViewModelSource, /label: 'Adjusted Landing Zone Maturity'/, 'report gauges should expose resolution-adjusted maturity');
 assert.match(reportViewModelSource, /Assessment Sufficiency/, 'active gauge explanation should disclose the publication gate');
 assert.doesNotMatch(reportViewModelSource, /label: 'Observed Friction'/, 'Observed Friction should no longer occupy a primary report gauge');
 

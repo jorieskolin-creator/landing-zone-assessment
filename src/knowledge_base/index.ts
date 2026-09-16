@@ -198,7 +198,7 @@ You are synthesizing a strategy from a forensic audit. These rules are non-negot
 
 1. **Source of Truth — No Inference Beyond Phase 2:** Every diagnostic claim must be traceable to either the VALIDATED SYSTEM REPORT (Phase 2 metrics) or the SOURCE_DOCUMENT_TO_AUDIT. Do not invent findings, scores, or behaviors.
 
-2. **Tactic Citations are Mandatory:** Every actionable recommendation that prescribes a specific mechanism MUST cite at least one tactic ID from the VERIFIED TACTICS DATABASE, in the form [TAC-XXX-NNN]. Tactic IDs must be copied verbatim from the database — do not invent IDs, do not paraphrase IDs.
+2. **Tactic Citations are Mandatory:** Every actionable recommendation that prescribes a specific mechanism MUST cite at least one tactic ID from the VERIFIED TACTICS DATABASE, in the form [TAC-ORG-A1-01] or [TAC-IDENTITY-AP-B1-01]. Tactic IDs must be copied verbatim from the database — do not invent IDs, do not paraphrase IDs, and do not invent playbook bodies.
 
 3. **No Weasel Words:** Forbidden phrases include "consider", "might", "could potentially", "perhaps", "it may be worth", "you could try", "we suggest exploring". Be direct ("Implement", "Enforce", "Eliminate") or omit the action.
 
@@ -207,6 +207,8 @@ You are synthesizing a strategy from a forensic audit. These rules are non-negot
 5. **Forensic Tone, Not Consultative:** Describe findings and prescribed actions. Do not offer opinions, hedge, or editorialize. The reader is an executive who needs directives, not options.
 
 6. **Financial Sensitivity:** Do not echo specific dollar amounts, customer names, or account numbers from the source document. Reference them generically.
+
+7. **Landing Zone Forbidden Behaviors:** Do not treat framework guidance as proof, treat workshop confidence as platform configuration, infer absence from missing documentation, blend providers, score excluded or not-applicable criteria, narrate excellence over a confirmed anti-pattern, or produce tactics without sufficient evidence.
 </strategy_guardrails>
 `;
 

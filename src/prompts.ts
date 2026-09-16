@@ -47,22 +47,22 @@ Some of the source material may be provided as IMAGES (pages from a PDF, screens
 
 When evidence comes from an image:
 *   Set the **"evidence_source"** field to **"image"**. For text-derived evidence, set it to **"text"** (or omit — text is the default).
-*   The **"quote"** field becomes a short DESCRIPTION of what is visible — NOT a verbatim quote. Example: "Org chart showing FinOps function reporting directly to the CFO" / "AWS Cost Explorer screenshot with per-team cost breakdown filter applied" / "Architecture diagram annotating cost-optimized data tier with reserved-capacity callouts".
+*   The **"quote"** field becomes a short DESCRIPTION of what is visible — NOT a verbatim quote. Example: "Org chart showing platform-owner function reporting to the CISO" / "Management-group hierarchy screenshot with production subscriptions under a landing-zone node" / "Architecture diagram annotating hub-and-spoke inspection with forced routing callouts".
 *   If the image was extracted from a PDF, include the **"page_number"** field with the page index from the [Image: filename — page N] label.
 *   The 7-category taxonomy still applies. A dashboard screenshot evidences **Operational** (dashboard is in use) or **Automation** (auto-generated). A visible org chart with named roles evidences **Accountability**. An architecture diagram showing automated tagging enforcement evidences **Automation**.
 
-A dashboard screenshot is itself a single-purpose "document type" — expect heavy evidence on A4 (Cloud Cost Dashboards) and possibly A2 (Showback), silence elsewhere.
+A dashboard screenshot is itself a single-purpose "document type" — expect heavy evidence on the design area the screenshot actually shows (for example F for activity-log destinations, or H for pipeline birth), silence elsewhere.
 
 ### EVIDENCE CATEGORY (REQUIRED ON EVERY QUOTE)
 Every evidence quote MUST be tagged with exactly ONE of these seven categories on the "category" field:
 
-*   **Policy** — Written rules, standards, or formal documents that DECLARE intent (e.g., tagging policy, cost governance charter).
-*   **Process** — Recurring human practices or workflows that are described as actually happening (e.g., monthly cost review meetings, quarterly architecture reviews).
-*   **Operational** — Day-to-day tactical activities and roles (e.g., a FinOps analyst rightsizes EC2 weekly).
-*   **Automation** — Code, scripts, or platform features that ENFORCE without human intervention (e.g., CI/CD blocks untagged resources, IaC policy-as-code).
-*   **Accountability** — Mechanisms that assign ownership and consequences (e.g., showback, chargeback, cost-as-KPI).
-*   **Financial-Integration** — Cost data wired into financial systems or business decisions (e.g., cloud spend reconciled with GL, unit-cost-per-transaction reported).
-*   **Cultural** — Beliefs, norms, and incentives that shape behavior (e.g., engineers cite cost in design docs, savings celebrated).
+*   **Policy** — Written rules, standards, or formal documents that DECLARE intent (e.g., identity baseline, exemption policy, landing-zone standard).
+*   **Process** — Recurring human practices or workflows that are described as actually happening (e.g., monthly exception review, change CAB for platform).
+*   **Operational** — Day-to-day tactical activities and roles (e.g., a SOC analyst triages activity-log alerts).
+*   **Automation** — Code, scripts, or platform features that ENFORCE without human intervention (e.g., pipeline is the only production birth path, IaC policy-as-code).
+*   **Accountability** — Mechanisms that assign ownership and consequences (e.g., named landing-zone owner, expiry on exemptions).
+*   **Financial-Integration** — Billing or contract ownership wired to the same estate as the technical tenant (e.g., payer/tenant described as one construct).
+*   **Cultural** — Beliefs, norms, and incentives that shape behavior (e.g., teams request landing zones through the platform path, not portal ClickOps).
 
 **Tagging rules:**
 *   If a quote could fit multiple categories, pick the dominant one (the one the quote most directly evidences).
