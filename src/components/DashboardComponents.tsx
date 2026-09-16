@@ -770,7 +770,7 @@ export const ReferenceLibrary: React.FC = () => {
   }, [activeStream]);
 
   return (
-    <div className="max-w-[90rem] mx-auto animate-fade-in pb-32">
+    <div className="max-w-[90rem] mx-auto animate-fade-in pb-32 rounded-[2rem] bg-slate-950 text-white px-4 py-10 md:px-8">
       <div className="text-center mb-12 relative z-10 px-4">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-700 mb-6 shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>

@@ -96,6 +96,7 @@ assert.match(dashboardSource, />Why</, 'Dashboard roadmap should render WHY cont
 assert.match(dashboardSource, />What</, 'Dashboard roadmap should render WHAT context');
 assert.match(dashboardSource, />How</, 'Dashboard roadmap should preserve HOW action list');
 assert.match(dashboardSource, /Landing Zone Forensic Lens/, 'Criteria reference should use the Landing Zone forensic-lens title');
+assert.match(dashboardSource, /bg-slate-950 text-white/, 'Criteria reference must keep a dark forensic panel so white titles stay readable on light intake');
 assert.match(dashboardSource, /Landing Zone Assessment Engine/, 'Criteria reference should name the Landing Zone Assessment Engine');
 assert.doesNotMatch(dashboardSource, /FinOps Forensic Lens/, 'Criteria reference should not keep the FinOps forensic-lens title');
 assert.doesNotMatch(dashboardSource, /behavioral signals used by the AI to detect/, 'Criteria reference should not keep FinOps behavioral-signal copy');

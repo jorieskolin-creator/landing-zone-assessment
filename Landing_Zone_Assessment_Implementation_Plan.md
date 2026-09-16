@@ -295,7 +295,7 @@ Verified against `origin/main` at `02cfbca` on 2026-09-16 after rebasing Works 7
 | 9 Pair scoring and gates | Done | Adapter scores after provenance and the Work 8 overlay. Single-provider results use Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed |
 | 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. Authoring folder is `GOOGLE_DRIVE_KB` (Drive letter folders A–H). Runtime ingest remains Vercel Blob. Drive currently holds design area A complete and design area B in progress. Source Register wording cleanup in those documents is author-owned |
 | 11 Tactic Playbook | Pack conversion done, KB still pending | Approved PDF v1.0.0 transcribed into 80 pack tactics and 240 bindings. Runtime loaders adapt onto kernel types. No FinOps fallback. Mapping is exact IDs only |
-| 12 Prompts, personas, reports | Done | Runtime personas are the four pack IDs. Synthesis prompts, fact-check, Quality Gate, exports, and dashboard copy use Landing Zone vocabulary and transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Kernel Crawl-Walk-Run math is unchanged; published labels remain Foundation/Pilot/Rollout/Operate. Knowledge Base topic bodies were not invented |
+| 12 Prompts, personas, reports | Done | Runtime personas are the four pack IDs. Synthesis prompts, fact-check, Quality Gate, exports, and dashboard copy use Landing Zone vocabulary and transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Kernel Crawl-Walk-Run math is unchanged; published labels remain Foundation/Pilot/Rollout/Operate. The Criteria catalogue keeps a dark forensic panel on light paper intake. Knowledge Base topic bodies were not invented |
 | 13 Expert calibration | Not started | No calibration events or customer disposition model |
 
 Supporting work already on main, outside the numbered Works:
@@ -308,10 +308,9 @@ Parallel content track: 80 Knowledge Base documents remain author-owned in Drive
 
 Recommended next implementation order:
 
-1. Work 12 runtime prompts, personas, and reports now cite transcribed `TAC-*` IDs. Do not invent remaining Knowledge Base topic bodies.
-2. Work 10 content integration finishes when the 80 Knowledge Base documents are present: validate references, load the index, and test retrieval and clean-room separation.
-3. Work 13 follows a Landing Zone-shaped scoring path after local engine analysis can use the Knowledge Base.
-4. Full pipeline verification and the first real assessment cases wait until Knowledge Base content is integrated.
+1. Work 10 content integration finishes when the 80 Knowledge Base documents are present: validate references, load the index, and test retrieval and clean-room separation. Do not invent remaining Knowledge Base topic bodies.
+2. Work 13 follows a Landing Zone-shaped scoring path after local engine analysis can use the Knowledge Base.
+3. Full pipeline verification and the first real assessment cases wait until Knowledge Base content is integrated.
 
 Standing constraints for later chats:
 
