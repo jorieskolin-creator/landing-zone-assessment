@@ -92,6 +92,10 @@ const dashboardSource = await readFile(new URL('../src/components/DashboardCompo
 assert.match(dashboardSource, />Why</, 'Dashboard roadmap should render WHY context');
 assert.match(dashboardSource, />What</, 'Dashboard roadmap should render WHAT context');
 assert.match(dashboardSource, />How</, 'Dashboard roadmap should preserve HOW action list');
+assert.match(dashboardSource, /Landing Zone Forensic Lens/, 'Criteria reference should use the Landing Zone forensic-lens title');
+assert.match(dashboardSource, /Landing Zone Assessment Engine/, 'Criteria reference should name the Landing Zone Assessment Engine');
+assert.doesNotMatch(dashboardSource, /FinOps Forensic Lens/, 'Criteria reference should not keep the FinOps forensic-lens title');
+assert.doesNotMatch(dashboardSource, /behavioral signals used by the AI to detect/, 'Criteria reference should not keep FinOps behavioral-signal copy');
 
 const exportSource = await readFile(new URL('../src/services/exportService.ts', import.meta.url), 'utf8');
 const summaryExportSource = exportSource.slice(
