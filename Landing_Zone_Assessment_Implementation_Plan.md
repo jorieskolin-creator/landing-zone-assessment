@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.12 |
+| Current version | 1.13 |
 | Last updated | 2026-09-16 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -302,7 +302,7 @@ Supporting work already on main, outside the numbered Works:
 - Model routing authorizes Gemini, Spark, Astra, and GPT-5.4, with a `TEST_MODE` cheap chain. This does not change assessment criteria.
 - Knowledge Base pair-document schemas live in `docs/kb-authoring/` so authors can write two documents per pair in the form the indexer already consumes.
 
-Parallel content track, owned by the author rather than engine PRs: Tactic Playbook, Source Register, and 80 Knowledge Base documents (two per pair, A–H). Engine work must not invent that prose.
+Parallel content track, owned by the author rather than engine PRs: Tactic Playbook and 80 Knowledge Base documents (two per pair, A–H). The Global Source Register v1.0.0 is approved and finalized; it is not a draft and is not pending authoring. Engine work must not invent Knowledge Base or Tactic Playbook prose.
 
 Recommended next implementation order:
 
@@ -539,7 +539,7 @@ When the playbook is ready:
 5. Verify that reference frameworks and accelerators never become customer evidence.
 6. Include tactic and playbook versions in RunTrace.
 
-The tactic contract files exist and are empty. `landingZoneTactics()` returns `[]` and must not fall back to FinOps playbook content. Work 11 cannot invent tactic titles, objectives, or bindings. Wiring starts only after the author supplies the Tactic Playbook and Source Register.
+The tactic contract files exist and are empty. `landingZoneTactics()` returns `[]` and must not fall back to FinOps playbook content. Work 11 cannot invent tactic titles, objectives, or bindings. The Global Source Register v1.0.0 is already approved. Wiring starts only after the author supplies the Tactic Playbook.
 
 The full Knowledge Base and Tactic Playbook must be integrated before full pipeline verification and the first real assessment test cases.
 
@@ -720,3 +720,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-15 | 1.10 | Work 10: integrated the Landing Zone Knowledge Base contract without inventing topic prose. Pack topics stay empty and pending. The kernel now builds a pack-local index, records KB version metadata on packets and RunTrace, rejects FinOps titles/aliases/blob prefixes, and fails visibly if required Landing Zone knowledge is missing. Catalogue BATCH_DEFINITIONS are not treated as an integrated Knowledge Base. |
 | 2026-09-15 | 1.11 | Status review against `origin/main` `02cfbca`. Works 1–6 and the Work 10 contract are on main. Works 7–9 exist as unmerged kernel adaptations that currently conflict with main and must rebase without rewriting 1.10–1.11 history. Work 10 content, Work 11 playbook bodies, Work 12 runtime prompts/reports, and Work 13 remain open. Records Step 0 workshop-session mapping, questionnaire visual intake, pair-document authoring schemas, TEST_MODE routing, and the constraint that engine work must not invent KB or tactic prose. |
 | 2026-09-16 | 1.12 | Rebased and stacked Works 7, 8, then 9 onto current main without rewriting 1.10–1.11 history. Runtime path is packet routing → forensic authority overlay → pair scoring. Multi-provider headlines remain withheld because Phase 1 logs are still criterion-keyed. Next engine work is Work 12. |
+| 2026-09-16 | 1.13 | Record that Global Source Register v1.0.0 is approved and finalized. Remove PRELIMINARY / draft-register wording from the register document and stop treating the Source Register as pending authoring content. Work 11 still waits only on the Tactic Playbook. |
