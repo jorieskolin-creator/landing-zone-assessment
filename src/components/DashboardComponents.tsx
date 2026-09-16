@@ -765,9 +765,9 @@ export const ReferenceLibrary: React.FC = () => {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Knowledge Base</span>
         </div>
-        <h2 className="text-5xl md:text-7xl font-display font-black text-white mb-6 tracking-tight drop-shadow-lg">FinOps Forensic Lens</h2>
+        <h2 className="text-5xl md:text-7xl font-display font-black text-white mb-6 tracking-tight drop-shadow-lg">Landing Zone Forensic Lens</h2>
         <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-light">
-          The specific behavioral signals used by the AI to detect <strong className="text-emerald-400 font-bold">FinOps Maturity</strong> vs. <strong className="text-rose-400 font-bold">Anti-Patterns</strong>.
+          The frozen A–H catalogue used by the Landing Zone Assessment Engine to score <strong className="text-emerald-400 font-bold">capability maturity</strong> vs. <strong className="text-rose-400 font-bold">anti-patterns</strong>.
         </p>
       </div>
 
