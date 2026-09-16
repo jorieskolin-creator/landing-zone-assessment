@@ -4,8 +4,8 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.10 |
-| Last updated | 2026-09-15 |
+| Current version | 1.12 |
+| Last updated | 2026-09-16 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
@@ -237,6 +237,8 @@ interface AssessmentDomainPack {
 - scope owner and timestamp
 - domain-pack version
 
+Workshop session notes that overlap the interview questionnaire (date, start/end, facilitator, assessment reference, participants) are optional and are not part of `AssessmentScope`. They must not affect scoring. Inventory Yes/Partial/No records whether file-set exports are included; it is not a live cloud API.
+
 ### 8.3 Evidence record
 
 Every evidence unit must carry:
@@ -276,17 +278,47 @@ The original automated Landing Zone assessment result and later expert annotatio
 
 The work is ordered by technical dependency, not by separate release classifications.
 
-Current implementation status at version 1.10:
+Verified against `origin/main` at `02cfbca` on 2026-09-16 after rebasing Works 7–9. Plan history rows 1.10 and 1.11 are unchanged.
 
-- Work 10 integrated the Landing Zone Knowledge Base contract into the copied kernel. The pack still has empty topics while content is pending. The runtime index records pack version, schema version, and pending status in packets and RunTrace. FinOps titles, aliases, blob prefixes, and JSON fixtures are rejected and are never used as REFERENCE knowledge. Missing required Landing Zone knowledge fails visibly after content is marked available.
-- Work 6 ingested the 48-question interview export as typed Class 3 workshop records. Question ID, pack criterion refs, interview observation, evidence lead, facilitator/participant context, and source locator are preserved. Observations support operating-model interpretation. Evidence leads request additional material and are not findings.
-- Work 5 reused the copied parsers for PDF, HTML, CSV/TSV, XLSX, JSON, and PNG/JPEG/WebP, and classified those files into Landing Zone source kinds with evidence classes. Control-plane exports are Class 1, documents and IaC are Class 2, and workshop files are Class 3. Unclassified material is treated as Class 2. Extra providers found in files do not expand Step 0.
-- Work 4 added Step 0 scope: named estate, providers, user-supplied roots, A–H selection, inventory-export flag, and exclusions. Scoring cannot start without a locked scope object. Out-of-scope providers and design areas are omitted from the scoring surface and are not scored as zero. Live collection stays unavailable.
-- Work 3 built the versioned Landing Zone domain pack from the frozen HTML catalogue: 8 design areas A–H, 80 unique criteria, 40 reciprocal pairs, 240 sub-criteria, provider evidence contracts, questionnaire mapping, prompt/report vocabulary contracts, and automated ID-reference validation. Knowledge Base and Tactic Playbook files remain empty contracts and must not fall back to FinOps content.
-- Work 1 copied the FinOps Engine kernel baseline into this repository and wired production knowledge access to the Landing Zone pack.
-- Work 2 applied those pack-taxonomy helpers to the copied kernel: domain and criterion iteration, output-contract IDs, routing terms, Knowledge Base expected keys, and persistence prefixes come from the local pack rather than A–F / five-wide FinOps literals.
-- The current repository has no live or build-time dependency on FinOps Engine.
-- Exploratory kernel changes made in any external working copy are not part of this solution and must not be pushed to FinOps Engine.
+| Work | Status on main | Verified gap |
+|---|---|---|
+| 1 Copied kernel | Done | Independence checks pass; no FinOps Engine runtime or build link |
+| 2 Pack-driven taxonomy | Done | A–H iteration comes from the local pack |
+| 3 Domain pack | Done | Frozen catalogue JSON is validated. Knowledge Base topics and tactic bodies remain empty contracts |
+| 4 Step 0 scope | Done | Named estate, providers, roots, A–H, inventory-export flag, exclusions. Scoring cannot start without a locked scope. Live collection stays `false` |
+| 5 File acquisition | Done | Class 1/2/3 source kinds. Extra providers found in files do not expand Step 0 |
+| 6 Questionnaire ingestion | Done | 48-question JSON becomes Class 3 records. The engine does not rebuild the interview UI |
+| 7 A–H routing and packets | Done | Kind priors, criterion-token boosts, exclusive out-of-scope withhold, G/H expansion terms, and acquisition diagnostics. Out-of-scope provider evidence is withheld from packets |
+| 8 Forensic evaluation | Done | Dual-stream kernel plus Landing Zone authority overlay (`lzForensicEvaluation`). Quote `evidence_class`, Class 2/3 Count 3 caps, non-platform tested-absence → unknown, class contradictions. Runtime prompt prose remains FinOps until Work 12 |
+| 9 Pair scoring and gates | Done | Adapter scores after provenance and the Work 8 overlay. Single-provider results use Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed |
+| 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. 78 of 80 documents still to author |
+| 11 Tactic Playbook | Contract only, content-blocked | `tactics: []` and empty bindings. Fail visible. Do not invent playbook prose |
+| 12 Prompts, personas, reports | Pack contracts ready, runtime FinOps | Personas and report vocabulary exist in the pack. `src/prompts.ts`, `src/constants.ts`, and export HTML still use FinOps language |
+| 13 Expert calibration | Not started | No calibration events or customer disposition model |
+
+Supporting work already on main, outside the numbered Works:
+
+- Step 0 and landing hero follow the questionnaire paper visual language. Overlapping metadata maps onto `AssessmentScope`. Facilitator, date, times, assessment reference, and participants are optional workshop-session notes and do not affect scoring. Intake may be light paper; forensic results stay dark.
+- Model routing authorizes Gemini, Spark, Astra, and GPT-5.4, with a `TEST_MODE` cheap chain. This does not change assessment criteria.
+- Knowledge Base pair-document schemas live in `docs/kb-authoring/` so authors can write two documents per pair in the form the indexer already consumes.
+
+Parallel content track, owned by the author rather than engine PRs: Tactic Playbook, Source Register, and 80 Knowledge Base documents (two per pair, A–H). Engine work must not invent that prose.
+
+Recommended next implementation order:
+
+1. Work 12 runtime prompt and report replacement can proceed in parallel with Knowledge Base authoring. Pack personas and forbidden-behavior contracts already exist.
+2. Work 11 wiring starts only after the Tactic Playbook is supplied. Empty tactics remain the correct pending state until then.
+3. Work 10 content integration finishes when the 80 documents are present: validate references, load the index, and test retrieval and clean-room separation.
+4. Work 13 follows a Landing Zone-shaped scoring path.
+5. Full pipeline verification and the first real assessment cases wait until Knowledge Base and Tactic Playbook content are integrated.
+
+Standing constraints for later chats:
+
+- Do not rebuild the 48-question questionnaire inside the engine.
+- Do not treat workshop “Live inventory: Yes” as a live cloud API. It records whether file-set exports are included.
+- Do not invent Knowledge Base topic bodies or Tactic Playbook content.
+- Do not fall back to FinOps knowledge, tactics, or prompts.
+- Keep forensic dashboard and results dark. Intake presentation may stay light paper.
 
 ### Work 1 — Establish the independent copied kernel and domain boundary
 
@@ -364,6 +396,8 @@ Add the Landing Zone front door before source intake:
 
 Scoring must not begin without a valid scope object.
 
+`live_collection_permitted` remains false for this plan. Questionnaire fields that overlap Step 0 map onto the existing scope object: customer to `estate_name`, clouds to `providers`, tenant or roots to `estate_roots`, design areas A–H to `design_area_ids`, and Live inventory Yes/Partial/No to `inventory_exports_included` (Yes and Partial are both true). Date, start/end, facilitator, assessment reference, and participants stay on the optional workshop session record and are not scoring inputs. The 48-question interview remains a JSON Class 3 import; it is not an in-engine questionnaire.
+
 ### Work 5 — Adapt file-based acquisition
 
 Reuse the copied baseline implementations for these supported inputs:
@@ -412,6 +446,8 @@ Questionnaire observations support operating-model interpretation. Evidence lead
 5. Record packet manifests and integrity hashes.
 6. Make withheld or unusable material visible to acquisition diagnostics.
 
+Work 7 is rebased onto current main. Pack `DOMAIN_ROUTING_TERMS`, kind priors, frozen-catalogue criterion tokens, exclusive out-of-scope withhold, Landing Zone G/H expansion terms, and acquisition diagnostics are in the kernel. Extra providers found in files still do not expand Step 0.
+
 ### Work 8 — Adapt the forensic evaluation flow
 
 For every applicable A–H batch:
@@ -427,6 +463,8 @@ For every applicable A–H batch:
 9. Preserve unresolved results as unknown.
 
 Models may explain approved evidence and metrics; they may not invent provider checks or control-plane facts.
+
+Work 8 is rebased onto Work 7. The dual-stream loop, verification, and targeted rescan remain. The Landing Zone authority overlay stamps quote `evidence_class`, caps document/workshop Count 3, converts non-platform `tested_absent` to unknown, and flags class contradictions. Runtime prompt prose remains FinOps until Work 12. Phase 1 logs stay criterion-keyed; they are not split per provider.
 
 ### Work 9 — Adapt pair scoring and gates
 
@@ -449,6 +487,8 @@ Adapt it so:
 - results are calculated and displayed separately for each provider
 - Landing Zone labels use Foundation, Pilot, Rollout, and Operate
 
+Work 9 is rebased onto Works 7 and 8. Pack `scoring-policy.json` and `quality-gate-policy.json` remain the policy source. Runtime scoring goes through `scoreLandingZoneAssessment` after provenance and the Work 8 overlay. Kernel Crawl/Walk/Run math stays for characterization tests. Single-provider results display Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed.
+
 ### Work 10 — Integrate the Knowledge Base
 
 The Knowledge Base content is developed in parallel with adaptation of the locally copied kernel.
@@ -463,10 +503,14 @@ Define its contract early:
 - citation and provenance metadata
 - prohibited use as customer-state evidence
 
+The contract, pack-local index, packet/RunTrace version metadata, FinOps rejection, and fail-closed load policy are on main. Topic bodies remain empty (`contract_defined_content_pending`). Catalogue batch definitions are not an integrated Knowledge Base.
+
+Authoring form is defined in `docs/kb-authoring/`: JSON front matter, canonical heading order, and two documents per pack pair. Engine keys are `maturity:A1`…`maturity:H5` and `antipattern:AP-A1`…`antipattern:AP-H5`. `stream` is `maturity` or `antipattern`, never `capability`. PAIR-A1 samples exist; the remaining 39 pairs are authored outside engine PRs. Do not invent topic prose in implementation work.
+
 When content becomes available:
 
 1. Validate every reference.
-2. Build the Landing Zone knowledge index.
+2. Build the Landing Zone knowledge index from the 80 documents.
 3. Include the selected Knowledge Base version in governed packets and RunTrace.
 4. Test retrieval relevance and clean-room separation.
 5. Fail visibly if required Landing Zone knowledge content cannot be loaded; do not substitute any non-Landing Zone content, including material retained from the copied FinOps baseline.
@@ -494,6 +538,8 @@ When the playbook is ready:
 4. Suppress tactics for silent or unsupported areas.
 5. Verify that reference frameworks and accelerators never become customer evidence.
 6. Include tactic and playbook versions in RunTrace.
+
+The tactic contract files exist and are empty. `landingZoneTactics()` returns `[]` and must not fall back to FinOps playbook content. Work 11 cannot invent tactic titles, objectives, or bindings. Wiring starts only after the author supplies the Tactic Playbook and Source Register.
 
 The full Knowledge Base and Tactic Playbook must be integrated before full pipeline verification and the first real assessment test cases.
 
@@ -532,6 +578,8 @@ The report must present:
 - Assessment Sufficiency and Quality Gate outcomes
 - RunTrace and methodology appendices
 
+Pack `personas.json`, `prompts.json` (template contracts), and `report-vocabulary.json` already use Landing Zone names and forbidden behaviors. Runtime `src/prompts.ts`, `src/constants.ts`, and `src/services/exportService.ts` still emit FinOps auditor language, Crawl-Walk-Run methodology, and FinOps export titles. Work 12 replaces those runtime surfaces. It does not invent Knowledge Base or tactic bodies.
+
 ### Work 13 — Add expert calibration and customer decisions
 
 After local Landing Zone engine analysis and deterministic gates:
@@ -543,6 +591,8 @@ After local Landing Zone engine analysis and deterministic gates:
 5. Re-run publication checks after calibration.
 6. Record customer disposition such as action approved, more evidence required, accepted exception, deferred, no action, or out of scope.
 7. Publish the Master Data Summary from the locked result.
+
+Not started on main. Report vocabulary lists expert annotations and customer decisions as required section names only. Closest existing kernel surface is tactic disposition, which is not expert calibration.
 
 ## 10. Verification strategy
 
@@ -650,6 +700,7 @@ This is a living plan. Update it when:
 - the Knowledge Base or Tactic Playbook introduces a new contract requirement
 - testing identifies a missing reliability control
 - report or workflow behavior is deliberately changed
+- a numbered Work lands on main, or a status review finds the board out of date
 
 Material changes should update the date and append a short entry below.
 
@@ -667,3 +718,5 @@ Material changes should update the date and append a short entry below.
 | 2026-09-11 | 1.8 | Work 5: reused copied file parsers and added Landing Zone source classification. Hierarchy, inventory, IAM, policy, network, logging, security, IaC, exception, architecture, and workshop files receive evidence class and source kind. Unclassified material is Class 2. Extra providers found later do not expand Step 0. |
 | 2026-09-15 | 1.9 | Work 6: ingested the 48-question interview export as typed Class 3 records. Pack mapping supplies criterion refs. Interview observations remain operating-model interpretation. Evidence leads are acquisition requests, not findings. Solo questionnaire JSON is no longer rejected as a failed report import. |
 | 2026-09-15 | 1.10 | Work 10: integrated the Landing Zone Knowledge Base contract without inventing topic prose. Pack topics stay empty and pending. The kernel now builds a pack-local index, records KB version metadata on packets and RunTrace, rejects FinOps titles/aliases/blob prefixes, and fails visibly if required Landing Zone knowledge is missing. Catalogue BATCH_DEFINITIONS are not treated as an integrated Knowledge Base. |
+| 2026-09-15 | 1.11 | Status review against `origin/main` `02cfbca`. Works 1–6 and the Work 10 contract are on main. Works 7–9 exist as unmerged kernel adaptations that currently conflict with main and must rebase without rewriting 1.10–1.11 history. Work 10 content, Work 11 playbook bodies, Work 12 runtime prompts/reports, and Work 13 remain open. Records Step 0 workshop-session mapping, questionnaire visual intake, pair-document authoring schemas, TEST_MODE routing, and the constraint that engine work must not invent KB or tactic prose. |
+| 2026-09-16 | 1.12 | Rebased and stacked Works 7, 8, then 9 onto current main without rewriting 1.10–1.11 history. Runtime path is packet routing → forensic authority overlay → pair scoring. Multi-provider headlines remain withheld because Phase 1 logs are still criterion-keyed. Next engine work is Work 12. |

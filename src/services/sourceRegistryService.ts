@@ -44,6 +44,51 @@ export const routingTermsForDomain = (domainId: string): string[] => [
   ...CONTRADICTION_TERMS
 ];
 
+type LandingZoneRoutingContext = {
+  source_kind?: string;
+  evidence_class?: string;
+  providers_detected?: string[];
+  out_of_locked_scope_providers?: string[];
+};
+
+const KIND_AREA_PRIORS: Record<string, Array<{ domain: string; score: number }>> = {
+  hierarchy_organization: [{ domain: 'A', score: 6 }],
+  inventory_accounts: [{ domain: 'C', score: 5 }, { domain: 'A', score: 3 }],
+  iam_bindings: [{ domain: 'B', score: 6 }],
+  policy_guardrails: [{ domain: 'G', score: 6 }],
+  network_topology: [{ domain: 'D', score: 6 }],
+  logging_monitoring: [{ domain: 'F', score: 6 }],
+  security_configuration: [{ domain: 'E', score: 6 }],
+  iac_vending: [{ domain: 'H', score: 6 }],
+  exception_waiver: [{ domain: 'G', score: 5 }],
+  architecture_operating_model: [{ domain: 'C', score: 3 }, { domain: 'H', score: 3 }, { domain: 'A', score: 2 }],
+};
+
+const exclusivelyOutOfScopeProviders = (
+  detected?: string[],
+  outOfScope?: string[],
+): boolean => {
+  const found = detected || [];
+  const excluded = outOfScope || [];
+  return found.length > 0 && excluded.length > 0 && found.every(provider => excluded.includes(provider));
+};
+
+const criterionAreasFromText = (text: string): Map<string, string[]> => {
+  const byArea = new Map<string, string[]>();
+  const add = (domain: string, reason: string) => {
+    const reasons = byArea.get(domain) || [];
+    if (!reasons.includes(reason)) reasons.push(reason);
+    byArea.set(domain, reasons);
+  };
+  for (const match of text.matchAll(/\b(?:AP-)?([A-H])[1-5]\b/g)) {
+    add(match[1], `criterion=${match[0]}`);
+  }
+  for (const match of text.matchAll(/design_area_id="([A-H])"/gi)) {
+    add(match[1].toUpperCase(), `design_area=${match[1].toUpperCase()}`);
+  }
+  return byArea;
+};
+
 const validNativeCharts = (charts: NonNullable<SourceRecord['structured_table']>['native_charts']): boolean => {
   if (charts === undefined) return true;
   if (!Array.isArray(charts) || charts.length > 50) return false;
@@ -289,23 +334,60 @@ const tableRowChunks = (text: string): Array<{ rowNumber: number; text: string }
   });
 };
 
-const scoreDomain = (haystack: string, domain: string): SourceChunkRoutingHint => {
+const scoreDomain = (
+  haystack: string,
+  domain: string,
+  extras: { prior: number; extraReasons: string[] },
+  context?: LandingZoneRoutingContext
+): SourceChunkRoutingHint => {
   const terms = DOMAIN_ROUTING_TERMS[domain] || [];
   const reasons: string[] = [];
-  let score = 0;
+  let score = extras.prior;
   for (const term of terms) {
     if (haystack.includes(term)) {
       score += term.length > 8 ? 3 : 2;
       if (reasons.length < 4) reasons.push(term);
     }
   }
+  for (const reason of extras.extraReasons) {
+    if (!reasons.includes(reason)) reasons.push(reason);
+  }
+  if (score > 0) {
+    if (context?.evidence_class) {
+      const stamp = `evidence_class=${context.evidence_class}`;
+      if (!reasons.includes(stamp)) reasons.push(stamp);
+    }
+    if (context?.source_kind) {
+      const stamp = `lz_source_kind=${context.source_kind}`;
+      if (!reasons.includes(stamp)) reasons.push(stamp);
+    }
+    for (const provider of context?.providers_detected || []) {
+      const stamp = `provider=${provider}`;
+      if (!reasons.includes(stamp)) reasons.push(stamp);
+    }
+    for (const provider of context?.out_of_locked_scope_providers || []) {
+      const stamp = `out_of_scope_provider=${provider}`;
+      if (!reasons.includes(stamp)) reasons.push(stamp);
+    }
+  }
   const tier: SourceRelevanceTier = score >= 6 ? 'high' : score >= 2 ? 'medium' : 'low';
   return { domain, score, tier, reasons };
 };
 
-const routeChunk = (text: string): SourceChunkRoutingHint[] => {
+const routeChunk = (text: string, context?: LandingZoneRoutingContext): SourceChunkRoutingHint[] => {
   const haystack = text.toLowerCase();
-  const hints = Object.keys(BATCH_TITLES).map(domain => scoreDomain(haystack, domain));
+  const criterionAreas = criterionAreasFromText(text);
+  const kindPriors = KIND_AREA_PRIORS[context?.source_kind || ''] || [];
+  const hints = Object.keys(BATCH_TITLES).map(domain => {
+    const prior = kindPriors.filter(item => item.domain === domain).reduce((sum, item) => sum + item.score, 0);
+    const extraReasons = [
+      ...kindPriors.filter(item => item.domain === domain).map(item => `kind_prior=${context?.source_kind}`),
+      ...(criterionAreas.get(domain) || []),
+    ];
+    const criterionBoost = (criterionAreas.get(domain) || []).some(reason => reason.startsWith('criterion=')) ? 4 : 0;
+    const designAreaBoost = (criterionAreas.get(domain) || []).some(reason => reason.startsWith('design_area=')) ? 3 : 0;
+    return scoreDomain(haystack, domain, { prior: prior + criterionBoost + designAreaBoost, extraReasons }, context);
+  });
   const anySignal = hints.some(h => h.score > 0);
   if (!anySignal) {
     return Object.keys(BATCH_TITLES).map(domain => ({ domain, score: 0, tier: 'unknown' as const, reasons: [] }));
@@ -454,6 +536,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
   };
   records.forEach((doc, docIndex) => {
     const sourceId = doc.source_id || sourceIdFor(docIndex);
+    const route = (text: string) => routeChunk(text, doc.lz_classification);
     if (doc.kind === 'image') {
       warnings.push(...(doc.parse_warnings || []).map(warning => `${sourceId}: ${warning}`));
       for (const [unitIndex, unit] of doc.visual_units!.entries()) {
@@ -475,7 +558,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
             withheld_visual_region_count: unit.withheld_regions.length,
             char_start: part.start,
             char_end: part.end,
-            routing: routeChunk(part.text),
+            routing: route(part.text),
             parse_warnings: doc.parse_warnings
           });
         }
@@ -495,7 +578,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
           sheet_name: table.sheet_name,
           char_start: 0,
           char_end: context.length,
-          routing: routeChunk(context)
+          routing: route(context)
         });
         for (const row of structuredTableRows(table)) {
           chunks.push({
@@ -511,7 +594,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
             segment_count: row.segmentCount,
             char_start: row.charStart,
             char_end: row.charEnd,
-            routing: routeChunk(row.text)
+            routing: route(row.text)
           });
         }
       }
@@ -527,7 +610,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
         text: context,
         char_start: 0,
         char_end: context.length,
-        routing: routeChunk(context)
+        routing: route(context)
       });
       for (const row of structuredTableRows(table)) {
         chunks.push({
@@ -542,7 +625,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
           segment_count: row.segmentCount,
           char_start: row.charStart,
           char_end: row.charEnd,
-          routing: routeChunk(row.text)
+          routing: route(row.text)
         });
       }
       return;
@@ -565,7 +648,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
           text: page.text,
           char_start: 0,
           char_end: page.text.length,
-          routing: routeChunk(page.text)
+          routing: route(page.text)
         });
         chunkIndex++;
         for (const row of tableRowChunks(page.text)) {
@@ -576,7 +659,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
             type: 'table_row',
             text: row.text,
             row_number: row.rowNumber,
-            routing: routeChunk(row.text)
+            routing: route(row.text)
           });
           chunkIndex++;
         }
@@ -604,7 +687,7 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
           withheld_visual_region_count: page.visualUnit?.withheld_regions.length,
           char_start: part.start,
           char_end: part.end,
-          routing: routeChunk(chunkText),
+          routing: route(chunkText),
           parse_warnings: doc.parse_warnings
         });
         chunkIndex++;
@@ -617,6 +700,8 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
     const classification = classificationBySource.get(chunk.source_id);
     chunk.evidence_class = classification?.evidence_class || 'document';
     chunk.lz_source_kind = classification?.source_kind || 'unclassified';
+    chunk.providers_detected = classification?.providers_detected;
+    chunk.out_of_locked_scope_providers = classification?.out_of_locked_scope_providers;
   }
   for (const record of records) {
     const classification = record.lz_classification;
@@ -624,7 +709,16 @@ export const buildSourceRegistry = (records: SourceRecord[]): SourceRegistry => 
       warnings.push(`${record.source_id}: Landing Zone source unclassified; treated as Class 2 document, not platform inventory.`);
     }
     if (classification?.out_of_locked_scope_providers.length) {
-      warnings.push(`${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; extra providers are not a silent scope expansion.`);
+      const exclusive = exclusivelyOutOfScopeProviders(
+        classification.providers_detected,
+        classification.out_of_locked_scope_providers,
+      );
+      warnings.push(exclusive
+        ? `${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; withheld from A-H packets so extra providers are not a silent scope expansion.`
+        : `${record.source_id}: classified ${classification.out_of_locked_scope_providers.join(', ')} outside locked Step 0; extra providers are not a silent scope expansion.`);
+    }
+    if (record.extraction?.quality === 'poor') {
+      warnings.push(`${record.source_id}: source extraction is unusable for A-H packetization (poor quality).`);
     }
   }
 
@@ -693,7 +787,9 @@ const renderChunk = (chunk: SourceChunk, relevance: SourceRelevanceTier): string
     `relevance="${relevance}"`,
     `routed_domains="${escapeXml(routedDomains(chunk).join(','))}"`,
     chunk.evidence_class ? `evidence_class="${chunk.evidence_class}"` : '',
-    chunk.lz_source_kind ? `lz_source_kind="${escapeXml(chunk.lz_source_kind)}"` : ''
+    chunk.lz_source_kind ? `lz_source_kind="${escapeXml(chunk.lz_source_kind)}"` : '',
+    chunk.providers_detected?.length ? `providers="${escapeXml(chunk.providers_detected.join(','))}"` : '',
+    chunk.out_of_locked_scope_providers?.length ? `out_of_scope_providers="${escapeXml(chunk.out_of_locked_scope_providers.join(','))}"` : ''
   ].filter(Boolean).join(' ');
   return `<CHUNK ${attrs}>\n${escapeXml(chunk.text)}\n</CHUNK>`;
 };
@@ -722,7 +818,9 @@ const manifestFor = (chunk: SourceChunk, relevance: SourceRelevanceTier): Source
   relevance,
   routed_domains: routedDomains(chunk),
   evidence_class: chunk.evidence_class,
-  lz_source_kind: chunk.lz_source_kind
+  lz_source_kind: chunk.lz_source_kind,
+  providers_detected: chunk.providers_detected,
+  out_of_locked_scope_providers: chunk.out_of_locked_scope_providers
 });
 
 const INLINE_CELL_CHARS = 240;
@@ -766,6 +864,7 @@ const structuredTableRows = (table: NonNullable<SourceRecord['structured_table']
 };
 
 export const rankedDomainCandidates = (registry: SourceRegistry, domainId: string) => registry.chunks
+    .filter(chunk => !exclusivelyOutOfScopeProviders(chunk.providers_detected, chunk.out_of_locked_scope_providers))
     .map(chunk => ({ chunk, tier: tierForDomain(chunk, domainId), score: scoreForDomain(chunk, domainId) }))
     .filter(item => item.tier === 'high' || item.tier === 'medium' || hasGapOrContradictionSignal(item.chunk))
     .sort((a, b) => {
@@ -862,6 +961,7 @@ export const expandDomainPacket = (
     if (selectedIds.has(chunkId)) continue;
     const chunk = registry.chunks.find(candidate => candidate.chunk_id === chunkId);
     if (!chunk) continue;
+    if (exclusivelyOutOfScopeProviders(chunk.providers_detected, chunk.out_of_locked_scope_providers)) continue;
     const nextLen = chunk.text.length + 260;
     if (chars + nextLen > HARD_PACKET_CHARS) continue;
     const tier = tierForDomain(chunk, packet.domain_id);
@@ -1026,7 +1126,10 @@ export const sourceRegistryRuntimeStatus = (
       ? ['WORKBOOK_STRUCTURE_WARNINGS_PRESENT'] : []),
     ...(dlpScan.caution_hits.length > 0 ? ['DLP_CAUTION_FINDINGS_PRESENT'] : []),
     ...(privacyDecision.decision === 'PASS_WITH_REDACTIONS' ? ['PRIVACY_REDACTIONS_APPLIED'] : []),
-    ...(Object.values(packets).some(packet => packet.weak_coverage) ? ['PACKET_COVERAGE_WARNINGS_PRESENT'] : [])
+    ...(Object.values(packets).some(packet => packet.weak_coverage) ? ['PACKET_COVERAGE_WARNINGS_PRESENT'] : []),
+    ...(registry.chunks.some(chunk => chunk.lz_source_kind === 'unclassified') ? ['UNCLASSIFIED_SOURCES_PRESENT'] : []),
+    ...(registry.warnings.some(warning => warning.includes('outside locked Step 0')) ? ['OUT_OF_LOCKED_SCOPE_PROVIDERS_PRESENT'] : []),
+    ...(registry.extraction.sources.some(source => source.quality === 'poor') ? ['UNUSABLE_SOURCE_EXTRACTION_PRESENT'] : [])
   ];
   return ({
   source_count: registry.source_count,

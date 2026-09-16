@@ -37,10 +37,11 @@ assert.match(orchestrator, /catch \(error\) \{[\s\S]*?'targeted_rescan_unavailab
 const integrityGatePosition = analysis.indexOf('validatePreSynthesisIntegrity(');
 const effectivePacketPosition = analysis.indexOf('sourcePackets = { ...semanticPackets }');
 const provenancePosition = analysis.indexOf('reconcileEvidenceProvenance(');
-const calculationPosition = analysis.indexOf('const validationData = calculateMetrics');
+const calculationPosition = analysis.indexOf('scoreLandingZoneAssessment(');
 const synthesisPosition = analysis.indexOf("emitProgress({ stage: 'synthesis', status: 'in_progress' })");
 assert.ok(integrityGatePosition > 0 && integrityGatePosition < calculationPosition && calculationPosition < synthesisPosition, 'technical domain failures must stop before calculation and synthesis');
 assert.ok(effectivePacketPosition > 0 && effectivePacketPosition < provenancePosition && provenancePosition < integrityGatePosition, 'effective semantic-gap packets must become authoritative before provenance and pre-synthesis integrity checks');
+assert.ok(analysis.indexOf('applyLzForensicEvaluation(') > provenancePosition && analysis.indexOf('applyLzForensicEvaluation(') < integrityGatePosition, 'LZ evidence-authority overlay must run after provenance and before pre-synthesis integrity');
 assert.match(analysis, /buildRunTrace\(\{[\s\S]*?sourcePackets,[\s\S]*?evidenceStagePackets,[\s\S]*?baselineEvidenceStagePackets,/, 'RunTrace must receive the final effective packet set and baseline packet hashes');
 assert.match(analysis, /sourceParseWarnings = sourceParseWarnings\.filter\([\s\S]*?activePacketCoverageWarnings = packetCoverageWarnings\(sourcePackets\)/, 'final report warnings must be refreshed from the effective packet set');
 assert.match(analysis, /checkpoint\('phase1', 'accepted'[\s\S]*?effective_source_registry_status:[\s\S]*?effective_evidence_integrity:[\s\S]*?semantic_gap_retrieval:/, 'the accepted Phase 1 checkpoint must retain effective packet lineage');

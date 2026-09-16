@@ -13,7 +13,7 @@ import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_T
 import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
 import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
 import { EVIDENCE_DENSITY_BLOCK, runQualityGate, runQualityGateExplanation } from "./qualityGateService";
-import { calculateMetrics } from "./metricsService";
+import { scoreLandingZoneAssessment } from "./landingZoneScoringAdapter";
 import {
   buildRegenerateAppendix,
   buildRoadmapFactCheckPrompt,
@@ -62,6 +62,7 @@ import { sanitizeEvidenceSources } from "./deterministicPrivacyService";
 import { scrubDiagnosticResultForPrivacy } from "./privacyService";
 import { parseGovernedJsonObject, validateFindingsModePayload } from "./jsonResponseService";
 import { reconcileEvidenceProvenance } from "./evidenceCheckService";
+import { applyLzForensicEvaluation, isLzEvidenceClass } from "./lzForensicEvaluation";
 import { maturityRunTraceProjection } from "./maturityModelService";
 import {
   lockScope,
@@ -222,6 +223,15 @@ const validateAndSanitizeLogs = (
       safeItem.antipattern_absence_status = item.antipattern_absence_status;
     }
     if (isAntipattern && typeof item.coverage_reason === 'string') safeItem.coverage_reason = item.coverage_reason;
+    if (item.lz_authority_cap && typeof item.lz_authority_cap === 'object') {
+      safeItem.lz_authority_cap = item.lz_authority_cap;
+    }
+    if (item.lz_contradiction_classes && typeof item.lz_contradiction_classes === 'object') {
+      safeItem.lz_contradiction_classes = item.lz_contradiction_classes;
+    }
+    if (typeof item.lz_evidence_authority_note === 'string') {
+      safeItem.lz_evidence_authority_note = item.lz_evidence_authority_note;
+    }
 
     if (Array.isArray(item.evidence_quotes)) {
       safeItem.evidence_quotes = item.evidence_quotes
@@ -238,7 +248,8 @@ const validateAndSanitizeLogs = (
           page_id: typeof q.page_id === 'string' ? q.page_id : undefined,
           chunk_id: typeof q.chunk_id === 'string' ? q.chunk_id : undefined,
           sheet_name: typeof q.sheet_name === 'string' ? q.sheet_name : undefined,
-          row_number: typeof q.row_number === 'number' && q.row_number > 0 ? q.row_number : undefined
+          row_number: typeof q.row_number === 'number' && q.row_number > 0 ? q.row_number : undefined,
+          evidence_class: isLzEvidenceClass(q.evidence_class) ? q.evidence_class : undefined,
         }));
     }
 
@@ -618,6 +629,14 @@ export const analyzeDocument = async (
         removed_quotes: provenanceReconciliation.removedQuoteCount,
       });
     }
+    aggregatedRawData = applyLzForensicEvaluation(aggregatedRawData, sourceRegistry);
+    const forensicSummary = aggregatedRawData.meta?.lz_forensic_evaluation;
+    if (forensicSummary && (forensicSummary.authority_caps?.length > 0 || forensicSummary.contradictions?.length > 0)) {
+      serverLog(runId, 'info', 'lz_forensic_evaluation', {
+        authority_caps: forensicSummary.authority_caps.length,
+        contradictions: forensicSummary.contradictions.length,
+      });
+    }
     validatePreSynthesisIntegrity(
       evidenceIntegrity,
       knowledgeIntegrity,
@@ -673,13 +692,14 @@ export const analyzeDocument = async (
         scoringSurface.design_area_ids.includes(pair.domain_id),
       ),
     };
-    const validationData = calculateMetrics(auditLogs, {
-      evidencePacketReady: sourceRegistryStatus.acquisition_readiness.status !== 'BLOCKED',
-      maturityCriterionTotal: scopedMaturityIds.length,
-      antipatternCriterionTotal: scopedAntipatternIds.length,
+    const lzScoring = scoreLandingZoneAssessment({
+      logs: auditLogs,
+      scoringSurface,
       pairRegistry: scopedPairRegistry,
-      designAreaIds: scoringSurface.design_area_ids,
+      sources: acquiredSources,
+      evidencePacketReady: sourceRegistryStatus.acquisition_readiness.status !== 'BLOCKED',
     });
+    const validationData = lzScoring.published_phase2;
     const silentDomainIds = validationData.assessment_sufficiency.silent_domain_ids;
     const unresolvedDomainIds = new Set(validationData.verification_unresolved.map(item => item.charAt(1)));
     const overallScoreAvailable = validationData.assessment_sufficiency.decision === 'PASS'
@@ -701,7 +721,7 @@ export const analyzeDocument = async (
     });
     emitProgress({ stage: 'calculation', status: 'completed' });
 
-    console.log(`[FinOps] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.crawl_walk_run}`);
+      console.log(`[FinOps] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}`);
 
     // Confidence bracket: drives which synthesis prompt runs.
     // LOW   → findings (no roadmap, no case studies)
@@ -1761,6 +1781,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         scoring_surface: scoringSurfaceSummary(scoringSurface),
         lz_acquisition: summarizeLzAcquisition(acquiredSources),
         lz_questionnaire_ingestion: summarizeQuestionnaireIngestion(acquiredSources),
+        lz_scoring: lzScoring,
         source_parse_warnings: sourceParseWarnings.length > 0 ? sourceParseWarnings : undefined,
         source_registry: sourceRegistryStatus,
         knowledge_base: referenceKbIndex.status,
