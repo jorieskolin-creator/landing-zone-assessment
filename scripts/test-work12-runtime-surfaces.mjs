@@ -18,7 +18,7 @@ assert.match(constants, /TAC-ORG-A1-01/);
 assert.match(constants, /TAC-ORG-AP-A1-01/);
 assert.match(constants, /TAC-IDENTITY-AP-B1-01/);
 assert.match(constants, /Foundation \/ Pilot \/ Rollout \/ Operate/);
-assert.match(constants, /treating workshop confidence as platform configuration/);
+assert.match(constants, /treat workshop confidence as platform configuration/);
 assert.match(constants, /A = Tenant, billing & organization construct/);
 assert.match(constants, /H = Platform automation & DevOps/);
 assert.doesNotMatch(constants, /FinOps Strategic Architect/);

@@ -1,9 +1,15 @@
 
-import { AuditItem, FactCheckClaim, FactCheckResult, Phase1AuditLogs, Phase2Validation, ClaimFailureType, ClaimSeverity, ClaimSourceLocation, PERSONA_IDS, StrategicTactic, TacticActivityPlaybookEntry, TacticReviewDisposition } from '../types';
+import { AuditItem, FactCheckClaim, FactCheckResult, Phase1AuditLogs, Phase2Validation, ClaimFailureType, ClaimSeverity, ClaimSourceLocation, StrategicTactic, TacticActivityPlaybookEntry, TacticReviewDisposition } from '../types';
 
 const VALID_FAILURE_TYPES: ClaimFailureType[] = ['fabricated_number', 'unverifiable_entity', 'unsupported_org_claim', 'out_of_scope', 'other'];
 const VALID_SEVERITIES: ClaimSeverity[] = ['BLOCKING_UNSUPPORTED_FACT', 'BLOCKING_UNSAFE_ROADMAP', 'WARN_MISCLASSIFIED_BUT_REAL', 'WARN_TACTIC_HYGIENE', 'SUPPORTED'];
-const VALID_SOURCE_LOCATIONS: ClaimSourceLocation[] = [...PERSONA_IDS, 'diagnosis', 'planning_decision', 'roadmap'];
+const PERSONA_SOURCE_LOCATIONS: ClaimSourceLocation[] = [
+  'ciso_leadership',
+  'platform_owner',
+  'security_owners',
+  'application_delivery',
+];
+const VALID_SOURCE_LOCATIONS: ClaimSourceLocation[] = [...PERSONA_SOURCE_LOCATIONS, 'diagnosis', 'planning_decision', 'roadmap'];
 const VALID_CLASSIFICATIONS = ['supported_by_source', 'supported_by_audit', 'supported_by_tactics_db', 'unsupported'] as const;
 const VALID_TACTIC_DISPOSITIONS: TacticReviewDisposition[] = ['contraindicated', 'citation_rejected'];
 const VALID_ROADMAP_TACTIC_DISPOSITIONS = ['not_applicable', ...VALID_TACTIC_DISPOSITIONS] as const;
@@ -17,7 +23,7 @@ export interface FactCheckParseContract {
 
 export const SUMMARY_FACT_CHECK_CONTRACT: FactCheckParseContract = {
   allowedClassifications: ['supported_by_source', 'supported_by_audit', 'unsupported'],
-  allowedSourceLocations: [...PERSONA_IDS, 'diagnosis'],
+  allowedSourceLocations: [...PERSONA_SOURCE_LOCATIONS, 'diagnosis'],
   allowedUnsupportedSeverities: ['BLOCKING_UNSUPPORTED_FACT', 'WARN_MISCLASSIFIED_BUT_REAL', 'WARN_TACTIC_HYGIENE']
 };
 
@@ -30,7 +36,7 @@ export const ROADMAP_FACT_CHECK_CONTRACT: FactCheckParseContract = {
 
 export type FactCheckRepairScope = 'summary' | 'roadmap' | 'both';
 
-const SUMMARY_LOCATIONS = new Set<ClaimSourceLocation>([...PERSONA_IDS, 'diagnosis']);
+const SUMMARY_LOCATIONS = new Set<ClaimSourceLocation>([...PERSONA_SOURCE_LOCATIONS, 'diagnosis']);
 const ROADMAP_LOCATIONS = new Set<ClaimSourceLocation>(['planning_decision', 'roadmap']);
 
 export const determineFactCheckRepairScope = (claims: FactCheckClaim[]): FactCheckRepairScope => {
