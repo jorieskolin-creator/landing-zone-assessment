@@ -271,6 +271,7 @@ assert.match(orchestrator, /assertEvidenceLaneStagePacket\(packet\)/);
 assert.doesNotMatch(modelContracts, /\| 'preflight'/);
 assert.match(analysis, /model_mode: modelRoutingMode/);
 assert.match(analysis, /evidence_density < EVIDENCE_DENSITY_BLOCK[\s\S]*?reason_code: 'EVIDENCE_DENSITY_BELOW_FLOOR'/);
-assert.match(server, /resolveModelRouting\(process\.env\)/);
+assert.match(server, /inspectServerBoot\(process\.env\)/);
+assert.doesNotMatch(server, /STARTUP_FAILED code=MODEL_ROUTING_CONFIGURATION_INVALID/);
 
 console.log('AI role routing policy tests passed');

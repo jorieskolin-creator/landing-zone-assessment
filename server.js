@@ -13,16 +13,18 @@ import { initializeInfrastructure } from './lib/infrastructure.js';
 import { safeErrorCode } from './lib/safeErrors.js';
 import { AttemptReconciler,ExecutionWorker,OutboxPublisher } from './lib/executionWorker.js';
 import { CleanupWorker } from './lib/runLifecycleService.js';
-import { resolveModelRouting } from './lib/modelRoutingPolicy.js';
+import { inspectServerBoot } from './lib/serverBoot.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, 'dist');
 const apiDir = path.join(__dirname, 'api');
 
 let accepting=false;
+const boot = inspectServerBoot(process.env);
+if (!boot.modelRoutingReady) {
+  console.error('[server] MODEL_ROUTING_UNAVAILABLE — serving UI; analysis workers not started');
+}
 let infrastructure;
-try { resolveModelRouting(process.env); }
-catch { console.error('[server] STARTUP_FAILED code=MODEL_ROUTING_CONFIGURATION_INVALID'); process.exit(1); }
 try { infrastructure=await initializeInfrastructure(); }
 catch(error) {
   const code=safeErrorCode(error);
@@ -30,9 +32,30 @@ catch(error) {
   process.exit(1);
 }
 const app = express();
-const publisher=new OutboxPublisher(infrastructure);const worker=new ExecutionWorker(infrastructure);const reconciler=new AttemptReconciler(infrastructure);const cleanup=new CleanupWorker(infrastructure);publisher.start();worker.start();reconciler.start();cleanup.start();
+let publisher;
+let worker;
+let reconciler;
+let cleanup;
+if (boot.startWorkers) {
+  publisher=new OutboxPublisher(infrastructure);
+  worker=new ExecutionWorker(infrastructure);
+  reconciler=new AttemptReconciler(infrastructure);
+  cleanup=new CleanupWorker(infrastructure);
+  publisher.start();
+  worker.start();
+  reconciler.start();
+  cleanup.start();
+}
 app.get('/livez',(_req,res)=>res.status(200).json({status:'live'}));
-app.get('/readyz',async(_req,res)=>{if(!accepting)return res.status(503).json({status:'not_ready',code:'SHUTTING_DOWN'});try{await infrastructure.ready();return res.status(200).json({status:'ready'});}catch{return res.status(503).json({status:'not_ready',code:'DEPENDENCY_UNAVAILABLE'});}});
+app.get('/readyz',async(_req,res)=>{
+  if(!accepting)return res.status(503).json({status:'not_ready',code:'SHUTTING_DOWN'});
+  try{
+    await infrastructure.ready();
+    return res.status(200).json({status:'ready', mode: boot.modelRoutingReady ? 'full' : 'ui_only'});
+  }catch{
+    return res.status(503).json({status:'not_ready',code:'DEPENDENCY_UNAVAILABLE'});
+  }
+});
 
 // Text-only stage approval intake. Images and base64 payloads are prohibited.
 app.use(express.json({ limit: '2mb' }));
@@ -79,5 +102,15 @@ const server=app.listen(port, () => {
   console.log(`[server] Listening on :${port}`);
 });
 let shuttingDown=false;
-async function shutdown(){if(shuttingDown)return;shuttingDown=true;accepting=false;server.close(async()=>{await Promise.all([publisher.stop(),worker.stop(),reconciler.stop(),cleanup.stop()]);await infrastructure.close();process.exit(0);});setTimeout(()=>process.exit(1),30_000).unref();}
+async function shutdown(){
+  if(shuttingDown)return;
+  shuttingDown=true;
+  accepting=false;
+  server.close(async()=>{
+    await Promise.all([publisher?.stop?.(),worker?.stop?.(),reconciler?.stop?.(),cleanup?.stop?.()].filter(Boolean));
+    await infrastructure.close();
+    process.exit(0);
+  });
+  setTimeout(()=>process.exit(1),30_000).unref();
+}
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
