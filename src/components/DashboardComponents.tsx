@@ -774,7 +774,7 @@ export const ReferenceLibrary: React.FC = () => {
       <div className="text-center mb-12 relative z-10 px-4">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-700 mb-6 shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Knowledge Base</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">A–H catalogue</span>
         </div>
         <h2 className="text-5xl md:text-7xl font-display font-black text-white mb-6 tracking-tight drop-shadow-lg">Landing Zone Forensic Lens</h2>
         <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-light">
