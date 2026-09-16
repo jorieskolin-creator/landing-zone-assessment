@@ -27,6 +27,22 @@ export const IntakeHero: React.FC<{
           <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>
       </a>
+      <a
+        href="/Landing_Zone_Assessment_Summary_Report.html"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="lz-btn inline-flex items-center gap-2"
+      >
+        <span>Assessment Summary</span>
+      </a>
+      <a
+        href="/Landing_Zone_Assessment_Master_Data_Report.html"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="lz-btn inline-flex items-center gap-2"
+      >
+        <span>Master Data</span>
+      </a>
       <button
         type="button"
         onClick={onSimulate}

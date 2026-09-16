@@ -24,19 +24,20 @@ const boot = inspectServerBoot(process.env);
 if (!boot.modelRoutingReady) {
   console.error('[server] MODEL_ROUTING_UNAVAILABLE — serving UI; analysis workers not started');
 }
-let infrastructure;
-try { infrastructure=await initializeInfrastructure(); }
-catch(error) {
-  const code=safeErrorCode(error);
-  console.error(`[server] STARTUP_FAILED code=${code==='INTERNAL_ERROR'?'INFRASTRUCTURE_UNAVAILABLE':code}`);
-  process.exit(1);
+let infrastructure = null;
+try {
+  infrastructure = await initializeInfrastructure();
+} catch (error) {
+  const code = safeErrorCode(error);
+  const mapped = code === 'INTERNAL_ERROR' ? 'INFRASTRUCTURE_UNAVAILABLE' : code;
+  console.error(`[server] INFRASTRUCTURE_UNAVAILABLE code=${mapped} — serving UI; workers not started`);
 }
 const app = express();
 let publisher;
 let worker;
 let reconciler;
 let cleanup;
-if (boot.startWorkers) {
+if (boot.startWorkers && infrastructure) {
   publisher=new OutboxPublisher(infrastructure);
   worker=new ExecutionWorker(infrastructure);
   reconciler=new AttemptReconciler(infrastructure);
@@ -49,11 +50,14 @@ if (boot.startWorkers) {
 app.get('/livez',(_req,res)=>res.status(200).json({status:'live'}));
 app.get('/readyz',async(_req,res)=>{
   if(!accepting)return res.status(503).json({status:'not_ready',code:'SHUTTING_DOWN'});
+  if(!infrastructure){
+    return res.status(200).json({status:'ready', mode:'ui_only'});
+  }
   try{
     await infrastructure.ready();
     return res.status(200).json({status:'ready', mode: boot.modelRoutingReady ? 'full' : 'ui_only'});
   }catch{
-    return res.status(503).json({status:'not_ready',code:'DEPENDENCY_UNAVAILABLE'});
+    return res.status(200).json({status:'ready', mode:'ui_only', code:'DEPENDENCY_UNAVAILABLE'});
   }
 });
 
@@ -108,7 +112,7 @@ async function shutdown(){
   accepting=false;
   server.close(async()=>{
     await Promise.all([publisher?.stop?.(),worker?.stop?.(),reconciler?.stop?.(),cleanup?.stop?.()].filter(Boolean));
-    await infrastructure.close();
+    await infrastructure?.close?.();
     process.exit(0);
   });
   setTimeout(()=>process.exit(1),30_000).unref();

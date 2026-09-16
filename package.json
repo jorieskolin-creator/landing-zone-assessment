@@ -44,6 +44,7 @@
     "test:output-contracts": "node scripts/test-output-contracts.mjs",
     "test:model-routing": "node scripts/test-model-routing.mjs",
     "test:server-boot": "node scripts/test-server-boot.mjs",
+    "test:ui-only-http": "node scripts/test-ui-only-http.mjs",
     "test:lz-summary-report": "node scripts/test-lz-summary-report.mjs",
     "test:lz-master-data-report": "node scripts/test-lz-master-data-report.mjs",
     "test:role-fallback": "node scripts/test-role-fallback.mjs",
