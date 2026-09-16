@@ -37,6 +37,7 @@ import {
   FINOPS_TACTICS_LOCAL,
   FINOPS_TAXONOMY_REGISTRY
 } from '../knowledge_base';
+import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { hasVerifiedSourceCoverage } from './metricsService';
 import { scrubGeneratedText } from './privacyService';
@@ -208,7 +209,7 @@ const scorePathsFor = (
   metric_effect: evidencePathEffect(stream, item)
 }));
 
-const TACTIC_RX = /\[(TAC-[A-Z]+-\d+(?:-[A-Z]+)?)\]/g;
+const TACTIC_RX = tacticIdCaptureRx;
 
 const playbookById = new Map(FINOPS_TACTIC_ACTIVITY_PLAYBOOK.map(entry => [entry.tactic_id, entry]));
 const maturityDefinitionById = new Map(FINOPS_CRITERIA.map(criterion => [criterion.id, criterion]));
@@ -309,7 +310,7 @@ const linkedFindingsForAction = (action: string, tacticIds: string[], auditLogs:
   const candidates = (tacticIds.length > 0
     ? allFindings.filter(finding => mappedCriteria.has(finding.criterionId))
     : allFindings).filter(finding => finding.evidenceGrounded);
-  const actionTokens = traceTokens(action.replace(TACTIC_RX, ' '));
+  const actionTokens = traceTokens(action.replace(TACTIC_RX(), ' '));
   const ranked = candidates.map(finding => ({
     finding,
     score: Array.from(traceTokens(finding.searchText)).filter(token => actionTokens.has(token)).length,
@@ -335,7 +336,7 @@ const tacticPathsFor = (
   const roadmap = strategy.remediation_roadmap || [];
   roadmap.forEach((phase, phaseIndex) => {
     (phase.actions || []).forEach((action, actionIndex) => {
-      const tacticIds = Array.from(String(action).matchAll(TACTIC_RX)).map(m => m[1]);
+      const tacticIds = Array.from(String(action).matchAll(TACTIC_RX())).map(m => m[1]);
       if (tacticIds.length === 0 && !action) return;
       const links = linkedFindingsForAction(String(action), tacticIds, auditLogs);
       const linkedFindings = links.linkedFindings;
@@ -388,8 +389,8 @@ const tacticPathsFor = (
       phase: 'Strategy sanitation',
       action_index: -1,
       action_snippet: safeSnippet(claim.claim, 520),
-      tactic_ids: Array.from(claim.claim.matchAll(TACTIC_RX)).map(m => m[1]),
-      linked_findings: linkedFindingsForAction(claim.claim, Array.from(claim.claim.matchAll(TACTIC_RX)).map(m => m[1]), auditLogs).linkedFindings,
+      tactic_ids: Array.from(claim.claim.matchAll(TACTIC_RX())).map(m => m[1]),
+      linked_findings: linkedFindingsForAction(claim.claim, Array.from(claim.claim.matchAll(TACTIC_RX())).map(m => m[1]), auditLogs).linkedFindings,
       reference_kind: 'playbook_reference',
       grounding_status: claim.action === 'quarantined' ? 'quarantined' : 'withheld',
       notes: [claim.rationale]

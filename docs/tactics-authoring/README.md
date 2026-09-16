@@ -6,7 +6,7 @@ Human-readable source of truth (already on `main`):
 
 Version **1.0.0**, status **APPROVED - ACTIVE**, snapshot **16 September 2026**. 80 tactic objects. Mapping is one-way: Tactical KB → assessment criteria. The engine must not parse this PDF at runtime and must not fall back to FinOps playbooks.
 
-The catalogue index extract in `catalogue-index.json` is transcribed from pages 6–7. It is not yet loaded by the runtime pack (`tactics.json` / `tactic-bindings.json` stay empty until Work 11 conversion).
+The catalogue index extract in `catalogue-index.json` is transcribed from pages 6–7. Runtime pack JSON is produced by `scripts/transcribe-lz-tactical-playbook.py` and loaded by `landingZoneTactics()` / `landingZoneTacticActivityPlaybook()`.
 
 ## Identity scheme
 
@@ -33,18 +33,20 @@ Every criterion and anti-pattern has exactly one PRIMARY tactic. Pair and suppor
 
 ## How to add this to the pack
 
-1. Transcribe each PDF object into `src/domain-packs/landing-zone/tactics.json` (identity, title, kind, owners, source IDs, trigger, purpose, activities, outputs, acceptance, verification, risks, do-not-use, reassessment). Do not invent fields the PDF does not contain.
-2. Transcribe mappings into `tactic-bindings.json`:
-   - PRIMARY → `primary_criterion_id`
-   - pair criterion → reciprocal RELATED (or a dedicated `pair` field)
-   - remaining index column → SUPPORTING
-   - `mandatory_when_activated: true` only on anti-pattern PRIMARY bindings (activate when the finding is locked PRESENT or UNRESOLVED)
-   - capability PRIMARY bindings are candidates when the capability is below target; they are not auto-required (ADR-003)
-3. Replace `id_pattern` / `id_prefixes` and `validation-rules.json` `tactic_id_pattern` with the scheme above.
-4. Stop hard-returning `[]` from `landingZoneTactics()` / `landingZoneTacticActivityPlaybook()`. Load pack JSON. Keep fail-visible if content is missing. Never import `finops_tactics_database.json` or `finops_tactic_activity_playbook.json` in production.
-5. Adapt pack records onto the existing kernel types `StrategicTactic` and `TacticActivityPlaybookEntry`. Do not rewrite ADR-003 grounding. Do not enable FinOps-style “category expansion” similarity matching — supporting mappings are exact IDs only.
-6. Record playbook version `1.0.0` on RunTrace (`playbook_version`, tactic DB hash from the LZ pack).
-7. Treat playbook phrases such as “live control-plane inventory” and “provider-pack queries” as **file-set exports** against locked Step 0 scope, not live cloud APIs.
+Conversion is implemented:
+
+1. `scripts/transcribe-lz-tactical-playbook.py` transcribes each PDF object into `src/domain-packs/landing-zone/tactics.json` and mappings into `tactic-bindings.json`.
+2. PRIMARY is the exact primary criterion. Pair is RELATED. Remaining index mappings are SUPPORTING. `mandatory_when_activated` is true only on anti-pattern PRIMARY bindings.
+3. `landingZoneTactics()` and `landingZoneTacticActivityPlaybook()` load pack JSON and adapt it onto kernel `StrategicTactic` / `TacticActivityPlaybookEntry`. Missing content still fails visible. FinOps tactic JSON is never imported in production.
+4. `src/kernel/tacticIds.ts` captures both LZ IDs (`TAC-ORG-A1-01`) and characterization stubs (`TAC-GOV-001`).
+5. Playbook phrases such as “live control-plane inventory” and “provider-pack queries” mean file-set exports against locked Step 0 scope, not live cloud APIs.
+
+Re-run transcription after a new approved PDF:
+
+```
+python3 scripts/transcribe-lz-tactical-playbook.py
+npm run test:lz-tactics
+```
 
 ## Canonical object fields (from the PDF)
 

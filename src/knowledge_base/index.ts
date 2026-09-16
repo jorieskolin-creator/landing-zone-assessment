@@ -650,7 +650,7 @@ ${formattedContext}
 <TACTIC_ACTIVITY_PLAYBOOK usage="roadmap_activity_guidance_only_not_customer_evidence">
 BOUNDARIES:
 - Use PRIMARY bindings activated by verified findings as required roadmap foundations.
-- Evaluate SUPPORTING and RELATED bindings semantically against locked findings and applicability guidance.
+- Evaluate SUPPORTING and RELATED bindings only when they are exact approved mappings on locked findings. Do not infer extra tactic IDs by title or similarity.
 - Use this playbook to enrich roadmap WHY, WHAT, and HOW only after that grounding decision.
 - Never cite this playbook as proof of the assessed organization's current state.
 - Never copy this playbook into source_evidence_quote.

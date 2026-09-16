@@ -11,6 +11,8 @@ import type {
   MaturityPairRegistry,
   StrategicTactic,
   TacticActivityPlaybookEntry,
+  TacticCriterionBinding,
+  TacticRelationship,
 } from "../types";
 import {
   batchTitles,
@@ -178,9 +180,71 @@ export const landingZonePreflightKeywords = () => {
   };
 };
 
-export const landingZoneTactics = (): StrategicTactic[] => [];
+export const landingZoneTactics = (): StrategicTactic[] =>
+  LANDING_ZONE_PACK.tactics.map((tactic) => ({
+    id: tactic.id,
+    category: tactic.design_area_id || "",
+    canonical_name: tactic.canonical_name || tactic.title,
+    problem_pattern: tactic.purpose || tactic.title || "",
+    solution_mechanism: (tactic.implementation_activities || []).join(" "),
+    case_study: "PLAYBOOK: not a customer case study. Completion creates evidence only.",
+    prerequisites: tactic.activation_trigger ? [tactic.activation_trigger] : [],
+    owner_persona: tactic.primary_owner,
+    expected_outcome: (tactic.acceptance_criteria || []).join(" "),
+    risk_notes: [tactic.implementation_risk, tactic.risk_control].filter(Boolean).join(" "),
+    resource_label: "Landing Zone Tactical Playbook v1.0.0",
+  }));
 
-export const landingZoneTacticActivityPlaybook = (): TacticActivityPlaybookEntry[] => [];
+export const landingZoneTacticActivityPlaybook = (): TacticActivityPlaybookEntry[] => {
+  const bindingsByTactic = new Map<string, typeof LANDING_ZONE_PACK.tacticBindings>();
+  for (const binding of LANDING_ZONE_PACK.tacticBindings) {
+    const list = bindingsByTactic.get(binding.tactic_id) || [];
+    list.push(binding);
+    bindingsByTactic.set(binding.tactic_id, list);
+  }
+  return LANDING_ZONE_PACK.tactics.map((tactic) => {
+    const maturity_bindings: TacticCriterionBinding[] = [];
+    const antipattern_bindings: TacticCriterionBinding[] = [];
+    for (const binding of bindingsByTactic.get(tactic.id) || []) {
+      const relationship = (binding.relationship || "RELATED") as TacticRelationship;
+      const mandatory = Boolean(binding.mandatory_when_activated) && relationship === "PRIMARY";
+      for (const criterionId of binding.criterion_ids || []) {
+        maturity_bindings.push({
+          criterion_id: criterionId,
+          relationship,
+          mandatory_when_activated: false,
+        });
+      }
+      for (const criterionId of binding.antipattern_ids || []) {
+        antipattern_bindings.push({
+          criterion_id: criterionId,
+          relationship,
+          mandatory_when_activated: mandatory,
+        });
+      }
+    }
+    return {
+      tactic_id: tactic.id,
+      category: tactic.design_area_id || "",
+      maturity_bindings,
+      antipattern_bindings,
+      activity_goal: tactic.purpose || tactic.title || "",
+      when_to_use: tactic.activation_trigger ? [tactic.activation_trigger] : [],
+      when_not_to_use: tactic.do_not_use ? [tactic.do_not_use] : [],
+      prerequisite_evidence: tactic.required_outputs || [],
+      implementation_activities: tactic.implementation_activities || [],
+      owner_roles: [tactic.primary_owner, ...(tactic.supporting_roles || [])].filter(
+        (role): role is string => Boolean(role),
+      ),
+      expected_artifacts: tactic.required_outputs || [],
+      semantic_hints: (tactic.supporting_criterion_ids || []).map((id) => `exact mapping ${id}`),
+      acceptance_criteria: tactic.acceptance_criteria || [],
+      risks_and_controls: [tactic.implementation_risk, tactic.risk_control].filter(
+        (item): item is string => Boolean(item),
+      ),
+    };
+  });
+};
 
 export const landingZoneTacticsStatus = (): string =>
   String((tacticsManifest as { status?: string }).status || LANDING_ZONE_PACK.knowledgeBase.status);
