@@ -63,6 +63,8 @@
     "test:kb-index": "node scripts/test-kb-index.mjs",
     "test:kb-pair-samples": "node scripts/test-kb-pair-samples.mjs",
     "test:lz-kb-authoring": "node scripts/test-lz-kb-authoring.mjs",
+    "test:lz-kb-blob-prefix": "node scripts/test-lz-kb-blob-prefix.mjs",
+    "kb:blob-layout": "node scripts/print-lz-kb-blob-layout.mjs",
     "test:lz-tactic-catalogue-index": "node scripts/test-lz-tactic-catalogue-index.mjs",
     "test:lz-tactics": "node scripts/test-lz-tactics.mjs",
     "test:acquisition-quality": "node scripts/test-acquisition-quality.mjs",

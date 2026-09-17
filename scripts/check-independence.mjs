@@ -85,5 +85,6 @@ assert.match(kbIndexJs, /FinOps Knowledge Base content is rejected/);
 const apiKb = await readFile(join(ROOT, "api/kb-index.js"), "utf8");
 assert.doesNotMatch(apiKb, /FINOPS_KB_BLOB_PREFIX/);
 assert.match(apiKb, /LZ_KB_BLOB_PREFIX/);
+assert.match(apiKb, /resolveLzKbBlobPrefix/);
 
 console.log("independence check passed");

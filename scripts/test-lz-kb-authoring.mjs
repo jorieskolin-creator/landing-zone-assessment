@@ -100,3 +100,4 @@ assert.match(envExample, /Runtime ingest remains Vercel Blob/);
 const apiKb = await readFile(new URL('../api/kb-index.js', import.meta.url), 'utf8');
 assert.doesNotMatch(apiKb, /GOOGLE_DRIVE_KB/);
 assert.match(apiKb, /LZ_KB_BLOB_PREFIX/);
+assert.match(apiKb, /resolveLzKbBlobPrefix/);
