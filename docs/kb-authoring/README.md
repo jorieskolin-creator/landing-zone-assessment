@@ -4,9 +4,31 @@ Author **two documents per pack pair**. Pair identity already lives in `src/doma
 
 The engine loads **80 documents**, keyed `maturity:A1` … `maturity:H5` and `antipattern:AP-A1` … `antipattern:AP-H5`. It does not ingest the authoring envelope JSON. Split each envelope into two PDFs (JSON front matter first, then headings).
 
-Authoring lives in the Google Drive folder identified by `GOOGLE_DRIVE_KB` (LZ Assessment KB). Drive uses letter folders `A`–`H`. Runtime ingest is still Vercel Blob under `LZ_KB_BLOB_PREFIX` (`Landing Zone Knowledge Base/<Design Area Name>/`). Copy only the canonical PDFs into Blob; keep `PAIR-*.md` / `PAIR-*.json` as authoring companions.
+Authoring lives in the Google Drive folder identified by `GOOGLE_DRIVE_KB` (LZ Assessment KB). Drive is human-use storage: letter folders `A`–`H`, plus `PAIR-*.md` / `PAIR-*.json` companions. The engine does not read Drive.
 
-Validate a local snapshot with:
+Runtime ingest is Vercel Blob under `LZ_KB_BLOB_PREFIX` (`Landing Zone Knowledge Base/<Design Area Name>/`). Copy only the 80 canonical PDFs into Blob. Keep markdown and JSON on Drive.
+
+Print the exact Blob folders and pathnames from the pack:
+
+```
+npm run kb:blob-layout
+```
+
+## Enable Blob as the production Knowledge Base
+
+Do this only when all 80 PDFs are ready. A partial A–E upload is not a production KB.
+
+1. Keep Drive as authoring storage. Do not add `GOOGLE_DRIVE_KB` to Railway for ingest.
+2. Create a **Landing Zone** Vercel Blob store (do not reuse the FinOps Engine store or the FinOps prefix `Knowledge Base/`).
+3. Upload the 80 PDFs with the Blob pathnames from `npm run kb:blob-layout`. Filename and design-area folder names must match the pack exactly, including `&`.
+4. On the Railway service **Landing Zone Assessment**, set:
+   - `BLOB_READ_WRITE_TOKEN` = the LZ Blob store token (replace the current token if it belongs to FinOps)
+   - `LZ_KB_BLOB_PREFIX` = `Landing Zone Knowledge Base/`
+5. Do **not** set `LANDING_ZONE_KB_PREFIX`. That FinOps name is already on Railway as `Knowledge Base/` and the engine ignores it on purpose. You may delete it to avoid confusion.
+6. Redeploy or restart the Railway app. Sign in, then `GET /api/kb-index` should report `status.source=remote_blob`, `document_count=80`, `failure_count=0`, and `delivery.shadow_ready=true`.
+7. Leave Redis off until you want a real analysis run. Blob ingest does not require Redis.
+
+Validate a Drive snapshot before copying PDFs:
 
 ```
 node scripts/validate-lz-kb-authoring.mjs /path/to/lz-assessment-kb

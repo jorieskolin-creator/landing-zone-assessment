@@ -1,10 +1,10 @@
 import { requireSession } from '../lib/auth.js';
 import { buildKbStatus, sanitizeKbDocument, textLooksLikeFinopsKnowledge } from '../lib/kbIndex.js';
+import { isRejectedFinopsBlobPrefix, resolveLzKbBlobPrefix } from '../lib/lzKbBlobPrefix.js';
 import { createHash } from 'node:crypto';
 
 const BLOB_API_URL = 'https://vercel.com/api/blob';
 const BLOB_API_VERSION = '12';
-const DEFAULT_PREFIX = 'Landing Zone Knowledge Base/';
 const CACHE_TTL_MS = 45 * 60 * 1000;
 const CACHE_FAILURE_TTL_MS = 30 * 1000;
 const MAX_BLOBS = 300;
@@ -26,12 +26,7 @@ const parseStoreIdFromReadWriteToken = (token) => {
   return storeId;
 };
 
-const normalizePrefix = (prefix) => {
-  const value = String(prefix || DEFAULT_PREFIX).trim();
-  return value.endsWith('/') ? value : `${value}/`;
-};
-
-const kbBlobPrefix = () => normalizePrefix(process.env.LZ_KB_BLOB_PREFIX || DEFAULT_PREFIX);
+const kbBlobPrefix = () => resolveLzKbBlobPrefix(process.env); // LZ_KB_BLOB_PREFIX; never LANDING_ZONE_KB_PREFIX
 
 const blobHeaders = (token) => {
   const storeId = parseStoreIdFromReadWriteToken(token);
@@ -184,6 +179,15 @@ export async function fetchBlobBytes(blob, token) {
 async function buildRemoteIndex() {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   const prefix = kbBlobPrefix();
+  if (isRejectedFinopsBlobPrefix(prefix)) {
+    const failures = [{ pathname: prefix, reason: 'REMOTE_KB_FINOPS_CONTENT_REJECTED' }];
+    console.warn('[Landing Zone KnowledgeBase] event=kb_index_fallback error_code=REMOTE_KB_FINOPS_CONTENT_REJECTED');
+    return {
+      status: buildKbStatus([], failures, 'fallback', prefix),
+      documents: [],
+      failures,
+    };
+  }
   if (!token) {
     const failures = [{ pathname: prefix, reason: 'BLOB_READ_WRITE_TOKEN is not configured' }];
     console.info('[Landing Zone KnowledgeBase] event=kb_index_fallback error_code=BLOB_TOKEN_MISSING');
