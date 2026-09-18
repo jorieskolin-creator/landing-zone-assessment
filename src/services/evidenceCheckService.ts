@@ -13,6 +13,8 @@ import {
   CriterionQuestionResult,
 } from '../types';
 import { runStage, RunContext, serverLog } from './modelRouter';
+// @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
+import { OUTPUT_CONTRACT_IDS } from '../../lib/outputContracts.js';
 import { isEvidenceQuoteBoundToChunk, isEvidenceQuoteBoundToDerivedEvidence, isValidEvidenceVerifierItem, verifyTextEvidenceSupport } from './evidenceSupport';
 import {
   antiPatternStatusDescription,
@@ -186,7 +188,8 @@ ${summarizeBatch(batch)}
 - Document vs platform mismatch is a contradiction. Workshops explain; they do not vote platform facts away.
 - verified_count must be 0-3 and must not exceed original_count.
 - rescan_recommended should be true when status is weak, unsupported, or missing and original_count > 0.
-- For anti-pattern items, also return antipattern_absence_status:
+- Every item must include antipattern_absence_status and coverage_reason. For maturity items set antipattern_absence_status to "unknown_absent" and coverage_reason to "not applicable".
+- For anti-pattern items, antipattern_absence_status:
   - "confirmed_present": verified_count > 0 and the harmful pattern is evidenced.
   - "partially_present": verified_count is 1-2 or the harmful pattern signal is weak/partial.
   - "tested_absent": verified_count is 0, original_count is 0, no weak/partial harmful signal exists, AND Class 1 coverage would reasonably reveal the anti-pattern if present.
@@ -197,11 +200,11 @@ ${summarizeBatch(batch)}
 </rules>
 
 <output_format>
-Return STRICT JSON:
+Return STRICT JSON with exactly 10 items, five maturity then five antipattern, IDs ${batchId}1-${batchId}5:
 {
   "items": [
     {
-      "stream": "maturity | antipattern",
+      "stream": "maturity",
       "id": "${batchId}1",
       "status": "supported | weak | unsupported | missing",
       "assessment_status": "assessed | not_assessed",
@@ -209,9 +212,22 @@ Return STRICT JSON:
       "verified_count": 1,
       "rationale": "Short explanation of what the raw material does or does not support.",
       "quote_supported": true,
-      "antipattern_absence_status": "confirmed_present | partially_present | tested_absent | unknown_absent",
-      "coverage_reason": "For anti-patterns only: why absence is verified or not assessable.",
-      "rescan_recommended": true
+      "rescan_recommended": true,
+      "antipattern_absence_status": "unknown_absent",
+      "coverage_reason": "not applicable"
+    },
+    {
+      "stream": "antipattern",
+      "id": "${batchId}1",
+      "status": "supported | weak | unsupported | missing",
+      "assessment_status": "assessed | not_assessed",
+      "original_count": 0,
+      "verified_count": 0,
+      "rationale": "Short explanation of what the raw material does or does not support.",
+      "quote_supported": false,
+      "rescan_recommended": false,
+      "antipattern_absence_status": "tested_absent | unknown_absent | partially_present | confirmed_present",
+      "coverage_reason": "Why absence is verified or not assessable."
     }
   ]
 }
@@ -436,6 +452,7 @@ export const runEvidenceCheck = async (
     const resp = await runStage('evidence_check', {
       userText: buildEvidenceCheckPrompt(batchId, definitions, batch, text, referenceKbContext),
       images,
+      outputContract: OUTPUT_CONTRACT_IDS.evidenceCheck,
       validateOutput: value => { validatedVerifierItems(value, batch, expectedIds); },
     }, ctx);
     const byKey = validatedVerifierItems(resp.text, batch, expectedIds);

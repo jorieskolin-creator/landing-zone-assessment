@@ -285,21 +285,50 @@ assert.equal(metaRequest.body.response_format.json_schema.strict, true);
 assert.equal(metaResult.text, '{"schema_version":"ok"}');
 assert.deepEqual(metaResult.usage, { input_tokens: 11, output_tokens: 6, reasoning_tokens: 2 });
 
+let metaKeyRequest;
 await invokeProvider({
   ...packet,
   provider: 'meta',
   model: 'muse-spark-1.3-contributor',
   settings: { max_tokens: 8192, reasoning_effort: 'medium' },
 }, {
-  env: { MODEL_API_KEY: 'alias-model-key' },
+  env: { MODEL_API_KEY: 'preferred-model-key', META_API_KEY: 'legacy-meta-key' },
   fetchFn: async (_url, options) => {
-    assert.equal(options.headers.Authorization, 'Bearer alias-model-key');
+    metaKeyRequest = JSON.parse(options.body);
+    assert.equal(options.headers.Authorization, 'Bearer preferred-model-key');
     return {
       ok: true,
       json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{}' } }] }),
     };
   },
 });
+assert.equal(metaKeyRequest.model, 'muse-spark-1.3-contributor');
+assert.equal(metaKeyRequest.response_format, undefined, 'Meta without an output contract must not send json_object');
+
+let contributorEvidenceRequest;
+await invokeProvider({
+  ...packet,
+  stage: 'evidence_check',
+  provider: 'meta',
+  model: 'muse-spark-1.3-contributor',
+  output_contract: OUTPUT_CONTRACT_IDS.evidenceCheck,
+  settings: { max_tokens: 32768, reasoning_effort: 'medium' },
+}, {
+  env: { MODEL_API_KEY: 'alias-model-key' },
+  fetchFn: async (_url, options) => {
+    contributorEvidenceRequest = JSON.parse(options.body);
+    assert.equal(options.headers.Authorization, 'Bearer alias-model-key');
+    return {
+      ok: true,
+      json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{"items":[]}' } }] }),
+    };
+  },
+});
+assert.equal(contributorEvidenceRequest.model, 'muse-spark-1.3-contributor');
+assert.equal(contributorEvidenceRequest.max_completion_tokens, 32768);
+assert.equal(contributorEvidenceRequest.response_format.type, 'json_schema');
+assert.equal(contributorEvidenceRequest.response_format.json_schema.name, OUTPUT_CONTRACT_IDS.evidenceCheck);
+assert.equal(contributorEvidenceRequest.response_format.json_schema.schema.properties.items.minItems, 10);
 
 await assert.rejects(
   invokeProvider({

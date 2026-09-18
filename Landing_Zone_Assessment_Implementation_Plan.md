@@ -4,7 +4,7 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.21 |
+| Current version | 1.22 |
 | Last updated | 2026-09-18 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
@@ -746,3 +746,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-16 | 1.19 | Work 12: replace leftover FinOps runtime prompts, personas, and reports with Landing Zone pack vocabulary. Cite transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Keep kernel Crawl-Walk-Run math. Do not invent Knowledge Base topic bodies. |
 | 2026-09-18 | 1.20 | Record that all 80 Blob PDFs ingest and are authoring-schema valid. Railway remains `ui_only` without Redis; `/api/run` therefore returns leftover `VERCEL_GOVERNED_DISPATCH_UNSUPPORTED`. Remove the FinOps Tier 1 fixture dropdown. Do not start Engine-Simulation. Next enablement is Redis, then a real uploaded-evidence run with `TEST_MODE=true`. |
 | 2026-09-18 | 1.21 | First live analysis (`6a337686-0200-4e19-9eac-b35c5a17e48e`) failed in 66s, not on a time budget. OCR visual-evidence JSON `"type":"image"` was rejected as `IMAGE_PAYLOAD_DISABLED` for domains D–G. Gemini forensic_audit then succeeded for A–C and H, but client-side schema validation fell forward onto Grok using the same `stage_execution_id`, which the control plane returned as HTTP 409 `INTERNAL_CALL_BINDING_MISMATCH`. Allow OCR type metadata, serialize model-facing visual manifests as `ocr_text`, and mint a new stage execution per model attempt. |
+| 2026-09-18 | 1.22 | Second live analysis (`97948d01-75c3-4424-8a5b-b9264fd2fa36`) showed the pipeline working after 1.21, then stalling mid-run. Keep official Meta id `muse-spark-1.3-contributor`. The 404 is availability/invocation, not a typo: prefer `MODEL_API_KEY`, send `json_schema` for evidence_check, and do not send `json_object` to Meta. Raise Google/xAI/Meta forensic, rescan, and evidence-check completion budgets to 32768 so thinking/reasoning tokens plus JSON fit. Add `assessment_forensic_audit_v1`, `assessment_targeted_rescan_v1`, and `assessment_evidence_check_v1` so Grok/Gemini/Meta emit the 10-item batch JSON the client already validates. |

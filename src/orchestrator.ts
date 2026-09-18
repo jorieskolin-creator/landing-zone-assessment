@@ -3,6 +3,8 @@ import { generateBatchSystemInstruction, generateBatchUserPrompt, generateTarget
 import { BATCH_DEFINITIONS, BATCH_IDS, expectedBatchOutputIdsFor, knowledgeBaseService } from './knowledge_base';
 import { runStage, serverLog, RunContext, StageExecutionError } from './services/modelRouter';
 import { StageId } from './models';
+// @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
+import { OUTPUT_CONTRACT_IDS } from '../lib/outputContracts.js';
 import { EvidenceCheckItem, EvidenceCheckResult, EvidenceLaneStagePacket, ImageInput, SemanticGapRetrievalPassTrace, SemanticGapRetrievalTrace } from './types';
 import { assertEvidenceLaneStagePacket } from './services/evidenceStagePacketService';
 import {
@@ -30,6 +32,41 @@ const parseAiResponse = (text: string): any => {
     console.error("[Landing Zone Orchestrator] JSON parse failed; response content omitted by logging policy.");
     throw new Error("AI response was not valid JSON.");
   }
+};
+
+const normalizeEvidenceQuote = (quote: any) => {
+  if (!quote || typeof quote !== 'object') return quote;
+  const next = { ...quote };
+  if (next.evidence_source === 'derived') {
+    if (next.chunk_id === '' || next.chunk_id == null) delete next.chunk_id;
+  } else if (next.derived_evidence_id === '' || next.derived_evidence_id == null) {
+    delete next.derived_evidence_id;
+  }
+  return next;
+};
+
+const domainAuditFromModelOutput = (value: string): { maturity: Record<string, any>; antipattern: Record<string, any> } => {
+  const parsed = parseAiResponse(value);
+  const result: { maturity: Record<string, any>; antipattern: Record<string, any> } = { maturity: {}, antipattern: {} };
+  const assignItem = (stream: string, id: string, item: any) => {
+    if ((stream !== 'maturity' && stream !== 'antipattern') || typeof id !== 'string' || !item || typeof item !== 'object') return;
+    const quotes = Array.isArray(item.evidence_quotes) ? item.evidence_quotes.map(normalizeEvidenceQuote) : item.evidence_quotes;
+    result[stream][id] = { ...item, evidence_quotes: quotes };
+  };
+  if (Array.isArray(parsed?.items)) {
+    for (const item of parsed.items) {
+      if (!item || typeof item !== 'object') continue;
+      const { stream, id, ...rest } = item;
+      assignItem(stream, id, rest);
+    }
+    return result;
+  }
+  for (const stream of ['maturity', 'antipattern'] as const) {
+    const bucket = parsed?.[stream];
+    if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket)) continue;
+    for (const [id, item] of Object.entries(bucket)) assignItem(stream, id, item);
+  }
+  return result;
 };
 
 export interface Phase1SourcePackets {
@@ -92,7 +129,7 @@ ${text}
 
   const expected = expectedIds || expectedBatchOutputIdsFor(batchId);
   const validateBatchOutput = (value: string): void => {
-    const candidate = parseAiResponse(value);
+    const candidate = domainAuditFromModelOutput(value);
     for (const stream of ['maturity', 'antipattern'] as const) {
       const bucket = candidate?.[stream];
       const keys = bucket && typeof bucket === 'object' && !Array.isArray(bucket) ? Object.keys(bucket).sort() : [];
@@ -134,9 +171,10 @@ ${text}
     userText,
     systemInstruction,
     images,
+    outputContract: stage === 'targeted_rescan' ? OUTPUT_CONTRACT_IDS.targetedRescan : OUTPUT_CONTRACT_IDS.forensicAudit,
     validateOutput: validateBatchOutput,
   }, ctx);
-  const parsed = parseAiResponse(response.text);
+  const parsed = domainAuditFromModelOutput(response.text);
   return { ...parsed, model_used: response.modelUsed.id };
 };
 

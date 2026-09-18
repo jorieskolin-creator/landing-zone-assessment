@@ -38,13 +38,14 @@ const diagnostics=packetRuntimeDiagnostics(packet,approvedPacketBytes(packet));a
 for(const mutate of [o=>({...o,text:'changed'}),o=>({...o,source_packet_hash:'0'.repeat(64)}),o=>({...o,schema_version:'old'})])assert.throws(()=>validateGovernedOutput(mutate(output),{source_packet_hash:packet.packet_hash}),/INVALID_GOVERNED_OUTPUT/);
 for(const text of ['password=[REDACTED:password]','data:image/png;base64,AAAA','contract value: $250000','invoice number: INV-99887','bad\uD800',''])assert.throws(()=>inspectOutput(text,packet),/OUTPUT_INSPECTION_REJECTED/);
 assert.throws(()=>authorizeDestination('forensic_audit','anthropic','claude-sonnet-5',{max_tokens:1}),/INVALID_MODEL_SETTINGS/);
-const xaiRequest={...request,provider:'xai',model:'grok-4.6',destination:'xai:external_model',system_instruction:'Return JSON only',settings:{max_tokens:16384,reasoning_effort:'medium'}};
+const xaiRequest={...request,provider:'xai',model:'grok-4.6',destination:'xai:external_model',system_instruction:'Return JSON only',settings:{max_tokens:32768,reasoning_effort:'medium'}};
 assert.equal(approveRequest(xaiRequest).provider,'xai');
-assert.throws(()=>authorizeDestination('forensic_audit','xai','grok-4.6',{max_tokens:4096,reasoning_effort:'medium'}),/INVALID_MODEL_SETTINGS/);
-const googleRequest={...request,provider:'google',model:'gemini-3.8-flash',destination:'google:external_model',system_instruction:'Return JSON only',settings:{max_tokens:16384,reasoning_effort:'medium'}};
+assert.throws(()=>authorizeDestination('forensic_audit','xai','grok-4.6',{max_tokens:16384,reasoning_effort:'medium'}),/INVALID_MODEL_SETTINGS/);
+const googleRequest={...request,provider:'google',model:'gemini-3.8-flash',destination:'google:external_model',system_instruction:'Return JSON only',settings:{max_tokens:32768,reasoning_effort:'medium'}};
 assert.equal(approveRequest(googleRequest).provider,'google');
 assert.equal(approveRequest({...request,stage:'fact_check',provider:'meta',model:'muse-spark-1.3',destination:'meta:external_model',settings:{max_tokens:16384,reasoning_effort:'medium'}}).provider,'meta');
-assert.throws(()=>authorizeDestination('forensic_audit','google','gemini-3.8-flash',{max_tokens:16384,reasoning_effort:'xhigh'}),/INVALID_MODEL_SETTINGS/);
+assert.throws(()=>authorizeDestination('forensic_audit','google','gemini-3.8-flash',{max_tokens:16384,reasoning_effort:'medium'}),/INVALID_MODEL_SETTINGS/);
+assert.throws(()=>authorizeDestination('forensic_audit','google','gemini-3.8-flash',{max_tokens:32768,reasoning_effort:'xhigh'}),/INVALID_MODEL_SETTINGS/);
 const synthesisRequest={...request,stage:'synthesis',settings:{max_tokens:24576},output_contract:OUTPUT_CONTRACT_IDS.evidenceSynthesis};
 assert.equal(approveRequest(synthesisRequest).output_contract,OUTPUT_CONTRACT_IDS.evidenceSynthesis);
 assert.throws(()=>approveRequest({...synthesisRequest,settings:{max_tokens:16384}}),/INVALID_MODEL_SETTINGS/);
