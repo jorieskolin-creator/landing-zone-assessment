@@ -70,6 +70,12 @@ const modelSafeDerivedEvidence = (items: DerivedAnalyticalEvidence[]): string =>
   unit_fingerprint: item.unit_fingerprint,
 }))).replace(/[<>&]/g, value => value === '<' ? '\\u003c' : value === '>' ? '\\u003e' : '\\u0026');
 
+const modelSafeVisualEvidence = (items: EvidenceLaneStagePacket['sanitized_visual_evidence']): string =>
+  JSON.stringify(items.map(item => ({
+    ...item,
+    type: item.type === 'image' ? 'ocr_text' : item.type,
+  })));
+
 const hashable = (packet: Omit<EvidenceLaneStagePacket, 'integrity_hash' | 'text'>): string =>
   JSON.stringify(packet);
 
@@ -104,7 +110,7 @@ ${packet.policy.forbidden_uses.map(value => `- ${value}`).join('\n')}
 ${JSON.stringify(packet.evidence)}
 </EVIDENCE_MANIFEST>
 <SANITIZED_VISUAL_EVIDENCE_MANIFEST count="${packet.sanitized_visual_evidence.length}">
-${JSON.stringify(packet.sanitized_visual_evidence)}
+${modelSafeVisualEvidence(packet.sanitized_visual_evidence)}
 </SANITIZED_VISUAL_EVIDENCE_MANIFEST>
 <CUSTOMER_EVIDENCE>
 ${sourceText}

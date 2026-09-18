@@ -250,17 +250,22 @@ async function postWithTimeout(url: string, body: any, approval: any): Promise<{
       signal: controller.signal,
     });
     if (!res.ok) {
+      const failure = await res.json().catch(() => null);
+      const gatewayCode = typeof failure?.error === 'string' ? failure.error : (res.status === 404 ? 'PACKET_UNAVAILABLE' : 'GATEWAY_HTTP_ERROR');
       await serverLog(body.run_id, 'warn', 'internal_result_error', {
         stage: body.stage || 'unknown',
         model: approval.model || 'governed',
         internal_call_id: body.internal_call_id,
-        error_code: res.status === 404 ? 'packet_unavailable' : 'gateway_http_error',
+        error_code: gatewayCode.toLowerCase(),
         http_status: res.status,
       });
-      // Both provider-gateway 404 paths occur before an attempt is reserved
-      // and before the external-send fence. A different model can therefore
-      // be tried without risking duplicate provider execution.
-      if (res.status === 404) throw new StageExecutionError('FALLBACK_ALLOWED', true);
+      // 404 and a closed stage-execution binding both occur before this
+      // fallback packet is reserved. A different model can be tried without
+      // risking duplicate provider execution.
+      if (res.status === 404 || gatewayCode === 'PACKET_UNAVAILABLE' || gatewayCode === 'INTERNAL_CALL_BINDING_MISMATCH') {
+        throw new StageExecutionError(gatewayCode === 'INTERNAL_CALL_BINDING_MISMATCH' ? 'INTERNAL_CALL_BINDING_MISMATCH' : 'FALLBACK_ALLOWED', true);
+      }
+      if (gatewayCode === 'RUN_INACTIVE') throw new StageExecutionError('RUN_INACTIVE');
       throw new Error(`${url} request failed (HTTP ${res.status})`);
     }
     if (!res.body) {
@@ -352,9 +357,13 @@ export async function runStage(stage: StageId, prompt: NormalizedPrompt, ctx: Ru
   const promptHash = hashString(`${stage}\n${role}\n${rolePrompt.outputContract || 'unstructured'}\n${rolePrompt.systemInstruction || ''}\n${rolePrompt.userText}`);
   const contextPacketHash = hashString(rolePrompt.userText);
   const fallbackChain = chain.map(profile => profile.id);
-  const executionContext = { ...ctx, stageExecutionId: newInternalCallId() };
   for (const profile of chain) {
     try {
+      // Each model attempt needs its own stage execution. The worker marks a
+      // stage succeeded when the provider returns governed text, which is
+      // before client-side semantic validation. Reusing that id on fallback
+      // is rejected as INTERNAL_CALL_BINDING_MISMATCH (HTTP 409).
+      const executionContext = { ...ctx, stageExecutionId: newInternalCallId() };
       const result = await callModel(profile, rolePrompt, stage, executionContext);
       if (rolePrompt.validateOutput) {
         try {

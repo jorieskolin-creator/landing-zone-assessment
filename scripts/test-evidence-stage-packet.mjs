@@ -141,6 +141,8 @@ assert.equal(packet.withheld_content.raw_image_payload_count, 0);
 assert.match(packet.text, /knowledge_context\[\] is intentionally empty/);
 assert.match(packet.text, /<EVIDENCE_MANIFEST count="1">/);
 assert.match(packet.text, /<SANITIZED_VISUAL_EVIDENCE_MANIFEST count="1">/);
+assert.match(packet.text, /"type":"ocr_text"/);
+assert.doesNotMatch(packet.text, /"type"\s*:\s*"image"/, 'model-facing OCR manifest must not trip IMAGE_PAYLOAD_DISABLED');
 assert.match(packet.text, /PACKET_COVERAGE_WARNINGS_PRESENT/);
 assert.match(packet.text, /withheld_sheets="1" withheld_rows="2" withheld_columns="1"/);
 assert.match(packet.text, /Workbook images from 1 source\(s\) remain uninspected and withheld/);
