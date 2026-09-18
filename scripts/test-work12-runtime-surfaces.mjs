@@ -43,6 +43,12 @@ assert.match(exportSource, /id="lz-assessment-data"/);
 assert.doesNotMatch(exportSource, /FinOps Engine/);
 assert.doesNotMatch(exportSource, /id="finops-data"/);
 
+const appSource = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8');
+assert.doesNotMatch(appSource, /TIER1_FIXTURES/);
+assert.doesNotMatch(appSource, /Tier 1 Fixture/);
+assert.doesNotMatch(appSource, /FinOps CoE Charter/);
+assert.doesNotMatch(appSource, /tier1-governance-policy/);
+
 const valid = {
   phase_3_strategy: {
     executive_summaries: {
