@@ -23,7 +23,10 @@ for(const text of ['negotiated discount rate: 37%','contract value: $250000','bi
 for(const text of ['{"password":"hunter2"}','Format: CSV\nHeaders: contract value\nValues: $250000','{"invoice_number":"INV-99887"}'])assert.throws(()=>approveRequest({...request,parts:[{type:'text',text}]}),/SECRET_MATERIAL_REJECTED|RESIDUAL_CLASSIFICATION_REJECTED/);
 assert.throws(()=>approveRequest({...request,system_instruction:'password=',parts:[{type:'text',text:'hunter2'}]}),/SECRET_MATERIAL_REJECTED/);
 assert.throws(()=>approveRequest({...request,parts:[{type:'text',text:'data:image/png;base64,AAAA'}]}),/IMAGE_PAYLOAD_DISABLED/);
+assert.throws(()=>approveRequest({...request,parts:[{type:'text',text:'{"type":"input_image","source":{"type":"base64","data":"AAAA"}}'}]}),/IMAGE_PAYLOAD_DISABLED/);
+assert.doesNotThrow(()=>approveRequest({...request,parts:[{type:'text',text:'{"type":"image","ocr_confidence":88,"visual_interpretation_status":"OCR_TEXT_ONLY"}'}]}),'OCR visual-evidence metadata is not an external image part');
 const packet=approveRequest(request,1000);const output=inspectOutput('Email a@b.com 😀 𝄞',packet,2000);assert.equal(output.text,'Email [REDACTED_EMAIL] 😀 𝄞');assert.equal(validateGovernedOutput(output,{source_packet_id:packet.packet_id}),output);
+assert.doesNotThrow(()=>inspectOutput('{"type":"image","ocr_confidence":88}',packet), 'model output may echo OCR type metadata');
 const expectedBinding={packetId:packet.packet_id,packetHash:packet.packet_hash,runId:packet.run_id,provider:packet.provider,model:packet.model,stage:packet.stage};
 assert.equal(evaluatePacketBinding(packet,expectedBinding).code,null);
 assert.equal(evaluatePacketBinding({...packet,packet_id:'different'},expectedBinding).code,'PACKET_ID_MISMATCH');

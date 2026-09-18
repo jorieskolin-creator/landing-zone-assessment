@@ -97,29 +97,37 @@ ${text}
       const bucket = candidate?.[stream];
       const keys = bucket && typeof bucket === 'object' && !Array.isArray(bucket) ? Object.keys(bucket).sort() : [];
       const wanted = [...expected[stream]].sort();
-      if (keys.length !== wanted.length || keys.some((key, index) => key !== wanted[index])) throw new Error('INVALID_BATCH_OUTPUT_IDS');
-      for (const id of keys) {
-        const item = bucket[id];
-        const questionResults = Array.isArray(item?.question_results) ? item.question_results : [];
-        const supportedQuestions = questionResults.filter((result: unknown) => result === 'supported').length;
-        const validQuestionResults = questionResults.length === 3
-          && questionResults.every((result: unknown) => ['supported', 'not_supported', 'unknown'].includes(String(result)));
-        const validAssessment = item?.assessment_status === 'assessed' || item?.assessment_status === 'not_assessed';
-        if (!item || !Number.isInteger(item.count) || item.count < 0 || item.count > 3
-          || typeof item.evidence !== 'string' || typeof item.reasoning !== 'string'
-          || !Array.isArray(item.evidence_quotes) || !validQuestionResults || !validAssessment
-          || item.count !== supportedQuestions
-          || (item.assessment_status === 'not_assessed' && (item.count !== 0 || questionResults.some((result: unknown) => result !== 'unknown')))) {
-          throw new Error('INVALID_BATCH_OUTPUT_SCHEMA');
+        if (keys.length !== wanted.length || keys.some((key, index) => key !== wanted[index])) {
+          throw Object.assign(new Error('INVALID_BATCH_OUTPUT_IDS'), { code: 'INVALID_BATCH_OUTPUT_IDS' });
         }
-        if (item.assessment_status === 'assessed' && item.evidence_quotes.length === 0) throw new Error('INVALID_BATCH_OUTPUT_PROVENANCE');
-        if (item.assessment_status === 'not_assessed' && item.evidence_quotes.length > 0) throw new Error('INVALID_BATCH_OUTPUT_PROVENANCE');
-        if (item.evidence_quotes.some((quote: any) => !quote || typeof quote.quote !== 'string'
-          || typeof quote.source_id !== 'string'
-          || (quote.evidence_source === 'derived'
-            ? typeof quote.derived_evidence_id !== 'string' || quote.chunk_id !== undefined
-            : typeof quote.chunk_id !== 'string'))) throw new Error('INVALID_BATCH_OUTPUT_PROVENANCE');
-      }
+        for (const id of keys) {
+          const item = bucket[id];
+          const questionResults = Array.isArray(item?.question_results) ? item.question_results : [];
+          const supportedQuestions = questionResults.filter((result: unknown) => result === 'supported').length;
+          const validQuestionResults = questionResults.length === 3
+            && questionResults.every((result: unknown) => ['supported', 'not_supported', 'unknown'].includes(String(result)));
+          const validAssessment = item?.assessment_status === 'assessed' || item?.assessment_status === 'not_assessed';
+          if (!item || !Number.isInteger(item.count) || item.count < 0 || item.count > 3
+            || typeof item.evidence !== 'string' || typeof item.reasoning !== 'string'
+            || !Array.isArray(item.evidence_quotes) || !validQuestionResults || !validAssessment
+            || item.count !== supportedQuestions
+            || (item.assessment_status === 'not_assessed' && (item.count !== 0 || questionResults.some((result: unknown) => result !== 'unknown')))) {
+            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_SCHEMA'), { code: 'INVALID_BATCH_OUTPUT_SCHEMA' });
+          }
+          if (item.assessment_status === 'assessed' && item.evidence_quotes.length === 0) {
+            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_PROVENANCE'), { code: 'INVALID_BATCH_OUTPUT_PROVENANCE' });
+          }
+          if (item.assessment_status === 'not_assessed' && item.evidence_quotes.length > 0) {
+            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_PROVENANCE'), { code: 'INVALID_BATCH_OUTPUT_PROVENANCE' });
+          }
+          if (item.evidence_quotes.some((quote: any) => !quote || typeof quote.quote !== 'string'
+            || typeof quote.source_id !== 'string'
+            || (quote.evidence_source === 'derived'
+              ? typeof quote.derived_evidence_id !== 'string' || quote.chunk_id !== undefined
+              : typeof quote.chunk_id !== 'string'))) {
+            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_PROVENANCE'), { code: 'INVALID_BATCH_OUTPUT_PROVENANCE' });
+          }
+        }
     }
   };
   const response = await runStage(stage, {

@@ -4,8 +4,8 @@
 |---|---|
 | Status | Living implementation plan |
 | Initial version | 1.0 |
-| Current version | 1.19 |
-| Last updated | 2026-09-16 |
+| Current version | 1.21 |
+| Last updated | 2026-09-18 |
 | Target | Fully independent Landing Zone Assessment using a source copy of the FinOps Engine kernel as its baseline |
 | Initial input model | User-supplied files and questionnaire material; no live cloud connection |
 
@@ -745,3 +745,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-16 | 1.18 | Status review against `origin/main` `2a4990c`. Works 1–9 and 11 pack conversion are on main. Work 10 contract is on main; Drive authoring has reached A–D plus E1–E4 and is not engine-ready. Next engine work is Work 12. Do not ingest a partial KB. Work 13, full pipeline verification, and real cases wait on complete Knowledge Base content. |
 | 2026-09-16 | 1.19 | Work 12: replace leftover FinOps runtime prompts, personas, and reports with Landing Zone pack vocabulary. Cite transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Keep kernel Crawl-Walk-Run math. Do not invent Knowledge Base topic bodies. |
 | 2026-09-18 | 1.20 | Record that all 80 Blob PDFs ingest and are authoring-schema valid. Railway remains `ui_only` without Redis; `/api/run` therefore returns leftover `VERCEL_GOVERNED_DISPATCH_UNSUPPORTED`. Remove the FinOps Tier 1 fixture dropdown. Do not start Engine-Simulation. Next enablement is Redis, then a real uploaded-evidence run with `TEST_MODE=true`. |
+| 2026-09-18 | 1.21 | First live analysis (`6a337686-0200-4e19-9eac-b35c5a17e48e`) failed in 66s, not on a time budget. OCR visual-evidence JSON `"type":"image"` was rejected as `IMAGE_PAYLOAD_DISABLED` for domains D–G. Gemini forensic_audit then succeeded for A–C and H, but client-side schema validation fell forward onto Grok using the same `stage_execution_id`, which the control plane returned as HTTP 409 `INTERNAL_CALL_BINDING_MISMATCH`. Allow OCR type metadata, serialize model-facing visual manifests as `ocr_text`, and mint a new stage execution per model attempt. |
