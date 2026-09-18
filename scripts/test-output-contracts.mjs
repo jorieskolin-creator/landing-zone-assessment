@@ -167,6 +167,104 @@ assert.match(forensicPrompts, /quote text at most 240 characters/);
 assert.match(forensicPrompts, /evidence at most 180 characters/);
 assert.match(forensicPrompts, /reasoning at most 240 characters/);
 assert.match(forensicPrompts, /no recommendations or repeated definitions/);
+assert.match(forensicPrompts, /"items": \[/);
+assert.match(forensicPrompts, /"stream": "maturity"/);
+assert.doesNotMatch(forensicPrompts, /"maturity": \{\s*"\$\{columnId\}1"/);
+
+const emptyQuote = {
+  quote: '',
+  category: 'Policy',
+  evidence_source: 'text',
+  source_id: '',
+  chunk_id: '',
+  derived_evidence_id: '',
+};
+const forensicItem = (stream, id) => ({
+  stream,
+  id,
+  count: 0,
+  assessment_status: 'not_assessed',
+  question_results: ['unknown', 'unknown', 'unknown'],
+  evidence: 'Silent.',
+  reasoning: 'Not assessed.',
+  evidence_quotes: [],
+});
+const forensicAudit = {
+  items: ['1', '2', '3', '4', '5'].flatMap(n => [
+    forensicItem('maturity', `A${n}`),
+    forensicItem('antipattern', `A${n}`),
+  ]),
+};
+assert.equal(OUTPUT_CONTRACT_IDS.forensicAudit, 'assessment_forensic_audit_v1');
+assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(forensicAudit)), forensicAudit);
+assert.doesNotThrow(() => authorizeOutputContract('forensic_audit', OUTPUT_CONTRACT_IDS.forensicAudit));
+assert.throws(() => authorizeOutputContract('evidence_check', OUTPUT_CONTRACT_IDS.forensicAudit), /INVALID_OUTPUT_CONTRACT/);
+assert.throws(
+  () => validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify({ items: forensicAudit.items.slice(0, 9) })),
+  /INVALID_OUTPUT_CONTRACT/,
+  'forensic_audit requires all 10 criterion items',
+);
+const assessedForensic = {
+  items: forensicAudit.items.map((item, index) => index === 0 ? {
+    ...item,
+    count: 1,
+    assessment_status: 'assessed',
+    question_results: ['supported', 'not_supported', 'unknown'],
+    evidence: 'Found one sub-criterion.',
+    evidence_quotes: [{ ...emptyQuote, quote: 'platform landing zone', source_id: 'src-001', chunk_id: 'src-001-c001' }],
+  } : item),
+};
+assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(assessedForensic)), assessedForensic);
+
+const targeted = { items: [forensicItem('maturity', 'B2')] };
+assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.targetedRescan, JSON.stringify(targeted)), targeted);
+assert.doesNotThrow(() => authorizeOutputContract('targeted_rescan', OUTPUT_CONTRACT_IDS.targetedRescan));
+
+const evidenceCheckItem = (stream, id) => ({
+  stream,
+  id,
+  status: 'missing',
+  assessment_status: 'not_assessed',
+  original_count: 0,
+  verified_count: 0,
+  rationale: 'Silent source.',
+  quote_supported: false,
+  rescan_recommended: false,
+  antipattern_absence_status: stream === 'antipattern' ? 'unknown_absent' : 'unknown_absent',
+  coverage_reason: stream === 'antipattern' ? 'Coverage is silent.' : 'not applicable',
+});
+const evidenceCheck = {
+  items: ['1', '2', '3', '4', '5'].flatMap(n => [
+    evidenceCheckItem('maturity', `C${n}`),
+    evidenceCheckItem('antipattern', `C${n}`),
+  ]),
+};
+assert.equal(OUTPUT_CONTRACT_IDS.evidenceCheck, 'assessment_evidence_check_v1');
+assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceCheck, JSON.stringify(evidenceCheck)), evidenceCheck);
+assert.doesNotThrow(() => authorizeOutputContract('evidence_check', OUTPUT_CONTRACT_IDS.evidenceCheck));
+assert.throws(
+  () => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceCheck, JSON.stringify({ items: evidenceCheck.items.slice(0, 9) })),
+  /INVALID_OUTPUT_CONTRACT/,
+);
+assert.throws(
+  () => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceCheck, JSON.stringify({
+    items: evidenceCheck.items.map((item, index) => index === 0 ? { ...item, verified_count: 1.5 } : item),
+  })),
+  /INVALID_OUTPUT_CONTRACT/,
+);
+
+const metaEvidence = structuredOutputForPacket({
+  stage: 'evidence_check',
+  provider: 'meta',
+  output_contract: OUTPUT_CONTRACT_IDS.evidenceCheck,
+});
+assert.equal(metaEvidence.name, OUTPUT_CONTRACT_IDS.evidenceCheck);
+assert.equal(metaEvidence.schema.additionalProperties, false);
+assert.equal(metaEvidence.schema.properties.items.minItems, 10);
+
+const orchestrator = await readFile(new URL('../src/orchestrator.ts', import.meta.url), 'utf8');
+assert.match(orchestrator, /OUTPUT_CONTRACT_IDS\.forensicAudit/);
+assert.match(orchestrator, /OUTPUT_CONTRACT_IDS\.targetedRescan/);
 
 const synthesisPrompts = await readFile(new URL('../src/constants.ts', import.meta.url), 'utf8');
 assert.match(synthesisPrompts, /ASSESSMENT-STATUS FIDELITY/);

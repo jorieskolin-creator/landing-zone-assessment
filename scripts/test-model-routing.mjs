@@ -86,6 +86,7 @@ assert.deepEqual(config.routes.fact_check[0].reasoningEffort, 'medium');
 assert.equal(config.routes.synthesis[0].maxTokens, 24576, 'Anthropic synthesis alone receives the larger completion budget');
 assert.equal(config.routes.synthesis[1].maxTokens, 16384, 'the Grok synthesis fallback retains its role default');
 assert.equal(config.routes.forensic_audit[0].maxTokens, 16384, 'other Anthropic Workhorse stages retain their role default');
+assert.equal(config.routes.forensic_audit[1].maxTokens, 32768, 'Grok forensic_audit receives reasoning-completion headroom');
 assert.equal(config.routes.quality_gate[0].maxTokens, 16384, 'Quality Gate explanation retains its bounded Workhorse budget');
 assert.equal(config.roles.WORKHORSE.profiles[0].maxTokens, 16384, 'the role default remains bounded outside the stage override');
 assert.throws(() => authorizeConfiguredDestination(
@@ -164,15 +165,19 @@ assert.deepEqual(expandedConfig.routes.forensic_audit.map(value => `${value.prov
   'xai:grok-4.6',
 ]);
 assert.equal(expandedConfig.routes.forensic_audit[0].reasoningEffort, 'medium');
+assert.equal(expandedConfig.routes.forensic_audit[0].maxTokens, 32768, 'Gemini forensic_audit must leave room for thinking plus JSON');
+assert.equal(expandedConfig.routes.forensic_audit[1].maxTokens, 32768);
 assert.deepEqual(expandedConfig.routes.fact_check.map(value => `${value.provider}:${value.id}`), [
   'meta:muse-spark-1.3',
   'openai:gpt-5.4',
 ]);
+assert.equal(expandedConfig.routes.evidence_check[0].maxTokens, 32768, 'Contributor Spark evidence_check uses the same reasoning headroom');
+assert.equal(expandedConfig.routes.fact_check[0].maxTokens, 16384, 'fact_check keeps the Quality Checker default');
 assert.doesNotThrow(() => authorizeConfiguredDestination(
   'evidence_adjudication', 'openai', 'gpt-6-astra', { max_tokens: 32768, reasoning_effort: 'high' }, expandedEnv,
 ));
 assert.doesNotThrow(() => authorizeConfiguredDestination(
-  'forensic_audit', 'google', 'gemini-3.8-flash', { max_tokens: 16384, reasoning_effort: 'medium' }, expandedEnv,
+  'forensic_audit', 'google', 'gemini-3.8-flash', { max_tokens: 32768, reasoning_effort: 'medium' }, expandedEnv,
 ));
 assert.doesNotThrow(() => authorizeConfiguredDestination(
   'fact_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, expandedEnv,
@@ -229,9 +234,18 @@ assert.deepEqual(testModeConfig.routes.fact_check.map(value => `${value.provider
   'meta:muse-spark-1.3-contributor',
   'google:gemini-3.8-flash',
 ]);
+assert.equal(testModeConfig.routes.forensic_audit[0].maxTokens, 32768);
+assert.equal(testModeConfig.routes.evidence_check[0].id, 'muse-spark-1.3-contributor');
+assert.equal(testModeConfig.routes.evidence_check[0].maxTokens, 32768);
 assert.doesNotThrow(() => authorizeConfiguredDestination(
   'fact_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
 ));
+assert.doesNotThrow(() => authorizeConfiguredDestination(
+  'evidence_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
+));
+assert.throws(() => authorizeConfiguredDestination(
+  'evidence_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
+), /DESTINATION_NOT_CONFIGURED/, 'Contributor Spark evidence_check must use the raised completion budget');
 assert.throws(() => authorizeConfiguredDestination(
   'evidence_adjudication', 'openai', 'gpt-6-astra', { max_tokens: 32768, reasoning_effort: 'high' }, testModeEnv,
 ), /DESTINATION_NOT_CONFIGURED/, 'TEST_MODE must ignore production role variables');

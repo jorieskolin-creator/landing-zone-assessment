@@ -111,30 +111,32 @@ For the 5 criteria in Stream A (${columnId}1-${columnId}5) AND the 5 criteria in
 7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Be concise; do not reproduce definitions or add recommendations.
 
 **REQUIRED OUTPUT STRUCTURE (JSON Only):**
+Return exactly 10 items: Stream A ${columnId}1-${columnId}5, then Stream B ${columnId}1-${columnId}5.
 {
-  "maturity": {
-    "${columnId}1": {
+  "items": [
+    {
+      "stream": "maturity",
+      "id": "${columnId}1",
       "count": 0,
       "assessment_status": "assessed | not_assessed",
       "question_results": ["not_supported", "not_supported", "unknown"],
       "evidence": "Summary of evidence...",
-      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "section": "Section name if identifiable", "category": "Policy | Process | Operational | Automation | Accountability | Financial-Integration | Cultural", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001", "page_number": 3 }],
+      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "category": "Policy", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001", "derived_evidence_id": "" }],
       "reasoning": "Crit 1: Found. Crit 2: Not found. Crit 3: Not found. Total: 1."
     },
-    ...
-  },
-  "antipattern": {
-    "${columnId}1": {
+    {
+      "stream": "antipattern",
+      "id": "${columnId}1",
       "count": 0,
       "assessment_status": "not_assessed",
       "question_results": ["unknown", "unknown", "unknown"],
       "evidence": "Document silent on this anti-pattern.",
       "evidence_quotes": [],
       "reasoning": "Crit 1: Not found. Crit 2: Not found. Crit 3: Not found. Total: 0."
-    },
-    ...
-  }
+    }
+  ]
 }
+For derived evidence set evidence_source to "derived", copy derived_evidence_id, and set chunk_id to "". For text or image quotes set derived_evidence_id to "".
 </execution_task>
 `;
 
@@ -190,26 +192,19 @@ Rules:
 
 Required JSON shape:
 {
-  "maturity": {
-    "${columnId}1": {
+  "items": [
+    {
+      "stream": "maturity",
+      "id": "${columnId}1",
       "count": 0,
       "assessment_status": "assessed | not_assessed",
       "question_results": ["not_supported", "not_supported", "unknown"],
       "evidence": "Corrected summary of evidence...",
-      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "section": "Section name if identifiable", "category": "Policy | Process | Operational | Automation | Accountability | Financial-Integration | Cultural", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001", "page_number": 3 }],
+      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "category": "Policy", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001", "derived_evidence_id": "" }],
       "reasoning": "Crit 1: Found/Not found. Crit 2: Found/Not found. Crit 3: Found/Not found. Total: N."
     }
-  },
-  "antipattern": {
-    "${columnId}1": {
-      "count": 0,
-      "assessment_status": "assessed | not_assessed",
-      "question_results": ["unknown", "unknown", "unknown"],
-      "evidence": "Corrected summary of evidence...",
-      "evidence_quotes": [],
-      "reasoning": "Crit 1: Found/Not found. Crit 2: Found/Not found. Crit 3: Found/Not found. Total: N."
-    }
-  }
+  ]
 }
+Return only the listed criteria. For derived evidence set evidence_source to "derived", copy derived_evidence_id, and set chunk_id to "". For text or image quotes set derived_evidence_id to "".
 </execution_task>
 `;

@@ -12,6 +12,11 @@ assert.doesNotMatch(
   /text\.substring\(0,\s*50000\)/,
   'the verifier and anti-pattern adjudicator must receive the complete governed domain packet'
 );
+assert.match(
+  evidenceCheckServiceSource,
+  /outputContract:\s*OUTPUT_CONTRACT_IDS\.evidenceCheck/,
+  'evidence_check must bind the verifier JSON schema before dispatch',
+);
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,
