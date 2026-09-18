@@ -293,7 +293,7 @@ Verified against `origin/main` at `2a4990c` on 2026-09-16. Plan history rows 1.1
 | 7 A–H routing and packets | Done | Kind priors, criterion-token boosts, exclusive out-of-scope withhold, G/H expansion terms, and acquisition diagnostics. Out-of-scope provider evidence is withheld from packets |
 | 8 Forensic evaluation | Done | Dual-stream kernel plus Landing Zone authority overlay (`lzForensicEvaluation`). Quote `evidence_class`, Class 2/3 Count 3 caps, non-platform tested-absence → unknown, class contradictions. Work 12 replaced remaining FinOps synthesis/report prose |
 | 9 Pair scoring and gates | Done | Adapter scores after provenance and the Work 8 overlay. Single-provider results use Foundation/Pilot/Rollout/Operate. Multi-provider headlines stay withheld because Phase 1 logs are still criterion-keyed, not provider-keyed |
-| 10 Knowledge Base | Contract done, content pending | Pack-local index, version metadata, FinOps rejection, fail-closed loading. `topics: []`. Authoring schemas and PAIR-A1 samples exist. Authoring folder is `GOOGLE_DRIVE_KB` (Drive letter folders A–H). Runtime ingest remains Vercel Blob. Drive authoring on 2026-09-16 covers pairs A1–A5, B1–B5, C1–C5, D1–D5, and E1–E4; E5 and F–H are still missing. Duplicate PDFs exist in A and C. Source Register wording cleanup in those documents is author-owned. Do not load a partial Drive snapshot into Blob as the production KB |
+| 10 Knowledge Base | Contract done; 80 Blob PDFs ingested | Pack-local index, version metadata, FinOps rejection, fail-closed loading. Authoring schemas exist. Authoring folder is `GOOGLE_DRIVE_KB` (Drive letter folders A–H). Runtime ingest is Vercel Blob under `Landing Zone Knowledge Base/`. All 80 pair PDFs are in Blob and pass ingest plus authoring-schema checks (`shadow_ready` from a direct Blob read). Railway still runs `ui_only` until Redis is attached. Do not add `GOOGLE_DRIVE_KB` to Railway. Do not set `LANDING_ZONE_KB_PREFIX` |
 | 11 Tactic Playbook | Pack conversion done, KB still pending | Approved PDF v1.0.0 transcribed into 80 pack tactics and 240 bindings. Runtime loaders adapt onto kernel types. No FinOps fallback. Mapping is exact IDs only. Work 12 switched the dashboard/export highlighter to `tacticIdCaptureRx`. Silent-domain coverage against the transcribed playbook can still use characterization IDs in copied-kernel tests |
 | 12 Prompts, personas, reports | Done | Runtime personas are the four pack IDs. Synthesis prompts, fact-check, Quality Gate, exports, and dashboard copy use Landing Zone vocabulary and transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Kernel Crawl-Walk-Run math is unchanged; published labels remain Foundation/Pilot/Rollout/Operate. The Criteria catalogue keeps a dark forensic panel on light paper intake. Knowledge Base topic bodies were not invented |
 | 13 Expert calibration | Not started | No calibration events or customer disposition model |
@@ -305,26 +305,34 @@ Supporting work already on main, outside the numbered Works:
 - Knowledge Base pair-document schemas live in `docs/kb-authoring/` so authors can write two documents per pair in the form the indexer already consumes. `GOOGLE_DRIVE_KB` is the Drive folder ID for that authoring tree. The engine does not read Drive at runtime.
 - HTTP UI boots when Postgres or Redis is missing (`mode: ui_only`). Analysis still needs Redis. Shareable Summary and Master Data HTML exist as static reports. View Criteria heading is Landing Zone Forensic Lens.
 
-Parallel content track: 80 Knowledge Base documents remain author-owned in Drive. They are not engine-ready until the complete set is copied to Vercel Blob and the pack index loads them. The Tactic Playbook v1.0.0 PDF and pack JSON are on main (APPROVED - ACTIVE). The Global Source Register v1.0.0 is the Source Register for Engine composition (APPROVED, effective 2026-09-16). Leftover “Source Register is Preliminary” phrasing in Drive Knowledge Base documents is author cleanup in progress and is not an engine gate.
+Parallel content track: 80 Knowledge Base PDFs are in Vercel Blob under `Landing Zone Knowledge Base/` and pass ingest plus authoring-schema checks. Pack manifest `topics: []` remains the empty contract; runtime uses Blob, not pack topic bodies. The Tactic Playbook v1.0.0 PDF and pack JSON are on main (APPROVED - ACTIVE). The Global Source Register v1.0.0 is the Source Register for Engine composition (APPROVED, effective 2026-09-16). Leftover “Source Register is Preliminary” phrasing in some pair documents is author cleanup and is not an engine gate.
 
 Recommended next implementation order:
 
-1. Work 10 content integration starts only when all 80 documents are present in Blob. Validate references, load the index, and test retrieval and clean-room separation. Do not invent remaining Knowledge Base topic bodies. Do not ingest A–E as a production KB.
-2. Work 13 follows a Landing Zone-shaped scoring path and Landing Zone reports after local engine analysis can use the Knowledge Base.
-3. Full pipeline verification and the first real assessment cases wait until Knowledge Base content is integrated. The Tactic Playbook content is already integrated.
+1. Remove FinOps Tier 1 fixture dropdown from the live UI (this change). Do not start Engine-Simulation; that button still uses FinOps demo text and should be removed or replaced after Redis is live.
+2. Attach Redis on Railway **Landing Zone Assessment** (`REDIS_URL`). Postgres and model routing (`TEST_MODE=true`) are already present. After Redis, `/readyz` should report `mode=full` and analysis workers start. Missing Redis is why `/api/run` returns `VERCEL_GOVERNED_DISPATCH_UNSUPPORTED`.
+3. Confirm signed-in `GET /api/kb-index`: `document_count=80`, `failure_count=0`, `delivery.shadow_ready=true`. Restart/redeploy after Redis so the in-process KB cache reloads.
+4. First fluent run uses uploaded Landing Zone evidence and a locked Step 0 scope. Do not use Engine-Simulation or FinOps fixtures. Keep `TEST_MODE=true` for the first run.
+5. Work 13 follows after a real local analysis path can use the Knowledge Base.
+6. Rename leftover `VERCEL_GOVERNED_DISPATCH_UNSUPPORTED` to `INFRASTRUCTURE_UNAVAILABLE` once Redis is attached, so a missing execution plane no longer looks like a Vercel problem. Anthropic `/api/anthropic-generate` is a copied-kernel mount; TEST_MODE does not call it.
 
-Before the Knowledge Base is ready, these engine moves are wise:
+These remain unwise:
 
-- Bounded golden file sets that exercise Step 0, acquisition, routing, authority overlay, and pair scoring without claiming interpretation quality.
-- Optional silent-domain suppression coverage against the transcribed playbook (keep FinOps characterization tests as characterization).
-
-These are not wise before the Knowledge Base is ready:
-
-- Inventing remaining topic bodies, or treating Drive A–E as the runtime KB.
-- Attaching Redis so Railway leaves `ui_only`. Analysis workers would start because model routing is already configured; an empty Knowledge Base does not block a run.
-- Work 13 expert calibration and customer disposition.
-- Full pipeline verification or the first real customer cases.
+- Adding `GOOGLE_DRIVE_KB` to Railway, or setting `LANDING_ZONE_KB_PREFIX`.
+- Inventing remaining topic bodies.
+- Work 13 expert calibration before a working analysis run.
 - Changing scoring maths, criteria, or live-cloud collection.
+- Triggering Engine-Simulation as a demo.
+
+### Railway runtime findings (2026-09-18)
+
+Login/unlock uses `SECRET_KEY`, not `ADMIN_SECRET`. After `SECRET_KEY` was set, `/api/login` works. That is not sufficient for analysis.
+
+`/readyz` is `ui_only` because `initializeInfrastructure()` requires `REDIS_URL`. Without Redis, `getInfrastructure()` throws and `/api/run`, `/api/checkpoint`, `/api/governed-packet`, and `/api/model-result` return `503 VERCEL_GOVERNED_DISPATCH_UNSUPPORTED`. That code name is leftover from the Vercel serverless kernel. The host is Railway. The failure is missing Redis, not Vercel.
+
+Railway logs that mention Anthropic are `[server] Mounted /api/anthropic-generate`. `server.js` mounts every `api/*.js` file. TEST_MODE routes WORKHORSE/REASONER/QUALITY_CHECKER through Google, xAI, and Meta. There is no `ANTHROPIC_API_KEY`. Anthropic was not invoked.
+
+The header “Tier 1 Fixture…” dropdown injected FinOps policy/CoE/RI documents into `runAnalyze`. It is removed from the UI. `test/tier1-*.txt` files may remain as characterization fixtures; they are no longer operator-reachable.
 
 Standing constraints for later chats:
 
@@ -736,3 +744,4 @@ Material changes should update the date and append a short entry below.
 | 2026-09-16 | 1.17 | Transcribe the approved Tactical Playbook PDF into pack JSON (80 tactics, 240 bindings) and load them through `landingZoneTactics()` / activity playbook accessors. Exact mappings only. No FinOps fallback. Runtime does not parse the PDF. |
 | 2026-09-16 | 1.18 | Status review against `origin/main` `2a4990c`. Works 1–9 and 11 pack conversion are on main. Work 10 contract is on main; Drive authoring has reached A–D plus E1–E4 and is not engine-ready. Next engine work is Work 12. Do not ingest a partial KB. Work 13, full pipeline verification, and real cases wait on complete Knowledge Base content. |
 | 2026-09-16 | 1.19 | Work 12: replace leftover FinOps runtime prompts, personas, and reports with Landing Zone pack vocabulary. Cite transcribed `TAC-{NAMESPACE}-{CRITERION}-01` IDs. Keep kernel Crawl-Walk-Run math. Do not invent Knowledge Base topic bodies. |
+| 2026-09-18 | 1.20 | Record that all 80 Blob PDFs ingest and are authoring-schema valid. Railway remains `ui_only` without Redis; `/api/run` therefore returns leftover `VERCEL_GOVERNED_DISPATCH_UNSUPPORTED`. Remove the FinOps Tier 1 fixture dropdown. Do not start Engine-Simulation. Next enablement is Redis, then a real uploaded-evidence run with `TEST_MODE=true`. |
