@@ -166,7 +166,6 @@ assert.match(app, /Lock Step 0 scope before uploading source material/);
 assert.match(app, /setLockedScope\(null\)/);
 assert.match(app, /disabled=\{files\.length >= MAX_FILES \|\| !lockedScope\}/);
 assert.match(app, /Lock Step 0 first/);
-assert.match(app, /lockedScope \|\| lockScope\(demoAssessmentScopeDraft\(\)\)/);
 assert.match(app, /scope: lockScope\(demoAssessmentScopeDraft\(\)\)/);
 
 const form = await readFile(new URL("../src/components/Step0ScopeForm.tsx", import.meta.url), "utf8");
