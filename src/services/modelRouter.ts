@@ -38,6 +38,29 @@ const INTERNAL_RESULT_POLL_INTERVAL_MS = 2_000;
 const INTERNAL_RESULT_MISSING_GRACE_MS = 10_000;
 export class StageExecutionError extends Error { constructor(public code:string,public fallbackAllowed=false){super(code);} }
 
+export const preferredStageFailureCode = (failedCodes: string[]): string => {
+  const codes = failedCodes.map(code => String(code || '').trim().toUpperCase()).filter(Boolean);
+  const semantic = codes.filter(code =>
+    code.startsWith('INVALID_BATCH_OUTPUT_') || code === 'INVALID_OUTPUT_CONTRACT'
+  );
+  return semantic[semantic.length - 1] || 'MODELS_EXHAUSTED';
+};
+
+export class StageExhaustedError extends Error {
+  readonly code: string;
+  readonly failed_codes: string;
+  readonly failed_models: string;
+  constructor(stage: string, failures: Array<{ profile: { id: string }; error: string }>) {
+    const failedCodes = failures.map(failure => String(failure.error || '').trim().toUpperCase()).filter(Boolean);
+    const failedModels = failures.map(failure => failure.profile.id).join(',');
+    super(`All models exhausted for stage '${stage}'. ${failures.map(failure => `${failure.profile.id}: ${failure.error}`).join(' | ')}`);
+    this.name = 'StageExhaustedError';
+    this.failed_codes = failedCodes.join(',');
+    this.failed_models = failedModels;
+    this.code = preferredStageFailureCode(failedCodes);
+  }
+}
+
 const STAGES: StageId[] = ['forensic_audit','evidence_gap_analysis','targeted_rescan','evidence_check','evidence_adjudication','synthesis','roadmap_synthesis','synthesis_escalation','fact_check','fact_check_high','quality_gate'];
 const ROLES = new Set<AiRole>(['REASONER', 'WORKHORSE', 'QUALITY_CHECKER']);
 const PROVIDERS = new Set<Provider>(['anthropic', 'google', 'meta', 'openai', 'xai']);
@@ -437,11 +460,18 @@ export async function runStage(stage: StageId, prompt: NormalizedPrompt, ctx: Ru
     started_at: startedAt,
     completed_at: new Date().toISOString()
   });
-  await serverLog(ctx.runId, 'error', 'stage_exhausted', { stage, attempt_count: failures.length, error_code: 'models_exhausted' });
+  const exhausted = new StageExhaustedError(stage, failures);
+  await serverLog(ctx.runId, 'error', 'stage_exhausted', {
+    stage,
+    attempt_count: failures.length,
+    error_code: 'models_exhausted',
+    failed_models: exhausted.failed_models,
+    failed_codes: exhausted.failed_codes,
+  });
   if (rolePrompt.outputContract && failures.some(f => f.error === 'invalid_output_contract')) {
     throw new StageExecutionError('SYNTHESIS_OUTPUT_INVALID');
   }
-  throw new Error(`All models exhausted for stage '${stage}'. ${summary}`);
+  throw exhausted;
 }
 
 // Fire-and-forget server-side log so pipeline events appear in Railway alongside

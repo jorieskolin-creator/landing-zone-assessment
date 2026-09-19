@@ -180,4 +180,92 @@ await runCase({ primaryText: '{"valid":false}', expectedProvider: 'xai', expecte
   }
 }
 
+{
+  const outfile = join(dir, 'semantic-reject-codes.mjs');
+  await build({
+    entryPoints: [new URL('../src/services/modelRouter.ts', import.meta.url).pathname],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    outfile,
+    logLevel: 'silent',
+  });
+  const { runStage, preferredStageFailureCode, StageExhaustedError } = await import(`file://${outfile}`);
+  assert.equal(
+    preferredStageFailureCode(['invalid_batch_output_schema', 'invalid_batch_output_provenance']),
+    'INVALID_BATCH_OUTPUT_PROVENANCE',
+  );
+  assert.equal(preferredStageFailureCode(['request_timeout', 'model_request_failed']), 'MODELS_EXHAUSTED');
+  const logs = [];
+  const approvals = new Map();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    if (url === '/api/model-routing') return Response.json(routing);
+    if (url === '/api/log') {
+      logs.push(JSON.parse(options.body));
+      return Response.json({ ok: true });
+    }
+    if (url === '/api/governed-packet') {
+      const request = JSON.parse(options.body);
+      const packet = {
+        ...request,
+        schema_version: 'approved_stage_packet_v1',
+        packet_id: `packet-${request.provider}-${request.stage_execution_id}`,
+        packet_hash: crypto.createHash('sha256').update(`${request.provider}:${request.stage_execution_id}`).digest('hex'),
+        classification_method: 'deterministic_pattern_screen_v1',
+        approval_basis: 'policy_approved_after_pattern_screening',
+      };
+      approvals.set(packet.packet_id, packet);
+      return Response.json(packet, { status: 201 });
+    }
+    if (/^\/api\/(anthropic|xai)-generate$/.test(String(url))) {
+      const request = JSON.parse(options.body);
+      const approval = approvals.get(request.packet_id);
+      const text = '{"valid":false}';
+      const output = {
+        schema_version: 'governed_output_v1',
+        policy_version: 'llm_egress_policy_v1',
+        inspection_status: 'passed',
+        inspection_method: 'deterministic_pattern_screen_and_contact_redaction_v1',
+        run_id: request.run_id,
+        stage: request.stage,
+        provider: approval.provider,
+        model: approval.model,
+        source_packet_id: approval.packet_id,
+        source_packet_hash: approval.packet_hash,
+        text,
+        char_count: text.length,
+        output_hash: crypto.createHash('sha256').update(text).digest('hex'),
+      };
+      return new Response(`${JSON.stringify({ type: 'done', output, usage: {} })}\n`);
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  try {
+    await assert.rejects(
+      runStage('forensic_audit', {
+        userText: 'bounded evidence packet',
+        systemInstruction: 'Return one JSON object.',
+        validateOutput: () => {
+          throw Object.assign(new Error('INVALID_BATCH_OUTPUT_SCHEMA'), { code: 'INVALID_BATCH_OUTPUT_SCHEMA' });
+        },
+      }, { runId: 'run-semantic-reject' }),
+      error => {
+        assert.equal(error.name, 'StageExhaustedError');
+        assert.equal(error.code, 'INVALID_BATCH_OUTPUT_SCHEMA');
+        assert.match(error.failed_codes, /INVALID_BATCH_OUTPUT_SCHEMA/);
+        assert.notEqual(error.code, 'MODELS_EXHAUSTED');
+        return error instanceof StageExhaustedError;
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  const exhausted = logs.find(entry => entry.event === 'stage_exhausted');
+  assert.equal(exhausted.error_code, 'models_exhausted');
+  assert.match(String(exhausted.failed_codes), /invalid_batch_output_schema/i);
+  assert.match(String(exhausted.failed_models), /claude-sonnet-5/);
+  assert.match(String(exhausted.failed_models), /grok-4.6/);
+}
+
 console.log('AI role primary and validated fallback tests passed');
