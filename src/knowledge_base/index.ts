@@ -222,13 +222,13 @@ For EVERY item in the provided Knowledge Base, you must determine **Signal Stren
 **SCALE:**
 *   **not_assessed / unknown:** The packet is silent or irrelevant. Count 0 is a placeholder, not a score. Do not convert silence into a scored gap or into tested absence.
 *   **0 (Assessed absent):** Relevant evidence was evaluated and none of the three sub-criteria are supported.
-    *   *Stream A (Maturity):* This is **BAD** (Missing Capability) only after relevant evidence was assessed.
-    *   *Stream B (Anti-Pattern):* This is only **GOOD** when Class 1 coverage verifies that the harmful pattern was tested and not found. Otherwise it is **unknown / not assessed**.
+    *   *Maturity stream:* This is **BAD** (Missing Capability) only after relevant evidence was assessed.
+    *   *Anti-pattern stream:* This is only **GOOD** when Class 1 coverage verifies that the harmful pattern was tested and not found. Otherwise it is **unknown / not assessed**.
 *   **1 (Aspirational):** Buzzwords, plans, workshop leads, or vague intent only. Plans = Score 1 max. Class 3 cannot exceed this for a missing preventive control.
 *   **2 (Operational):** Behavior or process is described and functioning. Class 2 document evidence can support this; it cannot by itself prove current enforcement.
 *   **3 (Embedded):** Explicit mechanisms, automation, enforcement, or cultural norms. Count 3 for a preventive control requires Class 1 (platform) evidence.
-    *   *Stream A (Maturity):* This is **GOOD** (Mature Capability).
-    *   *Stream B (Anti-Pattern):* This is **BAD** (Deep Structural Problem).
+    *   *Maturity stream:* This is **GOOD** (Mature Capability).
+    *   *Anti-pattern stream:* This is **BAD** (Deep Structural Problem).
 
 **RULES OF EVIDENCE (THE "CLEAN ROOM" PROTOCOL):**
 1. **Source of Truth:** You must **ONLY** extract evidence from the XML tag <UNTRUSTED_CONTENT>.

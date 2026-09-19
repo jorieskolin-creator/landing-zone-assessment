@@ -9,6 +9,7 @@ import {
   forensicBucketsFromContract,
   forensicClientFailureCode,
   outputContractDiagnostics,
+  getOutputContract,
   structuredOutputForPacket,
   validateOutputContractText,
   withOneOutputRegeneration,
@@ -179,6 +180,11 @@ assert.doesNotMatch(forensicPrompts, /assessed \| not_assessed/);
 assert.doesNotMatch(forensicPrompts, /derived_evidence_id": ""/);
 assert.match(forensicPrompts, /Do not emit evidence_class/);
 assert.match(forensicPrompts, /omit chunk_id/);
+assert.match(forensicPrompts, /JSON stream is "maturity"/);
+assert.match(forensicPrompts, /id" MUST be \$\{columnId\}1-\$\{columnId\}5 for BOTH streams/);
+assert.match(forensicPrompts, /Never use a different design-area letter/);
+assert.doesNotMatch(forensicPrompts, /unless this batch letter is A or B/);
+assert.doesNotMatch(forensicPrompts, /Return exactly 10 items: Stream A/);
 
 const forensicItem = (stream, id) => ({
   stream,
@@ -300,6 +306,89 @@ assert.equal(
   forensicClientFailureCode(Object.assign(new Error('INVALID_BATCH_OUTPUT_IDS'), { code: 'INVALID_BATCH_OUTPUT_IDS' })),
   'INVALID_BATCH_OUTPUT_IDS',
 );
+const streamLetterConfusion = {
+  items: ['1', '2', '3', '4', '5'].flatMap(n => [
+    forensicItem('maturity', `A${n}`),
+    forensicItem('antipattern', `B${n}`),
+  ]),
+};
+assert.throws(
+  () => assertForensicBatchIds(streamLetterConfusion, {
+    maturity: ['C1', 'C2', 'C3', 'C4', 'C5'],
+    antipattern: ['C1', 'C2', 'C3', 'C4', 'C5'],
+  }),
+  error => error.code === 'INVALID_BATCH_OUTPUT_IDS',
+  'Stream A/B must not be copied as design-area letters',
+);
+assert.throws(
+  () => assertForensicBatchIds(streamLetterConfusion, {
+    maturity: ['A1', 'A2', 'A3', 'A4', 'A5'],
+    antipattern: ['A1', 'A2', 'A3', 'A4', 'A5'],
+  }),
+  error => error.code === 'INVALID_BATCH_OUTPUT_IDS',
+  'batch A still fails if anti-pattern ids used B',
+);
+assert.doesNotThrow(() => assertForensicBatchIds({
+  items: ['1', '2', '3', '4', '5'].flatMap(n => [
+    forensicItem('maturity', `C${n}`),
+    forensicItem('antipattern', `C${n}`),
+  ]),
+}, {
+  maturity: ['C1', 'C2', 'C3', 'C4', 'C5'],
+  antipattern: ['C1', 'C2', 'C3', 'C4', 'C5'],
+}));
+
+const googleForensic = structuredOutputForPacket({
+  stage: 'forensic_audit',
+  provider: 'google',
+  output_contract: OUTPUT_CONTRACT_IDS.forensicAudit,
+});
+const googleQuote = googleForensic.schema.properties.items.items.properties.evidence_quotes.items;
+assert.equal(googleQuote.properties.page_number, undefined);
+assert.equal(googleQuote.properties.page_id, undefined);
+assert.equal(googleQuote.properties.sheet_name, undefined);
+assert.equal(googleQuote.properties.row_number, undefined);
+assert.equal(googleQuote.additionalProperties, false);
+assert.deepEqual(Object.keys(googleQuote.properties).sort(), googleQuote.required.sort());
+assert.deepEqual(googleQuote.required.sort(), [
+  'category', 'chunk_id', 'derived_evidence_id', 'evidence_source', 'quote', 'source_id',
+].sort());
+assert.equal(
+  getOutputContract(OUTPUT_CONTRACT_IDS.forensicAudit).schema.properties.items.items.properties.evidence_quotes.items.properties.page_number.type,
+  'integer',
+  'Google provider schema must not mutate the worker contract',
+);
+const xaiForensic = structuredOutputForPacket({
+  stage: 'forensic_audit',
+  provider: 'xai',
+  output_contract: OUTPUT_CONTRACT_IDS.forensicAudit,
+});
+assert.equal(xaiForensic.schema.properties.items.items.properties.evidence_quotes.items.properties.page_number.type, 'integer');
+const geminiRequiredBothIds = {
+  items: forensicAudit.items.map((item, index) => index === 0 ? {
+    stream: 'maturity',
+    id: 'A1',
+    count: 1,
+    assessment_status: 'assessed',
+    question_results: ['supported', 'not_supported', 'unknown'],
+    evidence: 'One sub-criterion is supported by the cited chunk.',
+    evidence_quotes: [{
+      quote: 'Direct text from the cited source chunk',
+      category: 'Policy',
+      evidence_source: 'text',
+      source_id: 'src-001',
+      chunk_id: 'src-001-p003-c001',
+      derived_evidence_id: 'gemini-required-placeholder',
+    }],
+    reasoning: 'Crit 1: Found. Crit 2: Not found. Crit 3: Unknown. Total: 1.',
+  } : item),
+};
+const geminiRequiredBothIdsNormalized = validateOutputContractText(
+  OUTPUT_CONTRACT_IDS.forensicAudit,
+  JSON.stringify(geminiRequiredBothIds),
+);
+assert.equal(geminiRequiredBothIdsNormalized.items[0].evidence_quotes[0].chunk_id, 'src-001-p003-c001');
+assert.equal(geminiRequiredBothIdsNormalized.items[0].evidence_quotes[0].derived_evidence_id, undefined);
 const promptShapedBuckets = forensicBucketsFromContract(promptShapedNormalized);
 assert.equal(promptShapedBuckets.maturity.A1.count, 1);
 assert.equal(promptShapedBuckets.maturity.A1.evidence_quotes[0].chunk_id, 'src-001-p003-c001');

@@ -351,6 +351,56 @@ await assert.rejects(
     ...packet,
     provider: 'google',
     model: 'gemini-3.8-flash',
+    settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+  }, {
+    env: { GEMINI_API_KEY: 'test-key' },
+    fetchFn: async () => ({
+      ok: false,
+      status: 400,
+      headers: { get: () => null },
+      json: async () => ({
+        error: {
+          code: 400,
+          message: 'Invalid JSON payload with optional properties must never propagate',
+          status: 'INVALID_ARGUMENT',
+        },
+      }),
+    }),
+  }),
+  error => error?.code === 'UPSTREAM_HTTP_ERROR'
+    && error?.providerHttpStatus === 400
+    && error?.providerErrorCode === 'INVALID_ARGUMENT'
+    && !String(error?.message).includes('optional properties'),
+);
+
+let googleForensicRequest;
+await invokeProvider({
+  ...packet,
+  stage: 'forensic_audit',
+  provider: 'google',
+  model: 'gemini-3.8-flash',
+  output_contract: OUTPUT_CONTRACT_IDS.forensicAudit,
+  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+}, {
+  env: { GEMINI_API_KEY: 'test-gemini-key' },
+  fetchFn: async (_url, options) => {
+    googleForensicRequest = JSON.parse(options.body);
+    return {
+      ok: true,
+      json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"items":[]}' }] } }] }),
+    };
+  },
+});
+const googleForensicQuote = googleForensicRequest.generationConfig.responseJsonSchema
+  .properties.items.items.properties.evidence_quotes.items;
+assert.equal(googleForensicQuote.properties.page_number, undefined);
+assert.deepEqual(Object.keys(googleForensicQuote.properties).sort(), googleForensicQuote.required.sort());
+
+await assert.rejects(
+  invokeProvider({
+    ...packet,
+    provider: 'google',
+    model: 'gemini-3.8-flash',
     settings: { max_tokens: 8192, reasoning_effort: 'xhigh' },
   }, {
     env: { GEMINI_API_KEY: 'test-key' },
