@@ -1,10 +1,10 @@
 
 import { generateBatchSystemInstruction, generateBatchUserPrompt, generateTargetedBatchUserPrompt } from './prompts';
 import { BATCH_DEFINITIONS, BATCH_IDS, expectedBatchOutputIdsFor, knowledgeBaseService } from './knowledge_base';
-import { runStage, serverLog, RunContext, StageExecutionError } from './services/modelRouter';
+import { runStage, serverLog, RunContext, StageExecutionError, StageExhaustedError } from './services/modelRouter';
 import { StageId } from './models';
 // @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
-import { OUTPUT_CONTRACT_IDS } from '../lib/outputContracts.js';
+import { OUTPUT_CONTRACT_IDS, assertForensicBatchIds, forensicBucketsFromContract, forensicClientFailureCode, validateOutputContractText } from '../lib/outputContracts.js';
 import { EvidenceCheckItem, EvidenceCheckResult, EvidenceLaneStagePacket, ImageInput, SemanticGapRetrievalPassTrace, SemanticGapRetrievalTrace } from './types';
 import { assertEvidenceLaneStagePacket } from './services/evidenceStagePacketService';
 import {
@@ -15,59 +15,6 @@ import {
   runEvidenceCheck,
   summarizeEvidenceCheck
 } from './services/evidenceCheckService';
-
-const parseAiResponse = (text: string): any => {
-  if (!text) return {};
-  let cleaned = text.trim();
-  cleaned = cleaned.replace(/```json/gi, '').replace(/```/g, '');
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.warn("[Landing Zone Orchestrator] AI response contained no JSON object; content omitted by logging policy.");
-    return {};
-  }
-  const jsonString = jsonMatch[0];
-  try {
-    return JSON.parse(jsonString);
-  } catch (e) {
-    console.error("[Landing Zone Orchestrator] JSON parse failed; response content omitted by logging policy.");
-    throw new Error("AI response was not valid JSON.");
-  }
-};
-
-const normalizeEvidenceQuote = (quote: any) => {
-  if (!quote || typeof quote !== 'object') return quote;
-  const next = { ...quote };
-  if (next.evidence_source === 'derived') {
-    if (next.chunk_id === '' || next.chunk_id == null) delete next.chunk_id;
-  } else if (next.derived_evidence_id === '' || next.derived_evidence_id == null) {
-    delete next.derived_evidence_id;
-  }
-  return next;
-};
-
-const domainAuditFromModelOutput = (value: string): { maturity: Record<string, any>; antipattern: Record<string, any> } => {
-  const parsed = parseAiResponse(value);
-  const result: { maturity: Record<string, any>; antipattern: Record<string, any> } = { maturity: {}, antipattern: {} };
-  const assignItem = (stream: string, id: string, item: any) => {
-    if ((stream !== 'maturity' && stream !== 'antipattern') || typeof id !== 'string' || !item || typeof item !== 'object') return;
-    const quotes = Array.isArray(item.evidence_quotes) ? item.evidence_quotes.map(normalizeEvidenceQuote) : item.evidence_quotes;
-    result[stream][id] = { ...item, evidence_quotes: quotes };
-  };
-  if (Array.isArray(parsed?.items)) {
-    for (const item of parsed.items) {
-      if (!item || typeof item !== 'object') continue;
-      const { stream, id, ...rest } = item;
-      assignItem(stream, id, rest);
-    }
-    return result;
-  }
-  for (const stream of ['maturity', 'antipattern'] as const) {
-    const bucket = parsed?.[stream];
-    if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket)) continue;
-    for (const [id, item] of Object.entries(bucket)) assignItem(stream, id, item);
-  }
-  return result;
-};
 
 export interface Phase1SourcePackets {
   packets: Record<string, EvidenceLaneStagePacket>;
@@ -128,53 +75,23 @@ ${text}
 </EVIDENCE_CONTEXT>`;
 
   const expected = expectedIds || expectedBatchOutputIdsFor(batchId);
+  const contractId = stage === 'targeted_rescan' ? OUTPUT_CONTRACT_IDS.targetedRescan : OUTPUT_CONTRACT_IDS.forensicAudit;
   const validateBatchOutput = (value: string): void => {
-    const candidate = domainAuditFromModelOutput(value);
-    for (const stream of ['maturity', 'antipattern'] as const) {
-      const bucket = candidate?.[stream];
-      const keys = bucket && typeof bucket === 'object' && !Array.isArray(bucket) ? Object.keys(bucket).sort() : [];
-      const wanted = [...expected[stream]].sort();
-        if (keys.length !== wanted.length || keys.some((key, index) => key !== wanted[index])) {
-          throw Object.assign(new Error('INVALID_BATCH_OUTPUT_IDS'), { code: 'INVALID_BATCH_OUTPUT_IDS' });
-        }
-        for (const id of keys) {
-          const item = bucket[id];
-          const questionResults = Array.isArray(item?.question_results) ? item.question_results : [];
-          const supportedQuestions = questionResults.filter((result: unknown) => result === 'supported').length;
-          const validQuestionResults = questionResults.length === 3
-            && questionResults.every((result: unknown) => ['supported', 'not_supported', 'unknown'].includes(String(result)));
-          const validAssessment = item?.assessment_status === 'assessed' || item?.assessment_status === 'not_assessed';
-          if (!item || !Number.isInteger(item.count) || item.count < 0 || item.count > 3
-            || typeof item.evidence !== 'string' || typeof item.reasoning !== 'string'
-            || !Array.isArray(item.evidence_quotes) || !validQuestionResults || !validAssessment
-            || item.count !== supportedQuestions
-            || (item.assessment_status === 'not_assessed' && (item.count !== 0 || questionResults.some((result: unknown) => result !== 'unknown')))) {
-            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_SCHEMA'), { code: 'INVALID_BATCH_OUTPUT_SCHEMA' });
-          }
-          if (item.assessment_status === 'assessed' && item.evidence_quotes.length === 0) {
-            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_PROVENANCE'), { code: 'INVALID_BATCH_OUTPUT_PROVENANCE' });
-          }
-          if (item.assessment_status === 'not_assessed' && item.evidence_quotes.length > 0) {
-            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_PROVENANCE'), { code: 'INVALID_BATCH_OUTPUT_PROVENANCE' });
-          }
-          if (item.evidence_quotes.some((quote: any) => !quote || typeof quote.quote !== 'string'
-            || typeof quote.source_id !== 'string'
-            || (quote.evidence_source === 'derived'
-              ? typeof quote.derived_evidence_id !== 'string' || quote.chunk_id !== undefined
-              : typeof quote.chunk_id !== 'string'))) {
-            throw Object.assign(new Error('INVALID_BATCH_OUTPUT_PROVENANCE'), { code: 'INVALID_BATCH_OUTPUT_PROVENANCE' });
-          }
-        }
+    try {
+      assertForensicBatchIds(validateOutputContractText(contractId, value), expected);
+    } catch (error: any) {
+      const code = forensicClientFailureCode(error);
+      throw Object.assign(new Error(code), { code });
     }
   };
   const response = await runStage(stage, {
     userText,
     systemInstruction,
     images,
-    outputContract: stage === 'targeted_rescan' ? OUTPUT_CONTRACT_IDS.targetedRescan : OUTPUT_CONTRACT_IDS.forensicAudit,
+    outputContract: contractId,
     validateOutput: validateBatchOutput,
   }, ctx);
-  const parsed = domainAuditFromModelOutput(response.text);
+  const parsed = forensicBucketsFromContract(validateOutputContractText(contractId, response.text));
   return { ...parsed, model_used: response.modelUsed.id };
 };
 
@@ -198,17 +115,28 @@ const mergeBatchResult = (base: BatchAuditResult, patch: BatchAuditResult): Batc
   antipattern: { ...(base.antipattern || {}), ...(patch.antipattern || {}) },
 });
 
-const batchFailureCode = (error: unknown): string => {
-  if (error instanceof StageExecutionError) return error.code;
+const batchFailureFields = (error: unknown): { error_code: string; failed_models?: string; failed_codes?: string } => {
+  if (error instanceof StageExhaustedError) {
+    return {
+      error_code: error.code,
+      failed_models: error.failed_models || undefined,
+      failed_codes: error.failed_codes || undefined,
+    };
+  }
+  if (error instanceof StageExecutionError) return { error_code: error.code };
+  const named = typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : '';
+  if (named.startsWith('INVALID_BATCH_OUTPUT_') || named === 'INVALID_OUTPUT_CONTRACT') return { error_code: named };
   const message = error instanceof Error ? error.message : '';
-  if (message.includes('All models exhausted')) return 'MODELS_EXHAUSTED';
-  if (message.includes('not valid JSON')) return 'INVALID_MODEL_OUTPUT';
-  if (message.includes('empty result')) return 'EMPTY_MODEL_OUTPUT';
-  if (message.includes('INVALID_BATCH_OUTPUT_IDS')) return 'INVALID_BATCH_OUTPUT_IDS';
-  if (message.includes('INVALID_BATCH_OUTPUT_SCHEMA')) return 'INVALID_BATCH_OUTPUT_SCHEMA';
-  if (message.includes('INVALID_BATCH_OUTPUT_PROVENANCE')) return 'INVALID_BATCH_OUTPUT_PROVENANCE';
-  return 'BATCH_PROCESSING_FAILED';
+  if (message.includes('All models exhausted')) return { error_code: 'MODELS_EXHAUSTED' };
+  if (message.includes('not valid JSON')) return { error_code: 'INVALID_MODEL_OUTPUT' };
+  if (message.includes('empty result')) return { error_code: 'EMPTY_MODEL_OUTPUT' };
+  if (message.includes('INVALID_BATCH_OUTPUT_IDS')) return { error_code: 'INVALID_BATCH_OUTPUT_IDS' };
+  if (message.includes('INVALID_BATCH_OUTPUT_SCHEMA')) return { error_code: 'INVALID_BATCH_OUTPUT_SCHEMA' };
+  if (message.includes('INVALID_BATCH_OUTPUT_PROVENANCE')) return { error_code: 'INVALID_BATCH_OUTPUT_PROVENANCE' };
+  return { error_code: 'BATCH_PROCESSING_FAILED' };
 };
+
+const batchFailureCode = (error: unknown): string => batchFailureFields(error).error_code;
 
 const unavailableEvidenceCheck = (batchId: string, failureCode: string): EvidenceCheckResult => {
   const expected = expectedBatchOutputIdsFor(batchId);
@@ -463,21 +391,21 @@ export const runPhase1Audit = async (
         break;
       } catch (error: any) {
         lastError = error;
-        const errorCode = batchFailureCode(error);
-        console.warn(`[Landing Zone] [${ctx.runId}] Batch ${batchId} attempt ${attempt} failed with error_code=${errorCode}.`);
+        const failure = batchFailureFields(error);
+        console.warn(`[Landing Zone] [${ctx.runId}] Batch ${batchId} attempt ${attempt} failed with error_code=${failure.error_code}.`);
         serverLog(ctx.runId, 'warn', 'batch_attempt_failed', {
           batch: batchId,
           attempt,
-          error_code: errorCode,
+          ...failure,
         });
       }
     }
     if (lastError) {
-      const errorCode = batchFailureCode(lastError);
+      const failure = batchFailureFields(lastError);
       console.error(`[Landing Zone] [${ctx.runId}] Batch ${batchId} failed after retry. Marking as failed.`);
       aggregated.failed_batches.push(batchId);
-      evidenceResults.push(unavailableEvidenceCheck(batchId, errorCode));
-      serverLog(ctx.runId, 'error', 'batch_failed', { batch: batchId, error_code: errorCode });
+      evidenceResults.push(unavailableEvidenceCheck(batchId, failure.error_code));
+      serverLog(ctx.runId, 'error', 'batch_failed', { batch: batchId, ...failure });
     }
     completedCount++;
     onProgress(completedCount, totalBatches, batchId);

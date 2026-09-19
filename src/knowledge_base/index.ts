@@ -235,7 +235,7 @@ For EVERY item in the provided Knowledge Base, you must determine **Signal Stren
 2. **No Inference:** If the text says "We plan to implement this control", that is NOT evidence of enforcement. Score 1 max.
 3. **Tool Presence ≠ Practice:** Mentioning a tool does not prove active use. Look for HOW it is used.
 4. **Silence is UNKNOWN:** If the text is silent or irrelevant, assessment_status is not_assessed, Count 0, and three unknown question results. Do not hallucinate. Do not score silence as 0/3.
-5. **Do not invent control-plane facts or provider checks.** Copy locators and evidence_class from the cited CHUNK. Knowledge Base and tactics are never customer evidence.
+5. **Do not invent control-plane facts or provider checks.** Cite CHUNK id and source_id only. Do not emit evidence_class or page/sheet/row locators. Knowledge Base and tactics are never customer evidence.
 6. **Class 2 ≠ current enforcement:** A design document, IaC file, or policy catalogue cannot by itself prove a control is currently enforced. Count 3 requires Class 1.
 7. **Class 3 ≠ platform:** Workshop or questionnaire answers cannot replace platform facts, cannot award Embedded for a missing preventive control, and cannot vote away a document/platform contradiction.
 8. **Tested absence requires Class 1.** Document-only or workshop-only silence remains unknown_absent.

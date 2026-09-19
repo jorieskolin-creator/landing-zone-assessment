@@ -3,6 +3,11 @@ import { readFile } from 'node:fs/promises';
 import {
   authorizeOutputContract,
   OUTPUT_CONTRACT_IDS,
+  OutputContractError,
+  assertForensicBatchIds,
+  canonicalOutputContractText,
+  forensicBucketsFromContract,
+  forensicClientFailureCode,
   outputContractDiagnostics,
   structuredOutputForPacket,
   validateOutputContractText,
@@ -170,15 +175,11 @@ assert.match(forensicPrompts, /no recommendations or repeated definitions/);
 assert.match(forensicPrompts, /"items": \[/);
 assert.match(forensicPrompts, /"stream": "maturity"/);
 assert.doesNotMatch(forensicPrompts, /"maturity": \{\s*"\$\{columnId\}1"/);
+assert.doesNotMatch(forensicPrompts, /assessed \| not_assessed/);
+assert.doesNotMatch(forensicPrompts, /derived_evidence_id": ""/);
+assert.match(forensicPrompts, /Do not emit evidence_class/);
+assert.match(forensicPrompts, /omit chunk_id/);
 
-const emptyQuote = {
-  quote: '',
-  category: 'Policy',
-  evidence_source: 'text',
-  source_id: '',
-  chunk_id: '',
-  derived_evidence_id: '',
-};
 const forensicItem = (stream, id) => ({
   stream,
   id,
@@ -204,6 +205,7 @@ assert.throws(
   /INVALID_OUTPUT_CONTRACT/,
   'forensic_audit requires all 10 criterion items',
 );
+const assessedQuote = { quote: 'platform landing zone', category: 'Policy', evidence_source: 'text', source_id: 'src-001', chunk_id: 'src-001-c001' };
 const assessedForensic = {
   items: forensicAudit.items.map((item, index) => index === 0 ? {
     ...item,
@@ -211,10 +213,99 @@ const assessedForensic = {
     assessment_status: 'assessed',
     question_results: ['supported', 'not_supported', 'unknown'],
     evidence: 'Found one sub-criterion.',
-    evidence_quotes: [{ ...emptyQuote, quote: 'platform landing zone', source_id: 'src-001', chunk_id: 'src-001-c001' }],
+    evidence_quotes: [assessedQuote],
   } : item),
 };
 assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(assessedForensic)), assessedForensic);
+let provenanceError;
+try {
+  validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify({
+    items: forensicAudit.items.map((item, index) => index === 0 ? {
+      ...item,
+      count: 1,
+      assessment_status: 'assessed',
+      question_results: ['supported', 'not_supported', 'unknown'],
+      evidence: 'Missing quote.',
+      evidence_quotes: [],
+    } : item),
+  }));
+} catch (error) {
+  provenanceError = error;
+}
+assert.equal(provenanceError?.category, 'forensic_provenance');
+assert.equal(forensicClientFailureCode(provenanceError), 'INVALID_BATCH_OUTPUT_PROVENANCE');
+assert.equal(forensicClientFailureCode(new OutputContractError('schema_mismatch')), 'INVALID_BATCH_OUTPUT_SCHEMA');
+assert.equal(forensicClientFailureCode(new OutputContractError('forensic_schema')), 'INVALID_BATCH_OUTPUT_SCHEMA');
+assert.equal(forensicClientFailureCode(new OutputContractError('json_syntax')), 'INVALID_OUTPUT_CONTRACT');
+assert.deepEqual(
+  validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify({
+    items: forensicAudit.items.map((item, index) => index === 0 ? {
+      ...item,
+      count: 2,
+      assessment_status: 'not_assessed',
+      question_results: ['unknown', 'unknown', 'unknown'],
+    } : item),
+  })),
+  forensicAudit,
+  'count is coerced from question_results before semantic checks',
+);
+
+const promptShaped = {
+  items: forensicAudit.items.map((item, index) => index === 0 ? {
+    stream: 'maturity',
+    id: 'A1',
+    count: 0,
+    assessment_status: 'assessed',
+    question_results: ['supported', 'not_supported', 'unknown'],
+    evidence: 'One sub-criterion is supported by the cited chunk.',
+    evidence_quotes: [{
+      quote: 'Direct text from the cited source chunk',
+      category: 'Policy',
+      evidence_source: 'text',
+      source_id: 'src-001',
+      chunk_id: 'src-001-p003-c001',
+      derived_evidence_id: '',
+      page: 3,
+      evidence_class: 'document',
+    }],
+    reasoning: 'Crit 1: Found. Crit 2: Not found. Crit 3: Unknown. Total: 1.',
+  } : item),
+};
+const promptShapedNormalized = validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(promptShaped));
+assert.equal(promptShapedNormalized.items[0].count, 1);
+assert.deepEqual(promptShapedNormalized.items[0].evidence_quotes[0], {
+  quote: 'Direct text from the cited source chunk',
+  category: 'Policy',
+  evidence_source: 'text',
+  source_id: 'src-001',
+  chunk_id: 'src-001-p003-c001',
+  page_number: 3,
+});
+assert.equal(
+  canonicalOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, promptShapedNormalized, 'original'),
+  JSON.stringify(promptShapedNormalized),
+);
+assert.doesNotThrow(() => assertForensicBatchIds(promptShapedNormalized, {
+  maturity: ['A1', 'A2', 'A3', 'A4', 'A5'],
+  antipattern: ['A1', 'A2', 'A3', 'A4', 'A5'],
+}));
+assert.throws(
+  () => assertForensicBatchIds(promptShapedNormalized, {
+    maturity: ['C1', 'C2', 'C3', 'C4', 'C5'],
+    antipattern: ['C1', 'C2', 'C3', 'C4', 'C5'],
+  }),
+  error => error.code === 'INVALID_BATCH_OUTPUT_IDS',
+);
+assert.equal(
+  forensicClientFailureCode(Object.assign(new Error('INVALID_BATCH_OUTPUT_IDS'), { code: 'INVALID_BATCH_OUTPUT_IDS' })),
+  'INVALID_BATCH_OUTPUT_IDS',
+);
+const promptShapedBuckets = forensicBucketsFromContract(promptShapedNormalized);
+assert.equal(promptShapedBuckets.maturity.A1.count, 1);
+assert.equal(promptShapedBuckets.maturity.A1.evidence_quotes[0].chunk_id, 'src-001-p003-c001');
+assert.equal(promptShapedBuckets.maturity.A1.evidence_quotes[0].page_number, 3);
+assert.equal(promptShapedBuckets.maturity.A1.evidence_quotes[0].evidence_class, undefined);
+assert.equal(promptShapedBuckets.antipattern.A1.assessment_status, 'not_assessed');
 
 const targeted = { items: [forensicItem('maturity', 'B2')] };
 assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.targetedRescan, JSON.stringify(targeted)), targeted);
@@ -265,6 +356,9 @@ assert.equal(metaEvidence.schema.properties.items.minItems, 10);
 const orchestrator = await readFile(new URL('../src/orchestrator.ts', import.meta.url), 'utf8');
 assert.match(orchestrator, /OUTPUT_CONTRACT_IDS\.forensicAudit/);
 assert.match(orchestrator, /OUTPUT_CONTRACT_IDS\.targetedRescan/);
+assert.match(orchestrator, /assertForensicBatchIds\(validateOutputContractText\(contractId, value\), expected\)/);
+assert.match(orchestrator, /forensicBucketsFromContract\(validateOutputContractText\(contractId, response\.text\)\)/);
+assert.match(orchestrator, /forensicClientFailureCode/);
 
 const synthesisPrompts = await readFile(new URL('../src/constants.ts', import.meta.url), 'utf8');
 assert.match(synthesisPrompts, /ASSESSMENT-STATUS FIDELITY/);
