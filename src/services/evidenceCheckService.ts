@@ -15,7 +15,7 @@ import {
 import { runStage, RunContext, serverLog } from './modelRouter';
 // @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
 import { OUTPUT_CONTRACT_IDS } from '../../lib/outputContracts.js';
-import { isEvidenceQuoteBoundToChunk, isEvidenceQuoteBoundToDerivedEvidence, isValidEvidenceVerifierItem, verifyTextEvidenceSupport } from './evidenceSupport';
+import { isEvidenceQuoteBoundToChunk, isEvidenceQuoteBoundToDerivedEvidence, isValidEvidenceVerifierItem, stampQuoteLocators, verifyTextEvidenceSupport } from './evidenceSupport';
 import {
   antiPatternStatusDescription,
   normalizeAntiPatternAbsenceStatus,
@@ -800,7 +800,12 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
         const id = `${domain}${index}`;
         const existing = logs[stream][id];
         if (!existing || !Array.isArray(existing.evidence_quotes)) continue;
-        const validQuotes = existing.evidence_quotes.filter((quote: any) => {
+        const stampedQuotes = existing.evidence_quotes.map((quote: any) => {
+          if (quote?.evidence_source === 'derived') return quote;
+          const located = typeof quote?.chunk_id === 'string' ? manifest.get(quote.chunk_id) : undefined;
+          return stampQuoteLocators(quote || {}, located);
+        });
+        const validQuotes = stampedQuotes.filter((quote: any) => {
           if (quote?.evidence_source === 'derived') {
             return isEvidenceQuoteBoundToDerivedEvidence(quote, derivedById.get(quote.derived_evidence_id), stream, id);
           }
@@ -808,7 +813,10 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
           return isEvidenceQuoteBoundToChunk(quote || {}, located, located ? chunks.get(located.chunk_id) : undefined);
         });
         const count = Number.isInteger(existing.count) ? Math.max(0, Math.min(3, existing.count)) : 0;
-        if (validQuotes.length === existing.evidence_quotes.length && (count === 0 || validQuotes.length > 0)) continue;
+        if (validQuotes.length === existing.evidence_quotes.length && (count === 0 || validQuotes.length > 0)) {
+          logs[stream][id] = { ...existing, evidence_quotes: stampedQuotes };
+          continue;
+        }
 
         removedQuoteCount += existing.evidence_quotes.length - validQuotes.length;
         adjustedCriteria.add(id);

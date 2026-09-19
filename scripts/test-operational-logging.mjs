@@ -46,6 +46,34 @@ assert.deepEqual(filterOperationalMetadata('maturity_model_calculated', {
   adjusted_maturity: 42.8, fully_resolved_pairs: 15, partially_resolved_pairs: 12,
   unresolved_pairs: 3, contradictions: 2, sufficiency: 'PASS', scoring_authority: true,
 });
+assert.deepEqual(filterOperationalMetadata('stage_exhausted', {
+  stage: 'forensic_audit', attempt_count: 2, error_code: 'models_exhausted',
+  failed_models: 'gemini-3.8-flash,grok-4.6',
+  failed_codes: 'invalid_batch_output_schema,invalid_batch_output_provenance',
+  response_body: 'private model output',
+}), {
+  stage: 'forensic_audit', attempt_count: 2, error_code: 'models_exhausted',
+  failed_models: 'gemini-3.8-flash,grok-4.6',
+  failed_codes: 'invalid_batch_output_schema,invalid_batch_output_provenance',
+});
+assert.deepEqual(filterOperationalMetadata('batch_attempt_failed', {
+  batch: 'C', attempt: 1, error_code: 'INVALID_BATCH_OUTPUT_SCHEMA',
+  failed_models: 'gemini-3.8-flash,grok-4.6',
+  failed_codes: 'INVALID_BATCH_OUTPUT_SCHEMA,INVALID_BATCH_OUTPUT_PROVENANCE',
+  source_text: 'private source content',
+}), {
+  batch: 'C', attempt: 1, error_code: 'INVALID_BATCH_OUTPUT_SCHEMA',
+  failed_models: 'gemini-3.8-flash,grok-4.6',
+  failed_codes: 'INVALID_BATCH_OUTPUT_SCHEMA,INVALID_BATCH_OUTPUT_PROVENANCE',
+});
+assert.deepEqual(filterOperationalMetadata('batch_failed', {
+  batch: 'C', error_code: 'INVALID_BATCH_OUTPUT_PROVENANCE',
+  failed_models: 'grok-4.6', failed_codes: 'INVALID_BATCH_OUTPUT_PROVENANCE',
+  quote_text: 'private source content',
+}), {
+  batch: 'C', error_code: 'INVALID_BATCH_OUTPUT_PROVENANCE',
+  failed_models: 'grok-4.6', failed_codes: 'INVALID_BATCH_OUTPUT_PROVENANCE',
+});
 assert.deepEqual(filterOperationalMetadata('targeted_rescan_unavailable', {
   batch: 'C', criteria_count: 5, error_code: 'DEPENDENCY_UNCERTAINTY', fallback: 'verified_downgrades', error: 'private source content',
 }), { batch: 'C', criteria_count: 5, error_code: 'DEPENDENCY_UNCERTAINTY', fallback: 'verified_downgrades' });
@@ -97,5 +125,11 @@ for (const file of ['../api/openai-generate.js', '../api/anthropic-generate.js',
 
 const routerSource = await readFile(new URL('../src/services/modelRouter.ts', import.meta.url), 'utf8');
 assert.doesNotMatch(routerSource, /failed: \$\{msg\}|failures\.push\(\{ profile, error: msg \}\)/, 'router logs and traces must retain stable error codes only');
+assert.match(routerSource, /failed_codes: exhausted\.failed_codes/, 'stage_exhausted must retain per-model semantic codes');
+assert.match(routerSource, /class StageExhaustedError/, 'semantic rejects must not collapse to a bare All models exhausted Error');
+
+const orchestratorSource = await readFile(new URL('../src/orchestrator.ts', import.meta.url), 'utf8');
+assert.match(orchestratorSource, /error instanceof StageExhaustedError/, 'batch failures must prefer StageExhaustedError.code over MODELS_EXHAUSTED wrapping');
+assert.match(orchestratorSource, /\.\.\.failure/, 'batch_attempt_failed must forward failed_codes');
 
 console.log('operational logging policy tests passed');

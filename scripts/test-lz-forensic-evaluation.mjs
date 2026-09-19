@@ -42,12 +42,16 @@ assert.match(analysis, /safeItem\.lz_contradiction_classes = item\.lz_contradict
 
 const orchestrator = await readFile(new URL("../src/orchestrator.ts", import.meta.url), "utf8");
 assert.doesNotMatch(orchestrator, /quote\.evidence_class/, "models must not be required to emit evidence_class");
-assert.match(orchestrator, /item\.count !== supportedQuestions/);
+assert.match(orchestrator, /assertForensicBatchIds/);
+assert.match(orchestrator, /forensicClientFailureCode/);
+assert.match(orchestrator, /INVALID_BATCH_OUTPUT_IDS/);
+assert.match(orchestrator, /INVALID_BATCH_OUTPUT_SCHEMA/);
+assert.match(orchestrator, /INVALID_BATCH_OUTPUT_PROVENANCE/);
 
 const prompts = await readFile(new URL("../src/prompts.ts", import.meta.url), "utf8");
 assert.match(prompts, /Landing Zone Forensic Auditor/);
 assert.doesNotMatch(prompts, /Cloud Financial Forensic Auditor/);
-assert.match(prompts, /Copy "evidence_class" from the cited <CHUNK>/);
+assert.match(prompts, /Do not emit evidence_class/);
 assert.match(prompts, /JSON key remains "maturity"/);
 
 const guardrails = await readFile(new URL("../src/knowledge_base/index.ts", import.meta.url), "utf8");

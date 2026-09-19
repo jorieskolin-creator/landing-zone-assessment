@@ -21,6 +21,7 @@ checkSource = checkSource
   .replace("import { BATCH_DEFINITIONS, BATCH_IDS, knowledgeBaseService } from '../knowledge_base';", "const BATCH_IDS = ['A', 'B', 'C', 'D', 'E', 'F']; const BATCH_DEFINITIONS = {}; const knowledgeBaseService = {};")
   .replace(/import \{[\s\S]*?\} from '\.\.\/types';\n/, '')
   .replace("import { runStage, RunContext, serverLog } from './modelRouter';", 'const runStage = () => {}; const serverLog = () => {};')
+  .replace("// @ts-expect-error Pure JS contracts are also consumed by the server-side worker.\nimport { OUTPUT_CONTRACT_IDS } from '../../lib/outputContracts.js';", "const OUTPUT_CONTRACT_IDS = { evidenceCheck: 'assessment_evidence_check_v1' };")
   .replace("from './evidenceSupport';", "from './evidenceSupport.mjs';")
   .replace(`import {
   antiPatternStatusDescription,
@@ -29,6 +30,7 @@ checkSource = checkSource
 } from './antiPatternSemantics';`, "const antiPatternStatusDescription = () => ''; const normalizeAntiPatternAbsenceStatus = value => value; const resolveAntiPatternAbsenceStatus = input => input.explicitStatus || 'unknown_absent';");
 await writeFile(join(dir, 'evidenceCheckService.mjs'), transpile(checkSource), 'utf8');
 
+const { stampQuoteLocators, isEvidenceQuoteBoundToChunk } = await import(`file://${join(dir, 'evidenceSupport.mjs')}`);
 const { buildUnavailableEvidenceCheck, reconcileEvidenceProvenance } = await import(`file://${join(dir, 'evidenceCheckService.mjs')}`);
 const ids = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(domain => [1, 2, 3, 4, 5].map(index => `${domain}${index}`));
 const emptyLogs = () => Object.fromEntries(ids.map(id => [id, { count: 0, evidence_quotes: [] }]));
@@ -135,5 +137,36 @@ const effectivePackets = {
 const retainedAgainstEffective = reconcileEvidenceProvenance(semanticGapPhase1, { chunks: [chunk, semanticGapChunk] }, effectivePackets, []);
 assert.equal(retainedAgainstEffective.result.phase_1_audit_logs.maturity.C1.count, 1, 'a semantic-gap citation must survive reconciliation against the effective revised manifest');
 assert.deepEqual(retainedAgainstEffective.result.phase_1_audit_logs.maturity.C1.evidence_quotes, [semanticGapQuote]);
+
+const locatedChunk = { ...chunk, page_id: 'p-3', page_number: 3, sheet_name: 'Controls', row_number: 12, evidence_class: 'document' };
+const locatedManifest = { ...manifest, page_id: 'p-3', page_number: 3, sheet_name: 'Controls', row_number: 12, evidence_class: 'document' };
+assert.equal(isEvidenceQuoteBoundToChunk(validQuote, locatedManifest, locatedChunk), false, 'locator-bearing chunks must not bind unstamped quotes');
+assert.equal(
+  isEvidenceQuoteBoundToChunk(stampQuoteLocators(validQuote, locatedManifest), locatedManifest, locatedChunk),
+  true,
+  'stamped locators must bind to the cited chunk',
+);
+const locatedPackets = {
+  ...packets,
+  C: { ...packets.C, manifest: [locatedManifest] },
+};
+const locatorPhase1 = {
+  ...phase1,
+  phase_1_audit_logs: {
+    maturity: { ...emptyLogs(), C2: { count: 1, status: 'Partial', evidence_quotes: [validQuote] } },
+    antipattern: emptyLogs(),
+  },
+};
+const located = reconcileEvidenceProvenance(locatorPhase1, { chunks: [locatedChunk] }, locatedPackets, []);
+assert.equal(located.adjustedCriteria.length, 0, 'missing locators must be stamped, not treated as unbound');
+assert.equal(located.removedQuoteCount, 0);
+assert.deepEqual(located.result.phase_1_audit_logs.maturity.C2.evidence_quotes, [{
+  ...validQuote,
+  page_id: 'p-3',
+  page_number: 3,
+  sheet_name: 'Controls',
+  row_number: 12,
+  evidence_class: 'document',
+}]);
 
 console.log('evidence provenance reconciliation tests passed');

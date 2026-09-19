@@ -19,6 +19,20 @@ const clampScore = (value: unknown): number => {
 export const normalizeEvidenceText = (value: string): string =>
   value.toLowerCase().replace(/\s+/g, ' ').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").trim();
 
+export const stampQuoteLocators = (
+  quote: Partial<EvidenceQuote>,
+  manifestItem: SourcePacketManifestItem | undefined,
+): Partial<EvidenceQuote> => {
+  if (!quote || quote.evidence_source === 'derived' || !manifestItem) return quote;
+  const next: Partial<EvidenceQuote> = { ...quote };
+  if (manifestItem.page_id !== undefined) next.page_id = manifestItem.page_id;
+  if (manifestItem.page_number !== undefined) next.page_number = manifestItem.page_number;
+  if (manifestItem.sheet_name !== undefined) next.sheet_name = manifestItem.sheet_name;
+  if (typeof manifestItem.row_number === 'number') next.row_number = manifestItem.row_number;
+  if (manifestItem.evidence_class !== undefined) next.evidence_class = manifestItem.evidence_class;
+  return next;
+};
+
 export const isEvidenceQuoteBoundToChunk = (
   quote: Partial<EvidenceQuote>,
   manifestItem: SourcePacketManifestItem | undefined,

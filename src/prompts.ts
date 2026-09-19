@@ -29,7 +29,7 @@ You must evaluate **ALL 3 criteria** for every item to determine the final score
 *   **Financial Sensitivity:** Do NOT extract or repeat specific dollar amounts, account numbers, or pricing terms from the document.
 
 **EVIDENCE-CLASS AUTHORITY:**
-*   Copy "evidence_class" from the cited <CHUNK> marker when quoting. Do not invent a class.
+*   Copy locators from the cited <CHUNK> only by using its id and source_id attributes. Do not invent a class, provider check, or control-plane fact.
 *   Class 1 platform resolves existence, attachment, and current enforcement.
 *   Class 2 document is intent, design, or definition. It cannot by itself prove a control is currently enforced and cannot alone award Count 3.
 *   Class 3 workshop/questionnaire is operating-model evidence. It cannot replace platform facts, cannot become a finding by itself, and cannot award Embedded for a missing preventive control.
@@ -39,16 +39,16 @@ You must evaluate **ALL 3 criteria** for every item to determine the final score
 For EVERY assessed item, including an assessed score of 0, you MUST include at least one criterion-relevant direct source-text quote, visible-image description, or approved deterministic summary line as evidence. A not-assessed item has no evidence quotes.
 Wrap each citation in the "evidence_quotes" array.
 Return exactly ONE best evidence quote per assessed item. Keep quote or image-description text to at most 240 characters; preserve the exact source wording within that bound. Do not repeat the surrounding paragraph.
-Every source-text quote MUST copy its "source_id" and "chunk_id" from the enclosing <CHUNK> marker. Also copy every locator present on that marker: "page_number"/"page_id" for PDF pages and "sheet_name"/"row_number" for table evidence. Copy "evidence_class" from the same marker when present. Never cite text outside the cited chunk. Never invent a class, provider check, or control-plane fact.
+Every source-text quote MUST copy "source_id" and "chunk_id" from the enclosing <CHUNK> marker (the source_id and id attributes). Do not emit evidence_class; it is stamped from the cited chunk. Do not emit page, sheet, or row locators; they are copied from the cited chunk. Never cite text outside the cited chunk. Never invent a class, provider check, or control-plane fact.
 For approved deterministic evidence inside <DERIVED_EVIDENCE>, set evidence_source to "derived", copy source_id and derived_evidence_id, and quote one exact summary_lines entry. Do not add chunk_id. Use a derived observation only for its declared target criterion, never recalculate it, never infer exact percentages or currency amounts from bands, and never infer policy, enforcement, culture, intent, or remediation from table population metrics alone. Never treat missing_items or NOT_FOUND coverage as tested absence or as a lower maturity score.
 
 ### IMAGE / VISUAL EVIDENCE
 Some of the source material may be provided as IMAGES (pages from a PDF, screenshots of dashboards, architecture diagrams, organization charts). Treat the visible content of those images as evidence on equal footing with text.
 
 When evidence comes from an image:
-*   Set the **"evidence_source"** field to **"image"**. For text-derived evidence, set it to **"text"** (or omit — text is the default).
+*   Set the **"evidence_source"** field to **"image"**. For text-derived evidence, set it to **"text"**.
 *   The **"quote"** field becomes a short DESCRIPTION of what is visible — NOT a verbatim quote. Example: "Org chart showing platform-owner function reporting to the CISO" / "Management-group hierarchy screenshot with production subscriptions under a landing-zone node" / "Architecture diagram annotating hub-and-spoke inspection with forced routing callouts".
-*   If the image was extracted from a PDF, include the **"page_number"** field with the page index from the [Image: filename — page N] label.
+*   If the image was extracted from a PDF, the cited chunk already carries the page locator. Do not add a page_number field on the quote.
 *   The 7-category taxonomy still applies. A dashboard screenshot evidences **Operational** (dashboard is in use) or **Automation** (auto-generated). A visible org chart with named roles evidences **Accountability**. An architecture diagram showing automated tagging enforcement evidences **Automation**.
 
 A dashboard screenshot is itself a single-purpose "document type" — expect heavy evidence on the design area the screenshot actually shows (for example F for activity-log destinations, or H for pipeline birth), silence elsewhere.
@@ -83,7 +83,7 @@ Output ONLY valid JSON. No conversational text.
 </system_directive>
 
 <audit_scope>
-Review the document inside the <UNTRUSTED_CONTENT> tags below. Some submissions also include one or more IMAGE parts after the text (PDF pages, dashboard screenshots, diagrams, org charts). Treat both text and visible image content as evidence to be analyzed against the definitions. For image-derived evidence, set evidence_source: "image" and include page_number when available (see "IMAGE / VISUAL EVIDENCE" in the system instruction).
+Review the document inside the <UNTRUSTED_CONTENT> tags below. Some submissions also include one or more IMAGE parts after the text (PDF pages, dashboard screenshots, diagrams, org charts). Treat both text and visible image content as evidence to be analyzed against the definitions. For image-derived evidence, set evidence_source: "image".
 </audit_scope>
 
 <ssot_definitions>
@@ -107,7 +107,7 @@ For the 5 criteria in Stream A (${columnId}1-${columnId}5) AND the 5 criteria in
 3. Return one question_results entry for each sub-criterion: supported, not_supported, or unknown.
 4. Sum only the supported entries to get the **Count (0-3)**.
 5. If assessment_status is assessed, extract at least one criterion-relevant quote even when Count is 0. If no relevant quote exists, return not_assessed.
-6. Every quote must include source_id, chunk_id, and all page/sheet/row locators shown by its enclosing CHUNK marker. Copy evidence_class from that marker when present.
+6. Every quote must include source_id and chunk_id from its enclosing CHUNK marker. Omit evidence_class and page/sheet/row locators; those are filled from the cited chunk.
 7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Be concise; do not reproduce definitions or add recommendations.
 
 **REQUIRED OUTPUT STRUCTURE (JSON Only):**
@@ -117,12 +117,12 @@ Return exactly 10 items: Stream A ${columnId}1-${columnId}5, then Stream B ${col
     {
       "stream": "maturity",
       "id": "${columnId}1",
-      "count": 0,
-      "assessment_status": "assessed | not_assessed",
-      "question_results": ["not_supported", "not_supported", "unknown"],
-      "evidence": "Summary of evidence...",
-      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "category": "Policy", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001", "derived_evidence_id": "" }],
-      "reasoning": "Crit 1: Found. Crit 2: Not found. Crit 3: Not found. Total: 1."
+      "count": 1,
+      "assessment_status": "assessed",
+      "question_results": ["supported", "not_supported", "unknown"],
+      "evidence": "One sub-criterion is supported by the cited chunk.",
+      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "category": "Policy", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001" }],
+      "reasoning": "Crit 1: Found. Crit 2: Not found. Crit 3: Unknown. Total: 1."
     },
     {
       "stream": "antipattern",
@@ -136,7 +136,7 @@ Return exactly 10 items: Stream A ${columnId}1-${columnId}5, then Stream B ${col
     }
   ]
 }
-For derived evidence set evidence_source to "derived", copy derived_evidence_id, and set chunk_id to "". For text or image quotes set derived_evidence_id to "".
+For derived evidence set evidence_source to "derived", copy source_id and derived_evidence_id, and omit chunk_id. For text or image quotes omit derived_evidence_id. Do not omit evidence_source.
 </execution_task>
 `;
 
@@ -185,7 +185,7 @@ Rules:
 1. If evidence is not directly present in the source, lower the Count.
 2. Recompute question_results and set Count to exactly the number of supported entries.
 3. For every assessed result, including 0/3, include at least one criterion-relevant direct quote or visible-image description. If there is no relevant evidence, return assessment_status="not_assessed", Count 0, three unknown question results, and no quotes.
-4. Source-text quotes must include source_id, chunk_id, and every page/sheet/row locator shown by the enclosing CHUNK. Copy evidence_class from that CHUNK when present. Derived quotes must instead include evidence_source="derived", source_id, derived_evidence_id, and an exact summary_lines entry from approved <DERIVED_EVIDENCE>. Never cite content outside the referenced evidence unit. Never invent provider checks or control-plane facts.
+4. Source-text quotes must include source_id and chunk_id from the enclosing CHUNK. Do not emit evidence_class or page/sheet/row locators. Derived quotes must instead include evidence_source="derived", source_id, derived_evidence_id, and an exact summary_lines entry from approved <DERIVED_EVIDENCE>. Never cite content outside the referenced evidence unit. Never invent provider checks or control-plane facts.
 5. For anti-pattern Count = 0, distinguish verified absence from unknown absence in the evidence/reasoning text. Verified absence requires Class 1 coverage that would reveal the anti-pattern if present; silence, documents, or workshop material alone are not tested absence.
 6. Do not return criteria that were not listed in <target_criteria>.
 7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Return decisions and references only—no recommendations or repeated definitions.
@@ -196,15 +196,15 @@ Required JSON shape:
     {
       "stream": "maturity",
       "id": "${columnId}1",
-      "count": 0,
-      "assessment_status": "assessed | not_assessed",
-      "question_results": ["not_supported", "not_supported", "unknown"],
+      "count": 1,
+      "assessment_status": "assessed",
+      "question_results": ["supported", "not_supported", "unknown"],
       "evidence": "Corrected summary of evidence...",
-      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "category": "Policy", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001", "derived_evidence_id": "" }],
-      "reasoning": "Crit 1: Found/Not found. Crit 2: Found/Not found. Crit 3: Found/Not found. Total: N."
+      "evidence_quotes": [{ "quote": "Direct text from the cited source chunk", "category": "Policy", "evidence_source": "text", "source_id": "src-001", "chunk_id": "src-001-p003-c001" }],
+      "reasoning": "Crit 1: Found. Crit 2: Not found. Crit 3: Unknown. Total: 1."
     }
   ]
 }
-Return only the listed criteria. For derived evidence set evidence_source to "derived", copy derived_evidence_id, and set chunk_id to "". For text or image quotes set derived_evidence_id to "".
+Return only the listed criteria. For derived evidence set evidence_source to "derived", copy source_id and derived_evidence_id, and omit chunk_id. For text or image quotes omit derived_evidence_id. Do not omit evidence_source.
 </execution_task>
 `;
