@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 const port = 38765;
 const env = { ...process.env, PORT: String(port) };
@@ -44,7 +47,8 @@ try {
   assert.equal(body.mode, 'ui_only');
 
   const home = await fetch(`http://127.0.0.1:${port}/`);
-  assert.equal(home.status, 200);
+  const distIndex = path.join(fileURLToPath(new URL('..', import.meta.url)), 'dist', 'index.html');
+  assert.equal(home.status, existsSync(distIndex) ? 200 : 404);
 } finally {
   child.kill('SIGTERM');
   await delay(500);
