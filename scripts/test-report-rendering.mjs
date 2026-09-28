@@ -146,6 +146,9 @@ assert.match(exportSource, /Domain Signal Overview/, 'HTML exports should includ
 assert.match(exportSource, /Anti-pattern finding rate/, 'HTML exports should label anti-pattern traffic lights');
 assert.match(exportSource, /Acquisition Quality &amp; Readiness/, 'Master Data should visibly render acquisition quality');
 assert.match(exportSource, /Evidence coverage measures how much of the assessment surface was tested/, 'Master Data should distinguish coverage from density');
+assert.match(exportSource, /\['Evidence density', `\$\{scoringDensity\}%`\]/, 'appendix evidence density must be the Quality Gate figure');
+assert.match(exportSource, /\['Evidence coverage', `\$\{coverage\.overall\}% · \$\{coverage\.covered_items\}\/\$\{coverage\.total_items\} objects`\]/, 'appendix coverage percent must match the covered object count');
+assert.match(exportSource, /\['Weighted evidence quality', `\$\{density\.overall\}%`\]/, 'the 60/20/20 blend must not be labeled evidence density');
 assert.match(exportSource, /observability-only in this milestone/, 'Master Data should disclose that acquisition readiness does not alter the Quality Gate');
 assert.match(exportSource, /renderAcquisitionQuality\(result\)/, 'Master Data generation should include the acquisition quality section');
 assert.match(exportSource, /Shadow deterministic A1\/AP-A1 observations/, 'Master Data should visibly label derived evidence as shadow-only');

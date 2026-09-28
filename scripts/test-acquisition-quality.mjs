@@ -85,7 +85,7 @@ const runTrace = {
 
 const snapshot = buildAcquisitionQualitySnapshot({
   logs,
-  phase2: { metrics: { evidence_density: 100 } },
+  phase2: { metrics: { evidence_density: 26 } },
   sourceRegistry,
   knowledgeBase,
   runTrace
@@ -93,7 +93,9 @@ const snapshot = buildAcquisitionQualitySnapshot({
 
 assert.equal(snapshot.schema_version, 'acquisition_quality_snapshot_v1');
 assert.equal(snapshot.enforcement, 'observability_only');
-assert.equal(snapshot.evidence.coverage.overall, 100);
+assert.equal(snapshot.evidence.coverage.overall, 100, 'coverage is covered objects over the assessment surface');
+assert.equal(snapshot.evidence.coverage.covered_items, 4);
+assert.equal(snapshot.evidence.coverage.total_items, 4);
 assert.equal(snapshot.evidence.coverage.by_domain.A.completeness, 100);
 assert.equal(snapshot.evidence.density.verified_strength, 88);
 assert.equal(snapshot.evidence.density.source_diversity, 50);
