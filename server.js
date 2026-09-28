@@ -94,7 +94,12 @@ for (const file of apiFiles) {
 
 // Static SPA. `index: false` so the SPA fallback below decides which HTML
 // to serve (otherwise express.static would short-circuit "/").
-app.use(express.static(distDir, { index: false }));
+app.use(express.static(distDir, {
+  index: false,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.mjs')) res.setHeader('Content-Type', 'text/javascript');
+  },
+}));
 
 app.get(/^\/(?!api\/).*/, (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));

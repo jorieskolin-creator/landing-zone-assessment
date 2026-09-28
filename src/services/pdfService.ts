@@ -5,11 +5,17 @@ import { assessPdfParseQuality, isNearZeroPdfPage, isSparsePdfPage } from './par
 import type { PdfPageParseStats, PdfParseQuality } from './parseQualityService';
 import { createLocalOcrSession } from './ocrService';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+const PDFJS_ASSET_BASE = '/pdfjs/';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_ASSET_BASE}pdf.worker.min.mjs`;
+
+const openPdfDocument = (data: ArrayBuffer) => pdfjsLib.getDocument({
+  data,
+  standardFontDataUrl: `${PDFJS_ASSET_BASE}standard_fonts/`,
+}).promise;
 
 export const extractTextFromPdf = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await openPdfDocument(arrayBuffer);
   const pages: string[] = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -90,7 +96,7 @@ export const extractPagesFromPdf = async (
   const maxTextPages = opts?.maxTextPages ?? DEFAULT_MAX_TEXT_PAGES;
 
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await openPdfDocument(arrayBuffer);
 
   const pageTexts: string[] = [];
   const loadedPages: any[] = [];
