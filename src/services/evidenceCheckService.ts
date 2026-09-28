@@ -1,4 +1,4 @@
-import { BATCH_DEFINITIONS, BATCH_IDS, knowledgeBaseService } from '../knowledge_base';
+import { BATCH_DEFINITIONS, BATCH_IDS, expectedBatchOutputIdsFor, knowledgeBaseService } from '../knowledge_base';
 import {
   AuditItem,
   EvidenceCheckAdjustment,
@@ -90,7 +90,13 @@ const buildEvidenceCheckedReasoning = (input: {
   return [prefix, scoreLine, verifierLine, coverageLine].filter(Boolean).join(' ');
 };
 
-const idsForBatch = (batchId: string): string[] => [1, 2, 3, 4, 5].map(n => `${batchId}${n}`);
+const expectedIdsByStream = (batchId: string): Record<Stream, string[]> => {
+  const expected = expectedBatchOutputIdsFor(batchId);
+  return {
+    maturity: expected.maturity,
+    antipattern: expected.antipattern,
+  };
+};
 
 const flattenVerifierItems = (parsed: any): any[] => {
   if (Array.isArray(parsed?.items)) return parsed.items;
@@ -101,7 +107,7 @@ const flattenVerifierItems = (parsed: any): any[] => {
 const validatedVerifierItems = (
   value: string,
   batch: BatchAuditResult,
-  expectedIds: string[],
+  expectedIds: Record<Stream, string[]>,
 ): Map<string, any> => {
   const byKey = new Map<string, any>();
   const verifierItems = flattenVerifierItems(parseAiResponse(value));
@@ -109,17 +115,18 @@ const validatedVerifierItems = (
     if (!raw || typeof raw !== 'object') continue;
     const stream = raw.stream === 'antipattern' ? 'antipattern' : raw.stream === 'maturity' ? 'maturity' : null;
     const id = typeof raw.id === 'string' ? raw.id : '';
-    const scannerCount = stream && expectedIds.includes(id)
+    const allowed = stream ? expectedIds[stream] : [];
+    const scannerCount = stream && allowed.includes(id)
       ? clampScore((batch as any)[stream]?.[id]?.count)
       : -1;
-    if (stream && expectedIds.includes(id) && isValidEvidenceVerifierItem({
+    if (stream && allowed.includes(id) && isValidEvidenceVerifierItem({
       raw,
       stream,
       scannerCount,
       duplicate: byKey.has(`${stream}.${id}`),
     })) byKey.set(`${stream}.${id}`, raw);
   }
-  const expectedTotal = expectedIds.length * STREAMS.length;
+  const expectedTotal = STREAMS.reduce((total, stream) => total + expectedIds[stream].length, 0);
   if (verifierItems.length === 0 || byKey.size !== expectedTotal) {
     throw Object.assign(new Error('Evidence verifier output was incomplete.'), {
       code: 'INVALID_VERIFIER_OUTPUT',
@@ -140,7 +147,8 @@ const buildEvidenceCheckPrompt = (
   definitions: any,
   batch: BatchAuditResult,
   text: string,
-  referenceKbContext: string
+  referenceKbContext: string,
+  expectedIds: Record<Stream, string[]>,
 ): string => `
 <role>
 You are an independent Landing Zone evidence verifier. Your job is NOT to rescan the whole document. Your job is to verify whether the scanner's forwarded findings and scores are actually supported by the raw source material.
@@ -200,12 +208,15 @@ ${summarizeBatch(batch)}
 </rules>
 
 <output_format>
-Return STRICT JSON with exactly 10 items, five maturity then five antipattern, IDs ${batchId}1-${batchId}5:
+Return STRICT JSON with exactly ${expectedIds.maturity.length + expectedIds.antipattern.length} items.
+Maturity ids, in order: ${expectedIds.maturity.join(', ')}.
+Anti-pattern ids, in order: ${expectedIds.antipattern.join(', ')}.
+Copy each id exactly. Anti-pattern ids keep the AP- prefix. Do not emit a maturity id on the antipattern stream.
 {
   "items": [
     {
       "stream": "maturity",
-      "id": "${batchId}1",
+      "id": "${expectedIds.maturity[0] || `${batchId}1`}",
       "status": "supported | weak | unsupported | missing",
       "assessment_status": "assessed | not_assessed",
       "original_count": 2,
@@ -218,7 +229,7 @@ Return STRICT JSON with exactly 10 items, five maturity then five antipattern, I
     },
     {
       "stream": "antipattern",
-      "id": "${batchId}1",
+      "id": "${expectedIds.antipattern[0] || `AP-${batchId}1`}",
       "status": "supported | weak | unsupported | missing",
       "assessment_status": "assessed | not_assessed",
       "original_count": 0,
@@ -262,6 +273,7 @@ You are a senior Landing Zone evidence adjudicator. A first evidence-check found
 - Do not return "tested_absent" for these disputed items because the scanner already found a harmful signal and the verifier could not support a clean absence.
 - Prefer "unknown_absent" when the source does not actually discuss the anti-pattern topic.
 - Prefer "partially_present" when the source discusses the topic and shows a weak version of the harmful pattern.
+- Copy each disputed item id exactly, including the AP- prefix.
 </rules>
 
 <source_material>
@@ -281,7 +293,7 @@ Return STRICT JSON:
 {
   "items": [
     {
-      "id": "${batchId}1",
+      "id": "${items[0]?.id || `AP-${batchId}1`}",
       "antipattern_absence_status": "partially_present | unknown_absent",
       "rationale": "Short source-grounded reason for the adjudication.",
       "coverage_reason": "Short source coverage interpretation."
@@ -405,8 +417,8 @@ export const buildUnavailableEvidenceCheck = (
   batch: BatchAuditResult,
   failureReason: string,
 ): EvidenceCheckResult => {
-  const expectedIds = idsForBatch(batchId);
-  const items: EvidenceCheckItem[] = STREAMS.flatMap(stream => expectedIds.map(id => {
+  const expectedIds = expectedIdsByStream(batchId);
+  const items: EvidenceCheckItem[] = STREAMS.flatMap(stream => expectedIds[stream].map(id => {
     const original = clampScore((batch as any)[stream]?.[id]?.count);
     return {
       stream,
@@ -439,7 +451,7 @@ export const runEvidenceCheck = async (
   ctx: RunContext
 ): Promise<EvidenceCheckResult> => {
   const definitions = BATCH_DEFINITIONS[batchId];
-  const expectedIds = idsForBatch(batchId);
+  const expectedIds = expectedIdsByStream(batchId);
   let lastError: any;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -450,7 +462,7 @@ export const runEvidenceCheck = async (
       label: 'evidence_check',
     });
     const resp = await runStage('evidence_check', {
-      userText: buildEvidenceCheckPrompt(batchId, definitions, batch, text, referenceKbContext),
+      userText: buildEvidenceCheckPrompt(batchId, definitions, batch, text, referenceKbContext, expectedIds),
       images,
       outputContract: OUTPUT_CONTRACT_IDS.evidenceCheck,
       validateOutput: value => { validatedVerifierItems(value, batch, expectedIds); },
@@ -459,7 +471,7 @@ export const runEvidenceCheck = async (
 
     const items: EvidenceCheckItem[] = [];
     for (const stream of STREAMS) {
-      for (const id of expectedIds) {
+      for (const id of expectedIds[stream]) {
         const original = clampScore((batch as any)[stream]?.[id]?.count);
         const raw = byKey.get(`${stream}.${id}`);
         const scannerItem = (batch as any)[stream]?.[id] as Partial<AuditItem> | undefined;
@@ -620,8 +632,11 @@ export const applyEvidenceCheckToBatch = (
     antipattern: { ...(batch.antipattern || {}) }
   };
   const adjustments: EvidenceCheckAdjustment[] = [];
+  const canonicalIds = result.batch_id ? expectedIdsByStream(result.batch_id) : null;
 
   for (const item of result.items) {
+    if (item.stream !== 'maturity' && item.stream !== 'antipattern') continue;
+    if (canonicalIds && !canonicalIds[item.stream].includes(item.id)) continue;
     const streamBucket = (checked as any)[item.stream] || {};
     const existing = streamBucket[item.id] || {};
     const key = `${item.stream}.${item.id}`;
@@ -794,10 +809,10 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
   let removedQuoteCount = 0;
 
   for (const domain of BATCH_IDS) {
+    const expectedIds = expectedIdsByStream(domain);
     const manifest = new Map((packets[domain]?.manifest || []).map(item => [item.chunk_id, item]));
     for (const stream of STREAMS) {
-      for (let index = 1; index <= 5; index++) {
-        const id = `${domain}${index}`;
+      for (const id of expectedIds[stream]) {
         const existing = logs[stream][id];
         if (!existing || !Array.isArray(existing.evidence_quotes)) continue;
         const stampedQuotes = existing.evidence_quotes.map((quote: any) => {

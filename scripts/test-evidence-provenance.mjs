@@ -18,7 +18,13 @@ await writeFile(join(dir, 'evidenceSupport.mjs'), transpile(supportSource), 'utf
 
 let checkSource = await readFile(new URL('../src/services/evidenceCheckService.ts', import.meta.url), 'utf8');
 checkSource = checkSource
-  .replace("import { BATCH_DEFINITIONS, BATCH_IDS, knowledgeBaseService } from '../knowledge_base';", "const BATCH_IDS = ['A', 'B', 'C', 'D', 'E', 'F']; const BATCH_DEFINITIONS = {}; const knowledgeBaseService = {};")
+  .replace("import { BATCH_DEFINITIONS, BATCH_IDS, expectedBatchOutputIdsFor, knowledgeBaseService } from '../knowledge_base';", `const BATCH_IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const BATCH_DEFINITIONS = {};
+const knowledgeBaseService = {};
+const expectedBatchOutputIdsFor = (batchId) => ({
+  maturity: [1, 2, 3, 4, 5].map(index => \`\${batchId}\${index}\`),
+  antipattern: [1, 2, 3, 4, 5].map(index => \`AP-\${batchId}\${index}\`),
+});`)
   .replace(/import \{[\s\S]*?\} from '\.\.\/types';\n/, '')
   .replace("import { runStage, RunContext, serverLog } from './modelRouter';", 'const runStage = () => {}; const serverLog = () => {};')
   .replace("// @ts-expect-error Pure JS contracts are also consumed by the server-side worker.\nimport { OUTPUT_CONTRACT_IDS } from '../../lib/outputContracts.js';", "const OUTPUT_CONTRACT_IDS = { evidenceCheck: 'assessment_evidence_check_v1' };")
@@ -31,12 +37,15 @@ checkSource = checkSource
 await writeFile(join(dir, 'evidenceCheckService.mjs'), transpile(checkSource), 'utf8');
 
 const { stampQuoteLocators, isEvidenceQuoteBoundToChunk } = await import(`file://${join(dir, 'evidenceSupport.mjs')}`);
-const { buildUnavailableEvidenceCheck, reconcileEvidenceProvenance } = await import(`file://${join(dir, 'evidenceCheckService.mjs')}`);
-const ids = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(domain => [1, 2, 3, 4, 5].map(index => `${domain}${index}`));
-const emptyLogs = () => Object.fromEntries(ids.map(id => [id, { count: 0, evidence_quotes: [] }]));
-const evidenceItems = ids.flatMap(id => ['maturity', 'antipattern'].map(stream => ({
-  stream, id, status: 'supported', original_count: 0, verified_count: 0, rationale: 'No finding.',
-})));
+const { applyEvidenceCheckToBatch, buildUnavailableEvidenceCheck, reconcileEvidenceProvenance } = await import(`file://${join(dir, 'evidenceCheckService.mjs')}`);
+const maturityIds = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(domain => [1, 2, 3, 4, 5].map(index => `${domain}${index}`));
+const antipatternIds = maturityIds.map(id => `AP-${id}`);
+const emptyLogs = () => Object.fromEntries(maturityIds.map(id => [id, { count: 0, evidence_quotes: [] }]));
+const emptyAntipatternLogs = () => Object.fromEntries(antipatternIds.map(id => [id, { count: 0, evidence_quotes: [] }]));
+const evidenceItems = [
+  ...maturityIds.map(id => ({ stream: 'maturity', id, status: 'supported', original_count: 0, verified_count: 0, rationale: 'No finding.' })),
+  ...antipatternIds.map(id => ({ stream: 'antipattern', id, status: 'supported', original_count: 0, verified_count: 0, rationale: 'No finding.' })),
+];
 const chunk = { chunk_id: 'src-001-c001', source_id: 'src-001', text: 'Teams run monthly cloud cost reviews.', type: 'text', routing: [] };
 const semanticGapChunk = { chunk_id: 'src-001-c002', source_id: 'src-001', text: 'Kubernetes autoscaling thresholds are reviewed every month.', type: 'text', routing: [] };
 const manifest = { chunk_id: chunk.chunk_id, source_id: chunk.source_id, type: 'text', relevance: 'high', routed_domains: ['C'] };
@@ -60,8 +69,8 @@ maturity.C2 = { count: 1, status: 'Partial', evidence_quotes: [validQuote, forge
 maturity.C3 = { count: 1, status: 'Partial', evidence_quotes: [] };
 maturity.C4 = { count: 1, status: 'Partial', evidence_quotes: [derivedQuote] };
 maturity.C5 = { count: 1, status: 'Partial', evidence_quotes: [derivedQuote] };
-const antipattern = emptyLogs();
-antipattern.C1 = {
+const antipattern = emptyAntipatternLogs();
+antipattern['AP-C1'] = {
   count: 0, status: 'OK', assessment_status: 'assessed', question_results: ['not_supported', 'not_supported', 'not_supported'],
   evidence_quotes: [forgedQuote], antipattern_absence_status: 'tested_absent', coverage_reason: 'Relevant coverage was reviewed.'
 };
@@ -70,7 +79,7 @@ for (const item of evidenceItems) {
     item.original_count = item.id === 'C1' ? 2 : 1;
     item.verified_count = item.original_count;
   }
-  if (item.stream === 'antipattern' && item.id === 'C1') {
+  if (item.stream === 'antipattern' && item.id === 'AP-C1') {
     item.assessment_status = 'assessed';
     item.antipattern_absence_status = 'tested_absent';
     item.coverage_reason = 'Relevant coverage was reviewed.';
@@ -88,16 +97,32 @@ const phase1 = {
 
 const unavailable = buildUnavailableEvidenceCheck('C', {
   maturity: { C1: { count: 3 } },
-  antipattern: { C2: { count: 2 } },
+  antipattern: { 'AP-C2': { count: 2 } },
 }, 'verifier unavailable');
 assert.equal(unavailable.failed, true);
 assert.equal(unavailable.items.length, 10, 'fallback must preserve the complete evidence decision contract');
 assert.ok(unavailable.items.every(item => item.verified_count === 0 && item.status === 'missing' && item.verification_unresolved));
 assert.equal(unavailable.items.find(item => item.stream === 'maturity' && item.id === 'C1').original_count, 3);
-assert.equal(unavailable.items.find(item => item.stream === 'antipattern' && item.id === 'C2').antipattern_absence_status, 'unknown_absent');
+assert.equal(unavailable.items.find(item => item.stream === 'antipattern' && item.id === 'AP-C2').original_count, 2);
+assert.equal(unavailable.items.find(item => item.stream === 'antipattern' && item.id === 'AP-C2').antipattern_absence_status, 'unknown_absent');
+assert.equal(unavailable.items.some(item => item.stream === 'antipattern' && item.id === 'C2'), false, 'unavailable anti-pattern fallback must not emit bare ids');
+
+const canonicalScanner = {
+  maturity: { A1: { count: 1, evidence_quotes: [] } },
+  antipattern: { 'AP-A1': { count: 2, evidence_quotes: [] } },
+};
+const unavailableCanonical = buildUnavailableEvidenceCheck('A', canonicalScanner, 'MODELS_EXHAUSTED');
+assert.deepEqual(
+  unavailableCanonical.items.filter(item => item.stream === 'antipattern').map(item => item.id),
+  ['AP-A1', 'AP-A2', 'AP-A3', 'AP-A4', 'AP-A5'],
+);
+const appliedCanonical = applyEvidenceCheckToBatch(canonicalScanner, unavailableCanonical, new Set());
+assert.deepEqual(Object.keys(appliedCanonical.batch.antipattern).sort(), ['AP-A1', 'AP-A2', 'AP-A3', 'AP-A4', 'AP-A5']);
+assert.equal(appliedCanonical.batch.antipattern.A1, undefined, 'unavailable evidence-check must not add bare anti-pattern keys');
+assert.equal(appliedCanonical.batch.maturity.A1.original_count, 1);
 
 const reconciled = reconcileEvidenceProvenance(phase1, { chunks: [chunk] }, packets, [derivedEvidence]);
-assert.deepEqual(reconciled.adjustedCriteria, ['C1', 'C2', 'C3', 'C5']);
+assert.deepEqual(reconciled.adjustedCriteria, ['AP-C1', 'C1', 'C2', 'C3', 'C5']);
 assert.equal(reconciled.removedQuoteCount, 4);
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C1.count, 0, 'unsupported positive score must be downgraded');
 assert.deepEqual(reconciled.result.phase_1_audit_logs.maturity.C1.evidence_quotes, []);
@@ -108,9 +133,9 @@ assert.deepEqual(reconciled.result.phase_1_audit_logs.maturity.C2.evidence_quote
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C3.count, 0, 'a positive finding without any quote must be downgraded');
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C4.count, 1, 'an exact derived citation for its declared target must survive');
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C5.count, 0, 'a derived citation used for an undeclared target must be rejected');
-assert.equal(reconciled.result.phase_1_audit_logs.antipattern.C1.assessment_status, 'not_assessed', 'an assessed zero without bound evidence must become unknown');
-assert.equal(reconciled.result.phase_1_audit_logs.antipattern.C1.antipattern_absence_status, 'unknown_absent');
-const reconciledZeroVerdict = reconciled.result.evidence_check.items.find(item => item.stream === 'antipattern' && item.id === 'C1');
+assert.equal(reconciled.result.phase_1_audit_logs.antipattern['AP-C1'].assessment_status, 'not_assessed', 'an assessed zero without bound evidence must become unknown');
+assert.equal(reconciled.result.phase_1_audit_logs.antipattern['AP-C1'].antipattern_absence_status, 'unknown_absent');
+const reconciledZeroVerdict = reconciled.result.evidence_check.items.find(item => item.stream === 'antipattern' && item.id === 'AP-C1');
 assert.equal(reconciledZeroVerdict.status, 'unsupported', 'exported Evidence Check must match the provenance-reconciled audit log');
 assert.equal(reconciledZeroVerdict.assessment_status, 'not_assessed');
 assert.equal(reconciledZeroVerdict.antipattern_absence_status, 'unknown_absent');
@@ -121,7 +146,7 @@ const semanticGapPhase1 = {
   ...phase1,
   phase_1_audit_logs: {
     maturity: { ...emptyLogs(), C1: { count: 1, status: 'Partial', evidence_quotes: [semanticGapQuote] } },
-    antipattern: emptyLogs(),
+    antipattern: emptyAntipatternLogs(),
   },
 };
 const rejectedAgainstBaseline = reconcileEvidenceProvenance(semanticGapPhase1, { chunks: [chunk, semanticGapChunk] }, packets, []);
@@ -154,7 +179,7 @@ const locatorPhase1 = {
   ...phase1,
   phase_1_audit_logs: {
     maturity: { ...emptyLogs(), C2: { count: 1, status: 'Partial', evidence_quotes: [validQuote] } },
-    antipattern: emptyLogs(),
+    antipattern: emptyAntipatternLogs(),
   },
 };
 const located = reconcileEvidenceProvenance(locatorPhase1, { chunks: [locatedChunk] }, locatedPackets, []);
