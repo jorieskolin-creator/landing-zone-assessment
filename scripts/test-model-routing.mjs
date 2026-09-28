@@ -149,7 +149,7 @@ const expandedEnv = {
   WORKHORSE_FALLBACK_PROVIDER: 'XAI',
   WORKHORSE_FALLBACK_MODEL: 'grok-4.6',
   QUALITY_CHECKER_PROVIDER: 'META',
-  QUALITY_CHECKER_MODEL: 'muse-spark-1.3',
+  QUALITY_CHECKER_MODEL: 'muse-spark-1.1',
   QUALITY_CHECKER_FALLBACK_PROVIDER: 'OPENAI',
   QUALITY_CHECKER_FALLBACK_MODEL: 'gpt-5.4',
 };
@@ -168,7 +168,7 @@ assert.equal(expandedConfig.routes.forensic_audit[0].reasoningEffort, 'medium');
 assert.equal(expandedConfig.routes.forensic_audit[0].maxTokens, 32768, 'Gemini forensic_audit must leave room for thinking plus JSON');
 assert.equal(expandedConfig.routes.forensic_audit[1].maxTokens, 32768);
 assert.deepEqual(expandedConfig.routes.fact_check.map(value => `${value.provider}:${value.id}`), [
-  'meta:muse-spark-1.3',
+  'meta:muse-spark-1.1',
   'openai:gpt-5.4',
 ]);
 assert.equal(expandedConfig.routes.evidence_check[0].maxTokens, 32768, 'Meta evidence_check uses the same reasoning headroom');
@@ -180,7 +180,7 @@ assert.doesNotThrow(() => authorizeConfiguredDestination(
   'forensic_audit', 'google', 'gemini-3.8-flash', { max_tokens: 32768, reasoning_effort: 'medium' }, expandedEnv,
 ));
 assert.doesNotThrow(() => authorizeConfiguredDestination(
-  'fact_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, expandedEnv,
+  'fact_check', 'meta', 'muse-spark-1.1', { max_tokens: 16384, reasoning_effort: 'medium' }, expandedEnv,
 ));
 assert.doesNotThrow(() => authorizeDestination(
   'fact_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' },
@@ -231,18 +231,18 @@ assert.deepEqual(testModeConfig.routes.evidence_adjudication.map(value => `${val
   'google:gemini-3.8-flash',
 ]);
 assert.deepEqual(testModeConfig.routes.fact_check.map(value => `${value.provider}:${value.id}`), [
-  'meta:muse-spark-1.3',
+  'meta:muse-spark-1.1',
   'google:gemini-3.8-flash',
 ]);
 assert.equal(testModeConfig.routes.forensic_audit[0].maxTokens, 32768);
-assert.equal(testModeConfig.routes.evidence_check[0].id, 'muse-spark-1.3');
+assert.equal(testModeConfig.routes.evidence_check[0].id, 'muse-spark-1.1');
 assert.equal(testModeConfig.routes.evidence_check[0].provider, 'meta');
 assert.equal(testModeConfig.routes.evidence_check[0].maxTokens, 32768);
 assert.equal(testModeConfig.routes.evidence_check[1].id, 'gemini-3.8-flash');
 assert.equal(testModeConfig.routes.fact_check[0].maxTokens, 16384);
 assert.equal(testModeConfig.routes.fact_check[1].maxTokens, 16384);
 assert.doesNotThrow(() => authorizeConfiguredDestination(
-  'fact_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
+  'fact_check', 'meta', 'muse-spark-1.1', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
 ));
 assert.doesNotThrow(() => authorizeConfiguredDestination(
   'fact_check', 'google', 'gemini-3.8-flash', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
@@ -251,10 +251,10 @@ assert.throws(() => authorizeConfiguredDestination(
   'fact_check', 'xai', 'grok-4.6', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
 ), /DESTINATION_NOT_CONFIGURED/, 'TEST_MODE fact checks keep Grok on the reasoner and workhorse paths');
 assert.doesNotThrow(() => authorizeConfiguredDestination(
-  'evidence_check', 'meta', 'muse-spark-1.3', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
+  'evidence_check', 'meta', 'muse-spark-1.1', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
 ));
 assert.throws(() => authorizeConfiguredDestination(
-  'evidence_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
+  'evidence_check', 'meta', 'muse-spark-1.1', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
 ), /DESTINATION_NOT_CONFIGURED/, 'Muse evidence_check must use the raised completion budget');
 assert.doesNotThrow(() => authorizeConfiguredDestination(
   'evidence_check', 'google', 'gemini-3.8-flash', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
@@ -276,7 +276,7 @@ const testModeWithoutRoleVars = resolveModelRouting({
   MODEL_API_KEY: 'test-model-key',
 });
 assert.equal(testModeWithoutRoleVars.label, MODEL_ROUTING_TEST_LABEL);
-assert.equal(testModeWithoutRoleVars.routes.fact_check[0].id, 'muse-spark-1.3');
+assert.equal(testModeWithoutRoleVars.routes.fact_check[0].id, 'muse-spark-1.1');
 assert.equal(resolveModelRouting({ ...env, TEST_MODE: 'false' }).label, MODEL_ROUTING_LABEL);
 
 assert.throws(() => resolveModelRouting({ ...testModeEnv, XAI_API_KEY: '' }), ModelRoutingConfigurationError);

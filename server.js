@@ -69,8 +69,10 @@ app.get('/readyz',async(_req,res)=>{
 });
 
 // Text-only stage approval intake. Images and base64 payloads are prohibited.
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+// Approved roadmap text may be up to 1.5 million characters. The JSON envelope
+// needs headroom above that, or express rejects the packet before governance.
+app.use(express.json({ limit: '4mb' }));
+app.use(express.urlencoded({ extended: true, limit: '4mb' }));
 
 // Mount each api/*.js file at /api/<basename>. Dynamic import keeps the
 // Vercel handler signature intact — Express's (req, res) is compatible.

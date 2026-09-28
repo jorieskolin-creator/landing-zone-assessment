@@ -258,7 +258,7 @@ const metaResult = await invokeProvider({
   ...packet,
   stage: 'fact_check',
   provider: 'meta',
-  model: 'muse-spark-1.3',
+  model: 'muse-spark-1.1',
   output_contract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
   settings: { max_tokens: 8192, reasoning_effort: 'medium' },
 }, {
@@ -276,7 +276,7 @@ const metaResult = await invokeProvider({
 });
 assert.equal(metaRequest.url, 'https://api.meta.ai/v1/chat/completions');
 assert.equal(metaRequest.headers.Authorization, 'Bearer test-meta-key');
-assert.equal(metaRequest.body.model, 'muse-spark-1.3');
+assert.equal(metaRequest.body.model, 'muse-spark-1.1');
 assert.equal(metaRequest.body.max_completion_tokens, 8192);
 assert.equal(metaRequest.body.reasoning_effort, 'medium');
 assert.equal(metaRequest.body.response_format.type, 'json_schema');
@@ -356,7 +356,7 @@ await assert.rejects(
   invokeProvider({
     ...packet,
     provider: 'meta',
-    model: 'muse-spark-1.3',
+    model: 'muse-spark-1.1',
     settings: { max_tokens: 8192, reasoning_effort: 'medium' },
   }, {
     env: { META_API_KEY: 'test-key' },
