@@ -79,6 +79,15 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
       : 'The validated evidence supports the reported planning decision.';
   const sufficiency = result.phase_2_validation.assessment_sufficiency;
   const maturityModel = result.phase_2_validation.resolution_maturity;
+  const headlineBlocked = gate === 'BLOCK' || sufficiency.decision === 'BLOCK';
+  const gaugeValue = (published: number | null, computed: number | null): number | null => {
+    if (typeof published === 'number' && Number.isFinite(published)) return published;
+    if (!headlineBlocked && typeof computed === 'number' && Number.isFinite(computed)) return computed;
+    return null;
+  };
+  const corroboratedMaturity = gaugeValue(metrics.corroborated_maturity, maturityModel.overall.corroborated_maturity);
+  const observedMaturity = gaugeValue(metrics.observed_maturity, maturityModel.overall.observed_maturity);
+  const adjustedMaturity = gaugeValue(metrics.adjusted_maturity, maturityModel.overall.adjusted_maturity);
 
   return {
     sufficiency: {
@@ -98,7 +107,7 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
     },
     metrics: [
       {
-        value: metrics.corroborated_maturity,
+        value: corroboratedMaturity,
         label: 'Corroborated Maturity',
         description: 'Maturity from pairs where both the capability and its related anti-pattern are resolved. Unknown pairs are excluded rather than scored as zero.',
         denominator: `${maturityModel.overall.fully_resolved_pair_count} of ${maturityTotal} pairs fully resolved`,
@@ -106,7 +115,7 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
         color: '#0891b2',
       },
       {
-        value: metrics.observed_maturity,
+        value: observedMaturity,
         label: 'Observed Maturity',
         description: 'Evidence-weighted maturity across fully and partially resolved pairs. Partial pairs contribute with half resolution credit.',
         denominator: `${metrics.assessment_resolution.toFixed(1)}% resolution · ${maturityModel.overall.partially_resolved_pair_count} partially resolved pairs`,
@@ -114,10 +123,10 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
         color: '#7c3aed',
       },
       {
-        value: metrics.adjusted_maturity,
+        value: adjustedMaturity,
         label: 'Adjusted Landing Zone Maturity',
         description: 'Observed Maturity adjusted by the square root of assessment resolution. This score drives Foundation/Pilot/Rollout/Operate publication only when Assessment Sufficiency passes. Kernel scoring still computes Crawl-Walk-Run internally.',
-        denominator: `${metrics.observed_maturity === null ? 'N/A' : metrics.observed_maturity.toFixed(1)} observed × √${(metrics.assessment_resolution / 100).toFixed(3)} resolution · sufficiency ${sufficiency.decision}`,
+        denominator: `${observedMaturity === null ? 'N/A' : observedMaturity.toFixed(1)} observed × √${(metrics.assessment_resolution / 100).toFixed(3)} resolution · sufficiency ${sufficiency.decision}`,
         trend: 'positive',
         color: '#059669',
       },

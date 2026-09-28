@@ -6,7 +6,8 @@
  * - scores provider-scoped applicable instances only
  * - clamps confirmed anti-patterns so capability cannot conceal them
  * - maps Crawl/Walk/Run onto Foundation/Pilot/Rollout/Operate
- * - never publishes a blended multi-provider headline
+ * - never publishes a blended Foundation/Pilot/Rollout/Operate label
+ * - keeps estate gauge values when Assessment Sufficiency is not BLOCK
  *
  * Work 7 A–H packet routing and Work 8 evidence-authority overlay run before
  * this adapter. Phase 1 maps remain keyed by criterion id. When more than
@@ -400,19 +401,24 @@ const scoreLogs = (
   };
 };
 
-const withholdBlendedHeadline = (estate: Phase2Validation): Phase2Validation => ({
-  ...estate,
-  crawl_walk_run: 'Insufficient evidence',
-  lz_maturity_label: 'Insufficient evidence',
-  metrics: {
-    ...estate.metrics,
-    adjusted_maturity: null,
-    corroborated_maturity: null,
-    observed_maturity: null,
-    raw_finops_maturity_score: 0,
-    finops_readiness: 0,
-  },
-});
+const withholdBlendedHeadline = (estate: Phase2Validation): Phase2Validation => {
+  const sufficiencyBlocked = estate.assessment_sufficiency.decision === 'BLOCK';
+  return {
+    ...estate,
+    crawl_walk_run: 'Insufficient evidence',
+    lz_maturity_label: 'Insufficient evidence',
+    metrics: sufficiencyBlocked
+      ? {
+          ...estate.metrics,
+          adjusted_maturity: null,
+          corroborated_maturity: null,
+          observed_maturity: null,
+          raw_finops_maturity_score: 0,
+          finops_readiness: 0,
+        }
+      : estate.metrics,
+  };
+};
 
 export const scoreLandingZoneAssessment = (input: ScoreLandingZoneInput): LzScoringResult => {
   const policy = input.policy || LZ_SCORING_POLICY;

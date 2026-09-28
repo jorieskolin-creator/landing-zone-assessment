@@ -326,4 +326,45 @@ const logs = (maturityFactory, antiFactory) => ({
   );
 }
 
+{
+  const phase2 = calculateMetrics(logs(
+    () => item(3, true),
+    () => anti(0, false, 'tested_absent'),
+  ));
+  const withheld = {
+    ...phase2,
+    metrics: {
+      ...phase2.metrics,
+      corroborated_maturity: null,
+      observed_maturity: null,
+      adjusted_maturity: null,
+    },
+  };
+  const warnView = buildReportViewModel({
+    phase_1_audit_logs: logs(() => item(3, true), () => anti(0, false, 'tested_absent')),
+    phase_2_validation: withheld,
+    phase_3_strategy: {
+      diagnosis: { confidence: 'low' },
+      planning_decision: { decision: 'CONDITIONAL_GO' },
+    },
+    quality_gate: { decision: 'WARN', blocking_reasons: [] },
+  });
+  assert.equal(warnView.metrics[0].value, phase2.resolution_maturity.overall.corroborated_maturity);
+  assert.equal(warnView.metrics[1].value, phase2.resolution_maturity.overall.observed_maturity);
+  assert.equal(warnView.metrics[2].value, phase2.resolution_maturity.overall.adjusted_maturity);
+  assert.match(warnView.metrics[2].denominator, /sufficiency PASS/);
+  assert.doesNotMatch(warnView.metrics[2].denominator, /^N\/A observed/);
+
+  const blockedView = buildReportViewModel({
+    phase_1_audit_logs: logs(() => item(3, true), () => anti(0, false, 'tested_absent')),
+    phase_2_validation: withheld,
+    phase_3_strategy: {
+      diagnosis: { confidence: 'low' },
+      planning_decision: { decision: 'NO_GO' },
+    },
+    quality_gate: { decision: 'BLOCK', blocking_reasons: ['Roadmap actionability fixture.'] },
+  });
+  assert.deepEqual(blockedView.metrics.map(metric => metric.value), [null, null, null]);
+}
+
 console.log('metrics unit tests passed');
