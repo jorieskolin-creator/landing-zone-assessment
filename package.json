@@ -95,7 +95,7 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "1.0.0",
