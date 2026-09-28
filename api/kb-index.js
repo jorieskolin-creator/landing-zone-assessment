@@ -2,6 +2,7 @@ import { requireSession } from '../lib/auth.js';
 import { buildKbStatus, sanitizeKbDocument, textLooksLikeFinopsKnowledge } from '../lib/kbIndex.js';
 import { isRejectedFinopsBlobPrefix, resolveLzKbBlobPrefix } from '../lib/lzKbBlobPrefix.js';
 import { createHash } from 'node:crypto';
+import { pdfjsStandardFontDataUrl } from '../lib/pdfjsNodeOptions.js';
 
 const BLOB_API_URL = 'https://vercel.com/api/blob';
 const BLOB_API_VERSION = '12';
@@ -84,7 +85,11 @@ async function fetchAndConsume(url, options, consume) {
 async function extractPdfText(buffer) {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const data = new Uint8Array(buffer);
-  const pdf = await pdfjs.getDocument({ data, disableWorker: true }).promise;
+  const pdf = await pdfjs.getDocument({
+    data,
+    disableWorker: true,
+    standardFontDataUrl: pdfjsStandardFontDataUrl(),
+  }).promise;
   try {
     const pageCount = Math.min(pdf.numPages, PDF_TEXT_PAGE_LIMIT);
     const pages = [];

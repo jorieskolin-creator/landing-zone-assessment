@@ -35,7 +35,7 @@ command -v npm >/dev/null 2>&1 || {
   echo "[setup] npm is required but was not found" >&2
   exit 1
 }
-node -e 'const major = Number(process.versions.node.split(".")[0]); if (major < 18) { console.error(`[setup] Node.js >=18 is required; found ${process.version}`); process.exit(1) }'
+node -e 'const major = Number(process.versions.node.split(".")[0]); if (major < 20) { console.error(`[setup] Node.js >=20 is required; found ${process.version}`); process.exit(1) }'
 
 step "Installing locked npm dependencies"
 npm ci --no-audit --no-fund

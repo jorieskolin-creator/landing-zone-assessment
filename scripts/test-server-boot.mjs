@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { inspectServerBoot } from '../lib/serverBoot.js';
+import { deploymentExpectsInfrastructure, inspectServerBoot, readyzResponse } from '../lib/serverBoot.js';
 
 const validEnv = {
   OPENAI_API_KEY: 'test-openai-key',
@@ -39,7 +39,26 @@ assert.match(server, /publisher\?\.stop/);
 assert.doesNotMatch(server, /STARTUP_FAILED code=\$\{code==='INTERNAL_ERROR'\?'INFRASTRUCTURE_UNAVAILABLE'/);
 assert.match(server, /INFRASTRUCTURE_UNAVAILABLE code=/);
 assert.match(server, /serving UI; workers not started/);
-assert.match(server, /mode:'ui_only'/);
+assert.match(server, /deploymentExpectsInfrastructure\(process\.env\)/);
+assert.match(server, /readyzResponse\(/);
+assert.equal(deploymentExpectsInfrastructure({}), false);
+assert.equal(deploymentExpectsInfrastructure({ DATABASE_URL: 'postgresql://db' }), true);
+assert.equal(deploymentExpectsInfrastructure({ REDIS_URL: 'redis://localhost' }), true);
+assert.deepEqual(readyzResponse({
+  accepting: true, infrastructureReady: false, dependencyReady: false, modelRoutingReady: false, expectsInfrastructure: false,
+}), { status: 200, body: { status: 'ready', mode: 'ui_only' } });
+assert.deepEqual(readyzResponse({
+  accepting: true, infrastructureReady: false, dependencyReady: false, modelRoutingReady: true, expectsInfrastructure: true,
+}), { status: 503, body: { status: 'not_ready', mode: 'full', code: 'INFRASTRUCTURE_UNAVAILABLE' } });
+assert.deepEqual(readyzResponse({
+  accepting: true, infrastructureReady: true, dependencyReady: false, modelRoutingReady: true, expectsInfrastructure: true,
+}), { status: 503, body: { status: 'not_ready', mode: 'full', code: 'DEPENDENCY_UNAVAILABLE' } });
+assert.deepEqual(readyzResponse({
+  accepting: true, infrastructureReady: true, dependencyReady: true, modelRoutingReady: true, expectsInfrastructure: true,
+}), { status: 200, body: { status: 'ready', mode: 'full' } });
+assert.deepEqual(readyzResponse({
+  accepting: false, infrastructureReady: true, dependencyReady: true, modelRoutingReady: true, expectsInfrastructure: true,
+}), { status: 503, body: { status: 'not_ready', code: 'SHUTTING_DOWN' } });
 
 const railway = await readFile(new URL('../railway.json', import.meta.url), 'utf8');
 assert.match(railway, /"healthcheckPath": "\/livez"/);

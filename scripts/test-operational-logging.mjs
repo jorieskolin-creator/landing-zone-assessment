@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { filterOperationalMetadata, safeOperationalIdentifier } from '../lib/operationalLogPolicy.js';
+import { filterOperationalMetadata, resolveClientOperationalLog, safeOperationalIdentifier } from '../lib/operationalLogPolicy.js';
 import { safeWorkerErrorCode, workerOperationalLog } from '../lib/workerOperationalLog.js';
 
 assert.deepEqual(filterOperationalMetadata('stage_complete', {
@@ -80,6 +80,24 @@ assert.deepEqual(filterOperationalMetadata('targeted_rescan_unavailable', {
 assert.deepEqual(filterOperationalMetadata('evidence_check_unavailable', {
   batch: 'C', attempts: 2, error_code: 'DEPENDENCY_UNCERTAINTY', valid_items: 8, expected_items: 10, source_text: 'private source content',
 }), { batch: 'C', attempts: 2, error_code: 'DEPENDENCY_UNCERTAINTY', valid_items: 8, expected_items: 10 });
+const unknownEvent = resolveClientOperationalLog('client_boom', {
+  stage: 'fact_check',
+  error_code: 'HTTP_404',
+  prompt: 'secret source text',
+  response_body: 'private model output',
+});
+assert.equal(unknownEvent.event, 'unknown');
+assert.deepEqual(unknownEvent.fields, { stage: 'fact_check', code: 'client_boom', error_code: 'HTTP_404' });
+const unsafeEvent = resolveClientOperationalLog('private.pdf\nsecret', {
+  stage: 'bad stage',
+  error_code: 'has space',
+  quote: 'private source content',
+});
+assert.deepEqual(unsafeEvent.fields, { code: 'unrecognized' });
+const knownEvent = resolveClientOperationalLog('stage_complete', { stage: 'synthesis', prompt: 'secret source text' });
+assert.equal(knownEvent.event, 'stage_complete');
+assert.deepEqual(knownEvent.fields, { stage: 'synthesis' });
+
 assert.equal(safeOperationalIdentifier('gpt-5.2/model:v1'), 'gpt-5.2/model:v1');
 assert.equal(safeOperationalIdentifier('private.pdf'), '?');
 assert.equal(safeOperationalIdentifier('private.pdf\nsource contents'), '?');
@@ -122,6 +140,9 @@ for (const file of ['../api/openai-generate.js', '../api/anthropic-generate.js',
   assert.doesNotMatch(source, /msg=\\?"\$\{msg/);
   assert.doesNotMatch(source, /failInternalModelResult\(internalCallId, error\?\.message/);
 }
+
+const logRoute = await readFile(new URL('../api/log.js', import.meta.url), 'utf8');
+assert.match(logRoute, /resolveClientOperationalLog\(event, rest\)/, 'unknown client events must keep a sanitized stage and code');
 
 const routerSource = await readFile(new URL('../src/services/modelRouter.ts', import.meta.url), 'utf8');
 assert.doesNotMatch(routerSource, /failed: \$\{msg\}|failures\.push\(\{ profile, error: msg \}\)/, 'router logs and traces must retain stable error codes only');
