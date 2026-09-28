@@ -55,6 +55,7 @@ const KIND_AREA_PRIORS: Record<string, Array<{ domain: string; score: number }>>
   hierarchy_organization: [{ domain: 'A', score: 6 }],
   inventory_accounts: [{ domain: 'C', score: 5 }, { domain: 'A', score: 3 }],
   iam_bindings: [{ domain: 'B', score: 6 }],
+  credential_inventory: [{ domain: 'B', score: 6 }],
   policy_guardrails: [{ domain: 'G', score: 6 }],
   network_topology: [{ domain: 'D', score: 6 }],
   logging_monitoring: [{ domain: 'F', score: 6 }],

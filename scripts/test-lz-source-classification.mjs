@@ -104,6 +104,65 @@ assert.equal(workshop.source_kind, "workshop_attestation");
 assert.equal(workshop.evidence_class, "workshop");
 assert.equal(workshop.evidence_class_number, 3);
 
+const credentialCsv = [
+  "app_id,display_name,credential_type,client_secret,federated_credential,expiry,rotation_owner",
+  "sp-erp-batch,ERP batch,client_secret,expires never,,never,unassigned",
+  "ado-pipeline-prod-secret,ADO pipeline prod secret,client_secret,,prod-plain,never,unassigned",
+  "sp-old-aks,Old AKS,client_secret,expired 2024-08-01,,2024-08-01,unassigned",
+].join("\n");
+const credentialRows = credentialCsv.split("\n").slice(1).map((line) => line.split(","));
+const credentials = classify("service-principals.csv", "csv", credentialCsv, {
+  tables: [{
+    headers: credentialCsv.split("\n")[0].split(","),
+    rows: credentialRows,
+    analysis_rows: credentialRows,
+  }],
+});
+assert.equal(credentials.source_kind, "credential_inventory");
+assert.equal(credentials.evidence_class, "platform");
+assert.equal(credentials.evidence_class_number, 1);
+assert.equal(credentials.object_type, "Identity-binding");
+assert.equal(credentials.object_count, 3);
+assert.ok(credentials.id_fields.includes("app_id"));
+
+const awsInventoryCsv = [
+  "account_id,account_name,email,status",
+  "111122223333,payer,billing@example.com,ACTIVE",
+  "222233334444,prod,prod@example.com,ACTIVE",
+].join("\n");
+const awsRows = awsInventoryCsv.split("\n").slice(1).map((line) => line.split(","));
+const awsInventory = classify("member-accounts.csv", "csv", awsInventoryCsv, {
+  tables: [{
+    headers: awsInventoryCsv.split("\n")[0].split(","),
+    rows: awsRows,
+    analysis_rows: awsRows,
+  }],
+});
+assert.equal(awsInventory.source_kind, "inventory_accounts");
+assert.equal(awsInventory.evidence_class, "platform");
+assert.equal(awsInventory.evidence_class_number, 1);
+
+const scopeLock = {
+  schema_version: "lz_step0_scope_v1",
+  pack_id: "landing-zone",
+  estate_name: "Nordhaven",
+  providers: ["azure"],
+  estate_roots: [{ provider: "azure", kind: "tenant", reference: "nordhaven.onmicrosoft.com", label: "Nordhaven tenant" }],
+  design_area_ids: ["A", "B", "C", "D", "E", "F", "G", "H"],
+  inventory_exports_included: true,
+  live_collection_permitted: false,
+  exclusions: { providers: ["aws", "gcp"], design_area_ids: [], notes: ["open questions on Nordhaven Lab tenant and EA enrollment E-98112"] },
+  locked_at: "2026-09-28T09:00:00.000Z",
+  facilitator: "Alex",
+  participants: "platform team",
+};
+const scope = classify("scope-lock.json", "json", JSON.stringify(scopeLock));
+assert.equal(scope.source_kind, "assessment_scope");
+assert.equal(scope.evidence_class, "document");
+assert.equal(scope.evidence_class_number, 2);
+assert.equal(scope.object_type, "Scope-metadata");
+assert.notEqual(scope.evidence_class, "workshop");
+
 const unclassified = classify("notes.txt", "text", "Hello team, please review the attached slides.");
 assert.equal(unclassified.source_kind, "unclassified");
 assert.equal(unclassified.evidence_class, "document");
@@ -148,6 +207,9 @@ assert.match(app, /LZ_SOURCE_KIND_LABELS/);
 const pack = JSON.parse(await readFile(new URL("../src/domain-packs/landing-zone/evidence-taxonomy.json", import.meta.url), "utf8"));
 assert.ok(pack.source_kinds.includes("hierarchy_organization"));
 assert.ok(pack.source_kinds.includes("workshop_attestation"));
+assert.ok(pack.source_kinds.includes("credential_inventory"));
+assert.ok(pack.source_kinds.includes("assessment_scope"));
 assert.ok(pack.object_types.includes("Architecture-document"));
+assert.ok(pack.object_types.includes("Scope-metadata"));
 
 console.log("landing zone file acquisition classification passed");
