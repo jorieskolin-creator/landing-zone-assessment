@@ -46,7 +46,7 @@ assert.equal(approveRequest(xaiRequest).provider,'xai');
 assert.throws(()=>authorizeDestination('forensic_audit','xai','grok-4.6',{max_tokens:16384,reasoning_effort:'medium'}),/INVALID_MODEL_SETTINGS/);
 const googleRequest={...request,provider:'google',model:'gemini-3.8-flash',destination:'google:external_model',system_instruction:'Return JSON only',settings:{max_tokens:32768,reasoning_effort:'medium'}};
 assert.equal(approveRequest(googleRequest).provider,'google');
-assert.equal(approveRequest({...request,stage:'fact_check',provider:'meta',model:'muse-spark-1.3',destination:'meta:external_model',settings:{max_tokens:16384,reasoning_effort:'medium'}}).provider,'meta');
+assert.equal(approveRequest({...request,stage:'fact_check',provider:'meta',model:'muse-spark-1.1',destination:'meta:external_model',settings:{max_tokens:16384,reasoning_effort:'medium'}}).provider,'meta');
 assert.throws(()=>authorizeDestination('forensic_audit','google','gemini-3.8-flash',{max_tokens:16384,reasoning_effort:'medium'}),/INVALID_MODEL_SETTINGS/);
 assert.throws(()=>authorizeDestination('forensic_audit','google','gemini-3.8-flash',{max_tokens:32768,reasoning_effort:'xhigh'}),/INVALID_MODEL_SETTINGS/);
 const synthesisRequest={...request,stage:'synthesis',settings:{max_tokens:24576},output_contract:OUTPUT_CONTRACT_IDS.evidenceSynthesis};
