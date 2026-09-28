@@ -98,6 +98,27 @@ assert.throws(
   /INVALID_OUTPUT_CONTRACT/,
 );
 assert.throws(
+  () => validateOutputContractText(OUTPUT_CONTRACT_IDS.summaryFactCheck, JSON.stringify({
+    claims: Array.from({ length: 16 }, () => factCheck.claims[0]),
+  })),
+  /INVALID_OUTPUT_CONTRACT/,
+  'the worker still rejects more than 15 fact-check claims',
+);
+const googleFactCheck = structuredOutputForPacket({
+  stage: 'fact_check',
+  provider: 'google',
+  output_contract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
+});
+assert.equal(googleFactCheck.schema.properties.claims.maxItems, undefined);
+assert.equal(googleFactCheck.schema.properties.claims.minItems, 1);
+assert.equal(getOutputContract(OUTPUT_CONTRACT_IDS.summaryFactCheck).schema.properties.claims.maxItems, 15);
+const googleEvidenceCheck = structuredOutputForPacket({
+  stage: 'evidence_check',
+  provider: 'google',
+  output_contract: OUTPUT_CONTRACT_IDS.evidenceCheck,
+});
+assert.equal(googleEvidenceCheck.schema.properties.items.maxItems, 10);
+assert.throws(
   () => authorizeOutputContract('synthesis', OUTPUT_CONTRACT_IDS.summaryFactCheck),
   /INVALID_OUTPUT_CONTRACT/,
 );
