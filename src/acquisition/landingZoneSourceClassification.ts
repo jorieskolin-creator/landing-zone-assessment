@@ -14,6 +14,7 @@ export const LZ_SOURCE_KINDS = [
   "hierarchy_organization",
   "inventory_accounts",
   "iam_bindings",
+  "credential_inventory",
   "policy_guardrails",
   "network_topology",
   "logging_monitoring",
@@ -22,6 +23,7 @@ export const LZ_SOURCE_KINDS = [
   "exception_waiver",
   "architecture_operating_model",
   "workshop_attestation",
+  "assessment_scope",
   "unclassified",
 ] as const;
 
@@ -38,6 +40,7 @@ export type LzObjectType =
   | "Exception-register"
   | "Architecture-document"
   | "Workshop"
+  | "Scope-metadata"
   | "Unclassified";
 
 export interface LzSourceClassification {
@@ -69,6 +72,7 @@ export const LZ_SOURCE_KIND_LABELS: Record<LzSourceKind, string> = {
   hierarchy_organization: "Hierarchy / organization export",
   inventory_accounts: "Account / subscription / project inventory",
   iam_bindings: "IAM / privileged-access bindings",
+  credential_inventory: "Credential / service-principal inventory",
   policy_guardrails: "Policy / guardrail assignments",
   network_topology: "Network topology / attachments",
   logging_monitoring: "Logging / monitoring destinations",
@@ -77,6 +81,7 @@ export const LZ_SOURCE_KIND_LABELS: Record<LzSourceKind, string> = {
   exception_waiver: "Exception / waiver register",
   architecture_operating_model: "Architecture / operating-model document",
   workshop_attestation: "Workshop / questionnaire",
+  assessment_scope: "Assessment scope metadata",
   unclassified: "Unclassified source",
 };
 
@@ -90,6 +95,7 @@ const KIND_OBJECT_TYPE: Record<LzSourceKind, LzObjectType> = {
   hierarchy_organization: "Inventory",
   inventory_accounts: "Inventory",
   iam_bindings: "Identity-binding",
+  credential_inventory: "Identity-binding",
   policy_guardrails: "Policy-assignment",
   network_topology: "Network-path",
   logging_monitoring: "Log-sink",
@@ -98,6 +104,7 @@ const KIND_OBJECT_TYPE: Record<LzSourceKind, LzObjectType> = {
   exception_waiver: "Exception-register",
   architecture_operating_model: "Architecture-document",
   workshop_attestation: "Workshop",
+  assessment_scope: "Scope-metadata",
   unclassified: "Unclassified",
 };
 
@@ -105,6 +112,7 @@ const PLATFORM_KINDS = new Set<LzSourceKind>([
   "hierarchy_organization",
   "inventory_accounts",
   "iam_bindings",
+  "credential_inventory",
   "policy_guardrails",
   "network_topology",
   "logging_monitoring",
@@ -128,6 +136,13 @@ const RULES: Rule[] = [
     body: [/\b[A-H]-Q\d+\b/, /evidence lead/, /workshop observation/, /facilitator/],
   },
   {
+    kind: "assessment_scope",
+    filename: [/scope[-_ ]?lock/, /step0[-_ ]?scope/, /assessment[-_ ]?scope/],
+    headers: [],
+    keys: [/estate[-_ ]?name/, /design[-_ ]?area[-_ ]?ids/, /inventory[-_ ]?exports[-_ ]?included/, /live[-_ ]?collection[-_ ]?permitted/, /locked[-_ ]?at/, /estate[-_ ]?roots/],
+    body: [/lz[-_ ]?step0[-_ ]?scope/],
+  },
+  {
     kind: "hierarchy_organization",
     filename: [/management[-_ ]?group/, /organization/, /\bou\b/, /tenant[-_ ]?root/, /folder[-_ ]?tree/, /org[-_ ]?tree/, /hierarchy/],
     headers: [/managementgroup/, /parentid/, /organizationid/, /folderid/, /displayname/, /tenantid/],
@@ -137,8 +152,8 @@ const RULES: Rule[] = [
   {
     kind: "inventory_accounts",
     filename: [/subscription/, /account[-_ ]?list/, /project[-_ ]?list/, /inventory/, /resource[-_ ]?graph/],
-    headers: [/subscriptionid/, /subscriptionname/, /accountid/, /projectid/, /project_id/, /billingaccount/],
-    keys: [/subscriptionid/, /subscriptions/, /accountid/, /projectid/, /projects/],
+    headers: [/subscriptionid/, /subscriptionname/, /accountid/, /account[-_ ]?id\b/, /projectid/, /project[-_ ]?id\b/, /project_id/, /billingaccount/],
+    keys: [/subscriptionid/, /subscriptions/, /accountid/, /account[-_ ]?id\b/, /projectid/, /project[-_ ]?id\b/, /projects/],
     body: [/subscription id/, /management account/, /billing account linked/],
   },
   {
@@ -147,6 +162,13 @@ const RULES: Rule[] = [
     headers: [/principalid/, /roledefinition/, /roleassignment/, /permissionset/, /member/],
     keys: [/roleassignments/, /roledefinitionid/, /principalid/, /bindings/, /permissionset/],
     body: [/role assignment/, /pim eligible/, /identity center/, /iam policy binding/],
+  },
+  {
+    kind: "credential_inventory",
+    filename: [/service[-_ ]?principal/, /app[-_ ]?registration/, /credential[-_ ]?inventory/, /enterprise[-_ ]?app/],
+    headers: [/app[-_ ]?id\b/, /credential[-_ ]?type\b/, /rotation[-_ ]?owner\b/, /client[-_ ]?secret\b/, /federated[-_ ]?credential\b/],
+    keys: [/app[-_ ]?id\b/, /credential[-_ ]?type\b/, /rotation[-_ ]?owner\b/, /client[-_ ]?secret\b/, /federated[-_ ]?credential\b/],
+    body: [/client[-_ ]?secret\b/, /federated[-_ ]?credential\b/, /service principal/],
   },
   {
     kind: "policy_guardrails",
@@ -296,6 +318,15 @@ const looksLikeArmOrTerraform = (haystack: string, keys: string[]): boolean =>
   keys.some((key) => key === "$schema" || key === "resources" || key === "provider")
   && (/schema\.management\.azure\.com|deploymenttemplate|azurerm_|terraform \{|resource "azurerm/.test(haystack));
 
+const looksLikeAssessmentScope = (payload: unknown): boolean => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  const record = payload as Record<string, unknown>;
+  if (record.schema_version === "lz_step0_scope_v1") return true;
+  return typeof record.estate_name === "string"
+    && Array.isArray(record.design_area_ids)
+    && (typeof record.locked_at === "string" || typeof record.inventory_exports_included === "boolean" || record.live_collection_permitted === false);
+};
+
 const looksLikeQuestionnaire = (payload: unknown, haystack: string): boolean => {
   if (/\b[A-H]-Q\d+\b/.test(haystack) && /evidence lead|workshop|facilitator|questionnaire/.test(haystack)) {
     return true;
@@ -379,6 +410,13 @@ export const classifyLandingZoneSource = (
     scores.set("workshop_attestation", {
       score: current.score + 20,
       signals: unique([...current.signals, "questionnaire-shape"]),
+    });
+  }
+  if (looksLikeAssessmentScope(payload)) {
+    const current = scores.get("assessment_scope") || { score: 0, signals: [] };
+    scores.set("assessment_scope", {
+      score: current.score + 24,
+      signals: unique([...current.signals, "scope-lock"]),
     });
   }
   if (looksLikeArmOrTerraform(body, jsonKeys)) {
