@@ -1,6 +1,7 @@
-import type { AuditItem, DiagnosticResult, DomainId } from '../types';
+import type { AuditItem, DiagnosticResult, DomainId, MaturityCriterionResolutionRecord } from '../types';
 import { BATCH_TITLES, MASTER_BINGO_FINOPS } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
+import { governedCriterionState } from './maturityModelService';
 
 export type DomainSignalTone = 'green' | 'yellow' | 'red' | 'grey';
 
@@ -33,11 +34,51 @@ const clampScore = (value: unknown): number => {
   return Math.min(Math.max(value, 0), 3);
 };
 
-const maturityItemAssessed = (item: AuditItem | undefined): boolean => {
-  if (!item || item.is_silent || item.verification_unresolved) return false;
-  if ((item.evidence_quotes?.length ?? 0) > 0) return true;
-  if (item.count > 0) return true;
-  return item.evidence_check_status === 'supported' || item.evidence_check_status === 'weak';
+const resolutionRecords = (result: DiagnosticResult): MaturityCriterionResolutionRecord[] | undefined => {
+  const records = result.phase_2_validation?.resolution_maturity?.criterion_resolutions;
+  return records && records.length > 0 ? records : undefined;
+};
+
+const resolutionRecord = (
+  result: DiagnosticResult,
+  stream: 'maturity' | 'antipattern',
+  id: string,
+): MaturityCriterionResolutionRecord | undefined =>
+  resolutionRecords(result)?.find(record => record.stream === stream && record.criterion_id === id);
+
+export const criterionIsGoverned = (
+  result: DiagnosticResult,
+  stream: 'maturity' | 'antipattern',
+  id: string,
+  item?: AuditItem,
+): boolean => {
+  const records = resolutionRecords(result);
+  if (records) return resolutionRecord(result, stream, id)?.state === 'RESOLVED';
+  return governedCriterionState(stream, id, item) === 'RESOLVED';
+};
+
+export const heatmapDisplayForCriterion = (
+  result: DiagnosticResult,
+  stream: 'maturity' | 'antipattern',
+  id: string,
+  item: AuditItem | undefined,
+): { label: string; cssClass: string } => {
+  if (!criterionIsGoverned(result, stream, id, item)) {
+    return { label: 'Not assessed', cssClass: 'heat-silent' };
+  }
+  if (stream === 'antipattern') {
+    const status = resolutionRecord(result, stream, id)?.antipattern_absence_status
+      || inferAntiPatternAbsenceStatus(item);
+    if (status === 'confirmed_present') return { label: 'Finding', cssClass: 'heat-gap' };
+    if (status === 'partially_present') return { label: 'Partial finding', cssClass: 'heat-partial' };
+    if (status === 'tested_absent') return { label: 'Tested absent', cssClass: 'heat-tested-absent' };
+    return { label: 'Not assessed', cssClass: 'heat-silent' };
+  }
+  if (!item || item.is_silent) return { label: 'Silent', cssClass: 'heat-silent' };
+  const status = (item.status || '').toUpperCase();
+  if (status === 'OK') return { label: 'OK', cssClass: 'heat-good' };
+  if (status === 'PARTIAL') return { label: 'Partial', cssClass: 'heat-partial' };
+  return { label: 'Gap', cssClass: 'heat-gap' };
 };
 
 const maturityTone = (percent: number, assessed: number, total: number): DomainSignalTone => {
@@ -63,9 +104,18 @@ export const computeDomainSignalRows = (result: DiagnosticResult): DomainSignalR
     const verificationUnresolved = maturityItems.some(item => item?.verification_unresolved)
       || antiPatternCriteria.some(criteria => result.phase_1_audit_logs.antipattern[criteria.id]?.verification_unresolved);
     const maturityTotal = maturityCriteria.length;
-    const maturityAssessed = maturityItems.filter(maturityItemAssessed).length;
+    const governedMaturity = maturityCriteria.filter(criteria => criterionIsGoverned(
+      result,
+      'maturity',
+      criteria.id,
+      result.phase_1_audit_logs.maturity[criteria.id],
+    ));
+    const maturityAssessed = governedMaturity.length;
     const maturityAvailable = maturityAssessed > 0;
-    const maturityScore = maturityItems.reduce((sum, item) => sum + (maturityItemAssessed(item) ? clampScore(item?.count) : 0), 0);
+    const maturityScore = governedMaturity.reduce((sum, criteria) => {
+      const record = resolutionRecord(result, 'maturity', criteria.id);
+      return sum + clampScore(record?.score_count ?? result.phase_1_audit_logs.maturity[criteria.id]?.count);
+    }, 0);
     const maturityPercent = maturityAssessed > 0 ? Math.round((maturityScore / (maturityAssessed * 3)) * 100) : 0;
 
     let antiPatternFindingWeight = 0;
@@ -76,11 +126,12 @@ export const computeDomainSignalRows = (result: DiagnosticResult): DomainSignalR
 
     for (const criteria of antiPatternCriteria) {
       const item = result.phase_1_audit_logs.antipattern[criteria.id];
-      if (item?.verification_unresolved) {
+      const record = resolutionRecord(result, 'antipattern', criteria.id);
+      if (item?.verification_unresolved || !criterionIsGoverned(result, 'antipattern', criteria.id, item)) {
         antiPatternNotAssessed += 1;
         continue;
       }
-      const status = inferAntiPatternAbsenceStatus(item);
+      const status = record?.antipattern_absence_status || inferAntiPatternAbsenceStatus(item);
       if (status === 'confirmed_present') {
         antiPatternFindingWeight += 1;
         antiPatternFindings += 1;

@@ -35,6 +35,7 @@
     "test:evidence-stage-packet": "node scripts/test-evidence-stage-packet.mjs",
     "test:report-import": "node scripts/test-report-import.mjs",
     "test:report-rendering": "node scripts/test-report-rendering.mjs",
+    "test:governed-display": "node scripts/test-governed-display.mjs",
     "test:report-diagnostics": "node scripts/test-report-diagnostics.mjs",
     "test:privacy": "node scripts/test-privacy-service.mjs",
     "test:quality-gate": "node scripts/test-quality-gate-severity.mjs",

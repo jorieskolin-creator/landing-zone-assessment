@@ -120,6 +120,8 @@ assert.match(exportSource, /roadmap-context-label">What/, 'HTML export should re
 assert.match(exportSource, /roadmap-how-label">How/, 'HTML export should label action bullets as HOW');
 assert.match(exportSource, /renderDomainSignalOverview/, 'HTML exports should render the domain signal overview');
 assert.match(exportSource, /renderAssessmentHeatmapSummary\(result\)/, 'HTML exports should render the shared criterion heatmap');
+assert.match(exportSource, /heatmapDisplayForCriterion\(result, stream, cat\.id, item\)/, 'summary heatmap status must follow governed resolution');
+assert.match(exportSource, /Governed resolution/, 'evidence coverage must not be labeled as an assessed-count surface');
 assert.doesNotMatch(summaryExportSource, /Evidence-Backed Findings|renderEvidenceBackedFindings/, 'Summary Report should remain concise and leave detailed evidence-backed findings to Master Data');
 assert.match(masterDataExportSource, /<h2>Evidence-Backed Findings<\/h2>[\s\S]*renderEvidenceBackedFindings\(result\)/, 'Master Data should retain the governed evidence findings section');
 assert.doesNotMatch(exportSource, /<h2>Executive Summary<\/h2>/, 'HTML exports should not render the legacy Executive Summary');

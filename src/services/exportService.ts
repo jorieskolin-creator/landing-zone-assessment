@@ -13,7 +13,7 @@ import {
 import { antiPatternStatusLabel, inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { displayQualityGateDiagnostic, isReportableSourceCoverageGap, splitQualityGateDiagnostics } from './reportDiagnosticsService';
 import { serializeDiagnosticResultForHtml } from './reportImportService';
-import { computeDomainSignalRows, DomainSignalTone } from './domainSignalService';
+import { computeDomainSignalRows, DomainSignalTone, heatmapDisplayForCriterion } from './domainSignalService';
 import { buildReportViewModel } from './reportViewModel';
 import { stripSourceFilenameMetadata } from './privacyService';
 
@@ -675,32 +675,8 @@ const renderSummaryRoadmap = (result: DiagnosticResult): string => {
     </section>`;
 };
 
-const maturityHeatClass = (item: AuditItem | undefined): string => {
-  if (!item || item.is_silent) return 'heat-silent';
-  const status = (item.status || '').toUpperCase();
-  if (status === 'OK') return 'heat-good';
-  if (status === 'PARTIAL') return 'heat-partial';
-  return 'heat-gap';
-};
-
-const maturityHeatLabel = (item: AuditItem | undefined): string => {
-  if (!item || item.is_silent) return 'Silent';
-  const status = (item.status || '').toUpperCase();
-  if (status === 'OK') return 'OK';
-  if (status === 'PARTIAL') return 'Partial';
-  return 'Gap';
-};
-
-const antiPatternHeatClass = (item: AuditItem | undefined): string => {
-  if (!item || item.is_silent) return 'heat-silent';
-  const status = inferAntiPatternAbsenceStatus(item);
-  if (status === 'confirmed_present') return 'heat-gap';
-  if (status === 'partially_present') return 'heat-partial';
-  if (status === 'tested_absent') return 'heat-tested-absent';
-  return 'heat-silent';
-};
-
 const renderHeatmapCells = (
+  result: DiagnosticResult,
   stream: 'maturity' | 'antipattern',
   logs: Record<string, AuditItem>,
   compact = false
@@ -712,21 +688,21 @@ const renderHeatmapCells = (
       <div class="${compact ? 'compact-heatmap-cells' : 'heatmap-cells'}">
         ${items.map(cat => {
           const item = logs[cat.id];
-          const klass = stream === 'maturity' ? maturityHeatClass(item) : antiPatternHeatClass(item);
-          const label = stream === 'maturity' ? maturityHeatLabel(item) : antiPatternStatusLabel(item);
-          const score = item?.count ?? 0;
+          const display = heatmapDisplayForCriterion(result, stream, cat.id, item);
+          const governed = display.label !== 'Not assessed' && display.label !== 'Silent';
+          const score = governed ? ` · score ${item?.count ?? 0}` : '';
           if (compact) {
             return `
-              <article class="compact-heat-cell ${klass}" title="${escapeHtml(`${cat.id} · ${cat.title} · ${label} · score ${score}`)}">
+              <article class="compact-heat-cell ${display.cssClass}" title="${escapeHtml(`${cat.id} · ${cat.title} · ${display.label}${score}`)}">
                 <div class="compact-heat-head">
                   <strong>${escapeHtml(cat.id)}</strong>
-                  <span>${escapeHtml(label)}</span>
+                  <span>${escapeHtml(display.label)}</span>
                 </div>
                 <h4>${escapeHtml(cat.title)}</h4>
                 <p>${escapeHtml(cat.desc)}</p>
               </article>`;
           }
-          return `<div class="heat-cell ${klass}" title="${escapeHtml(`${cat.id} · ${cat.title} · ${label} · score ${score}`)}"><strong>${escapeHtml(cat.id)}</strong><span>${escapeHtml(label)}</span></div>`;
+          return `<div class="heat-cell ${display.cssClass}" title="${escapeHtml(`${cat.id} · ${cat.title} · ${display.label}${score}`)}"><strong>${escapeHtml(cat.id)}</strong><span>${escapeHtml(display.label)}</span></div>`;
         }).join('')}
       </div>
     </div>`;
@@ -750,11 +726,11 @@ const renderAssessmentHeatmapSummary = (result: DiagnosticResult): string => `
     <div class="compact-heatmap-grid">
       <div class="compact-heatmap-panel">
         <h3>Maturity coverage</h3>
-        ${renderHeatmapCells('maturity', result.phase_1_audit_logs.maturity, true)}
+        ${renderHeatmapCells(result, 'maturity', result.phase_1_audit_logs.maturity, true)}
       </div>
       <div class="compact-heatmap-panel">
         <h3>Anti-pattern semantics</h3>
-        ${renderHeatmapCells('antipattern', result.phase_1_audit_logs.antipattern, true)}
+        ${renderHeatmapCells(result, 'antipattern', result.phase_1_audit_logs.antipattern, true)}
       </div>
     </div>
   </section>`;
@@ -782,7 +758,7 @@ const renderDomainSignalOverview = (result: DiagnosticResult): string => {
             <div class="domain-signal-metric">
               <div class="signal-label"><i class="${row.evidencePercent >= 60 ? 'signal-green' : row.evidencePercent >= 30 ? 'signal-yellow' : 'signal-grey'}"></i><span>Evidence coverage</span></div>
               <strong>${row.evidencePercent}%</strong>
-              <p>Assessed criterion surface</p>
+              <p>Governed resolution</p>
             </div>
             <div class="domain-signal-metric">
               <div class="signal-label"><i class="${signalToneClass(row.maturityTone)}"></i><span>Maturity signal</span></div>
