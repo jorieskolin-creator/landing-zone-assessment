@@ -384,7 +384,11 @@ const azureSurface = surfaceFor(["azure"], [
   assert.equal(scored.headline_provider, null);
   assert.equal(scored.headline_maturity_label, "Insufficient evidence");
   assert.equal(scored.published_phase2.crawl_walk_run, "Insufficient evidence");
-  assert.equal(scored.published_phase2.metrics.adjusted_maturity, null);
+  assert.equal(scored.published_phase2.assessment_sufficiency.decision, "PASS");
+  assert.equal(scored.published_phase2.metrics.adjusted_maturity, scored.estate_phase2.metrics.adjusted_maturity);
+  assert.notEqual(scored.published_phase2.metrics.adjusted_maturity, null);
+  assert.equal(scored.published_phase2.metrics.observed_maturity, scored.estate_phase2.metrics.observed_maturity);
+  assert.equal(scored.published_phase2.metrics.corroborated_maturity, scored.estate_phase2.metrics.corroborated_maturity);
   assert.equal(scored.provider_results.length, 2);
   for (const slot of scored.provider_results) {
     assert.equal(slot.attribution, "unattributed_pending_provider_forensic");
@@ -395,6 +399,27 @@ const azureSurface = surfaceFor(["azure"], [
   }
   assert.notEqual(scored.estate_phase2.metrics.adjusted_maturity, null, "estate diagnostic remains available; it is not the published headline");
   assert.deepEqual(scored.pending_work, []);
+}
+
+{
+  const blocked = scoreLandingZoneAssessment({
+    logs: logsFor(["A1"], () => capability(3, "src-platform"), () => antipattern(0, "tested_absent", "src-platform")),
+    scoringSurface: surfaceFor(["azure", "aws"], [
+      instance("azure", "A1", "capability"),
+      instance("azure", "AP-A1", "antipattern"),
+      instance("aws", "A1", "capability"),
+      instance("aws", "AP-A1", "antipattern"),
+    ]),
+    pairRegistry: registryOf(pair("A1")),
+    sources: [source("src-platform", "platform")],
+    evidencePacketReady: false,
+  });
+  assert.equal(blocked.published_phase2.assessment_sufficiency.decision, "BLOCK");
+  assert.notEqual(blocked.estate_phase2.metrics.adjusted_maturity, null);
+  assert.equal(blocked.published_phase2.metrics.adjusted_maturity, null);
+  assert.equal(blocked.published_phase2.metrics.observed_maturity, null);
+  assert.equal(blocked.published_phase2.metrics.corroborated_maturity, null);
+  assert.equal(blocked.headline_maturity_label, "Insufficient evidence");
 }
 
 const analysis = await readFile(new URL("../src/services/analysisService.ts", import.meta.url), "utf8");
