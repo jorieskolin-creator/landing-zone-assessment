@@ -13,7 +13,7 @@ import { initializeInfrastructure } from './lib/infrastructure.js';
 import { safeErrorCode } from './lib/safeErrors.js';
 import { AttemptReconciler,ExecutionWorker,OutboxPublisher } from './lib/executionWorker.js';
 import { CleanupWorker } from './lib/runLifecycleService.js';
-import { inspectServerBoot } from './lib/serverBoot.js';
+import { deploymentExpectsInfrastructure, inspectServerBoot, readyzResponse } from './lib/serverBoot.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, 'dist');
@@ -21,6 +21,7 @@ const apiDir = path.join(__dirname, 'api');
 
 let accepting=false;
 const boot = inspectServerBoot(process.env);
+const expectsInfrastructure = deploymentExpectsInfrastructure(process.env);
 if (!boot.modelRoutingReady) {
   console.error('[server] MODEL_ROUTING_UNAVAILABLE — serving UI; analysis workers not started');
 }
@@ -49,16 +50,22 @@ if (boot.startWorkers && infrastructure) {
 }
 app.get('/livez',(_req,res)=>res.status(200).json({status:'live'}));
 app.get('/readyz',async(_req,res)=>{
-  if(!accepting)return res.status(503).json({status:'not_ready',code:'SHUTTING_DOWN'});
-  if(!infrastructure){
-    return res.status(200).json({status:'ready', mode:'ui_only'});
+  let dependencyReady = false;
+  if (infrastructure) {
+    try {
+      dependencyReady = Boolean(await infrastructure.ready());
+    } catch {
+      dependencyReady = false;
+    }
   }
-  try{
-    await infrastructure.ready();
-    return res.status(200).json({status:'ready', mode: boot.modelRoutingReady ? 'full' : 'ui_only'});
-  }catch{
-    return res.status(200).json({status:'ready', mode:'ui_only', code:'DEPENDENCY_UNAVAILABLE'});
-  }
+  const decision = readyzResponse({
+    accepting,
+    infrastructureReady: Boolean(infrastructure),
+    dependencyReady,
+    modelRoutingReady: boot.modelRoutingReady,
+    expectsInfrastructure,
+  });
+  return res.status(decision.status).json(decision.body);
 });
 
 // Text-only stage approval intake. Images and base64 payloads are prohibited.
