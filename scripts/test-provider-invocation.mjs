@@ -284,6 +284,28 @@ assert.equal(metaRequest.body.response_format.json_schema.name, OUTPUT_CONTRACT_
 assert.equal(metaRequest.body.response_format.json_schema.strict, true);
 assert.equal(metaResult.text, '{"schema_version":"ok"}');
 assert.deepEqual(metaResult.usage, { input_tokens: 11, output_tokens: 6, reasoning_tokens: 2 });
+assert.equal(metaRequest.body.response_format.json_schema.schema.properties.claims.maxItems, 15);
+
+let googleFactCheckRequest;
+await invokeProvider({
+  ...packet,
+  stage: 'fact_check',
+  provider: 'google',
+  model: 'gemini-3.8-flash',
+  output_contract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
+  settings: { max_tokens: 16384, reasoning_effort: 'medium' },
+}, {
+  env: { GEMINI_API_KEY: 'test-gemini-key' },
+  fetchFn: async (_url, options) => {
+    googleFactCheckRequest = JSON.parse(options.body);
+    return {
+      ok: true,
+      json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"claims":[]}' }] } }] }),
+    };
+  },
+});
+assert.equal(googleFactCheckRequest.generationConfig.responseJsonSchema.properties.claims.maxItems, undefined);
+assert.equal(googleFactCheckRequest.generationConfig.responseJsonSchema.properties.claims.minItems, 1);
 
 let metaKeyRequest;
 await invokeProvider({
