@@ -464,11 +464,14 @@ const evidenceCheckItem = (stream, id) => ({
 const evidenceCheck = {
   items: ['1', '2', '3', '4', '5'].flatMap(n => [
     evidenceCheckItem('maturity', `C${n}`),
-    evidenceCheckItem('antipattern', `C${n}`),
+    evidenceCheckItem('antipattern', `AP-C${n}`),
   ]),
 };
 assert.equal(OUTPUT_CONTRACT_IDS.evidenceCheck, 'assessment_evidence_check_v1');
 assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceCheck, JSON.stringify(evidenceCheck)), evidenceCheck);
+assert.doesNotThrow(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceCheck, JSON.stringify({
+  items: evidenceCheck.items.map(item => item.stream === 'antipattern' ? { ...item, id: item.id.replace(/^AP-/, '') } : item),
+})), 'the worker schema still accepts bare anti-pattern ids; the client pack contract is stricter');
 assert.doesNotThrow(() => authorizeOutputContract('evidence_check', OUTPUT_CONTRACT_IDS.evidenceCheck));
 assert.throws(
   () => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceCheck, JSON.stringify({ items: evidenceCheck.items.slice(0, 9) })),

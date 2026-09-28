@@ -17,6 +17,17 @@ assert.match(
   /outputContract:\s*OUTPUT_CONTRACT_IDS\.evidenceCheck/,
   'evidence_check must bind the verifier JSON schema before dispatch',
 );
+assert.match(
+  evidenceCheckServiceSource,
+  /expectedBatchOutputIdsFor/,
+  'evidence_check must use pack criterion ids',
+);
+assert.doesNotMatch(evidenceCheckServiceSource, /idsForBatch/);
+assert.match(
+  evidenceCheckServiceSource,
+  /Anti-pattern ids keep the AP- prefix/,
+  'the verifier prompt must require canonical anti-pattern ids',
+);
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,
@@ -80,7 +91,7 @@ assert.equal(isEvidenceQuoteBoundToDerivedEvidence(
 
 const verifierItem = {
   stream: 'antipattern',
-  id: 'A1',
+  id: 'AP-A1',
   status: 'supported',
   assessment_status: 'assessed',
   original_count: 0,

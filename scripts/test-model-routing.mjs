@@ -171,7 +171,7 @@ assert.deepEqual(expandedConfig.routes.fact_check.map(value => `${value.provider
   'meta:muse-spark-1.3',
   'openai:gpt-5.4',
 ]);
-assert.equal(expandedConfig.routes.evidence_check[0].maxTokens, 32768, 'Contributor Spark evidence_check uses the same reasoning headroom');
+assert.equal(expandedConfig.routes.evidence_check[0].maxTokens, 32768, 'Meta evidence_check uses the same reasoning headroom');
 assert.equal(expandedConfig.routes.fact_check[0].maxTokens, 16384, 'fact_check keeps the Quality Checker default');
 assert.doesNotThrow(() => authorizeConfiguredDestination(
   'evidence_adjudication', 'openai', 'gpt-6-astra', { max_tokens: 32768, reasoning_effort: 'high' }, expandedEnv,
@@ -231,21 +231,24 @@ assert.deepEqual(testModeConfig.routes.evidence_adjudication.map(value => `${val
   'google:gemini-3.8-flash',
 ]);
 assert.deepEqual(testModeConfig.routes.fact_check.map(value => `${value.provider}:${value.id}`), [
-  'meta:muse-spark-1.3-contributor',
+  'meta:muse-spark-1.3',
   'google:gemini-3.8-flash',
 ]);
 assert.equal(testModeConfig.routes.forensic_audit[0].maxTokens, 32768);
-assert.equal(testModeConfig.routes.evidence_check[0].id, 'muse-spark-1.3-contributor');
+assert.equal(testModeConfig.routes.evidence_check[0].id, 'muse-spark-1.3');
 assert.equal(testModeConfig.routes.evidence_check[0].maxTokens, 32768);
 assert.doesNotThrow(() => authorizeConfiguredDestination(
-  'fact_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
+  'fact_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
 ));
 assert.doesNotThrow(() => authorizeConfiguredDestination(
-  'evidence_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
+  'evidence_check', 'meta', 'muse-spark-1.3', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
 ));
 assert.throws(() => authorizeConfiguredDestination(
-  'evidence_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
-), /DESTINATION_NOT_CONFIGURED/, 'Contributor Spark evidence_check must use the raised completion budget');
+  'evidence_check', 'meta', 'muse-spark-1.3', { max_tokens: 16384, reasoning_effort: 'medium' }, testModeEnv,
+), /DESTINATION_NOT_CONFIGURED/, 'Muse Spark evidence_check must use the raised completion budget');
+assert.throws(() => authorizeConfiguredDestination(
+  'evidence_check', 'meta', 'muse-spark-1.3-contributor', { max_tokens: 32768, reasoning_effort: 'medium' }, testModeEnv,
+), /DESTINATION_NOT_CONFIGURED/, 'TEST_MODE quality checks use muse-spark-1.3, not the contributor id');
 assert.throws(() => authorizeConfiguredDestination(
   'evidence_adjudication', 'openai', 'gpt-6-astra', { max_tokens: 32768, reasoning_effort: 'high' }, testModeEnv,
 ), /DESTINATION_NOT_CONFIGURED/, 'TEST_MODE must ignore production role variables');
