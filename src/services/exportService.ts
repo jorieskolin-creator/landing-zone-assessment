@@ -223,11 +223,13 @@ const renderAcquisitionQuality = (result: DiagnosticResult): string => {
   const coverage = quality.evidence.coverage;
   const density = quality.evidence.density;
   const provenance = quality.evidence.provenance;
+  const scoringDensity = Math.round(Number(result.phase_2_validation.metrics.evidence_density) || 0);
   const statusClass = (ready: boolean) => ready ? 'packet-coverage-ok' : 'packet-coverage-weak';
   const metricRows: Array<[string, string]> = [
     ['Extraction completeness', `${quality.extraction.overall_completeness}% · ${quality.extraction.status}`],
+    ['Evidence density', `${scoringDensity}%`],
     ['Evidence coverage', `${coverage.overall}% · ${coverage.covered_items}/${coverage.total_items} objects`],
-    ['Evidence density', `${density.overall}%`],
+    ['Weighted evidence quality', `${density.overall}%`],
     ['Verified evidence strength', `${density.verified_strength}%`],
     ['Source diversity', `${density.source_diversity}%`],
     ['Evidence-category diversity', `${density.category_diversity}%`],
@@ -242,7 +244,7 @@ const renderAcquisitionQuality = (result: DiagnosticResult): string => {
   <section class="source-packet-section">
     <h2>Acquisition Quality &amp; Readiness</h2>
     <div class="source-packet-card">
-      <p class="source-packet-note">Versioned acquisition telemetry (${escapeHtml(quality.formula_version)}). Evidence coverage measures how much of the assessment surface was tested; evidence density separately combines verified strength (60%), per-object source diversity (20%), and evidence-category diversity (20%). These readiness values are observability-only in this milestone and do not alter scores or the Quality Gate.</p>
+      <p class="source-packet-note">Versioned acquisition telemetry (${escapeHtml(quality.formula_version)}). Evidence density is the Quality Gate share of criteria with verified source coverage. Evidence coverage measures how much of the assessment surface was tested and matches the covered/expected object counts. Weighted evidence quality combines verified strength (60%), per-object source diversity (20%), and evidence-category diversity (20%). These readiness values are observability-only in this milestone and do not alter scores or the Quality Gate.</p>
       <div class="source-packet-tables">
         <table class="source-packet-table source-packet-metrics-table">
           <thead><tr><th>Quality measure</th><th>Value</th></tr></thead>

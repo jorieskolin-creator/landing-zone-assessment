@@ -178,7 +178,9 @@ export const buildAcquisitionQualitySnapshot = (input: {
     extraction: input.sourceRegistry.extraction,
     evidence: {
       coverage: {
-        overall: input.phase2.metrics.evidence_density,
+        overall: allEntries.length > 0
+          ? clampPercent((coveredEntries.length / allEntries.length) * 100)
+          : 0,
         maturity: clampPercent((maturityCovered / Math.max(maturityEntries.length, 1)) * 100),
         antipattern: clampPercent((antipatternCovered / Math.max(antipatternEntries.length, 1)) * 100),
         covered_items: coveredEntries.length,
