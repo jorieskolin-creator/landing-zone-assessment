@@ -181,8 +181,10 @@ assert.doesNotMatch(forensicPrompts, /derived_evidence_id": ""/);
 assert.match(forensicPrompts, /Do not emit evidence_class/);
 assert.match(forensicPrompts, /omit chunk_id/);
 assert.match(forensicPrompts, /JSON stream is "maturity"/);
-assert.match(forensicPrompts, /id" MUST be \$\{columnId\}1-\$\{columnId\}5 for BOTH streams/);
-assert.match(forensicPrompts, /Never use a different design-area letter/);
+assert.match(forensicPrompts, /Anti-pattern ids are AP-\$\{columnId\}1-AP-\$\{columnId\}5/);
+assert.match(forensicPrompts, /Do not emit a maturity id on the antipattern stream/);
+assert.doesNotMatch(forensicPrompts, /id" MUST be \$\{columnId\}1-\$\{columnId\}5 for BOTH streams/);
+assert.doesNotMatch(forensicPrompts, /"id": "\$\{columnId\}1",\n      "count": 0/s);
 assert.doesNotMatch(forensicPrompts, /unless this batch letter is A or B/);
 assert.doesNotMatch(forensicPrompts, /Return exactly 10 items: Stream A/);
 
@@ -337,6 +339,33 @@ assert.doesNotThrow(() => assertForensicBatchIds({
   maturity: ['C1', 'C2', 'C3', 'C4', 'C5'],
   antipattern: ['C1', 'C2', 'C3', 'C4', 'C5'],
 }));
+const packAntipatternIds = {
+  items: ['1', '2', '3', '4', '5'].flatMap(n => [
+    forensicItem('maturity', `C${n}`),
+    forensicItem('antipattern', `AP-C${n}`),
+  ]),
+};
+assert.deepEqual(
+  validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(packAntipatternIds)),
+  packAntipatternIds,
+);
+assert.doesNotThrow(() => assertForensicBatchIds(packAntipatternIds, {
+  maturity: ['C1', 'C2', 'C3', 'C4', 'C5'],
+  antipattern: ['AP-C1', 'AP-C2', 'AP-C3', 'AP-C4', 'AP-C5'],
+}));
+assert.throws(
+  () => assertForensicBatchIds({
+    items: ['1', '2', '3', '4', '5'].flatMap(n => [
+      forensicItem('maturity', `C${n}`),
+      forensicItem('antipattern', `C${n}`),
+    ]),
+  }, {
+    maturity: ['C1', 'C2', 'C3', 'C4', 'C5'],
+    antipattern: ['AP-C1', 'AP-C2', 'AP-C3', 'AP-C4', 'AP-C5'],
+  }),
+  error => error.code === 'INVALID_BATCH_OUTPUT_IDS',
+  'capability ids on the antipattern stream are not the pack ids',
+);
 
 const googleForensic = structuredOutputForPacket({
   stage: 'forensic_audit',
@@ -364,6 +393,25 @@ const xaiForensic = structuredOutputForPacket({
   output_contract: OUTPUT_CONTRACT_IDS.forensicAudit,
 });
 assert.equal(xaiForensic.schema.properties.items.items.properties.evidence_quotes.items.properties.page_number.type, 'integer');
+const batchCSchema = structuredOutputForPacket({
+  stage: 'forensic_audit',
+  provider: 'xai',
+  output_contract: OUTPUT_CONTRACT_IDS.forensicAudit,
+  system_instruction: 'Your CURRENT SCOPE is strictly Batch C: Network.',
+});
+assert.deepEqual(batchCSchema.schema.properties.items.items.properties.id.enum, [
+  'C1', 'AP-C1', 'C2', 'AP-C2', 'C3', 'AP-C3', 'C4', 'AP-C4', 'C5', 'AP-C5',
+]);
+assert.equal(
+  getOutputContract(OUTPUT_CONTRACT_IDS.forensicAudit).schema.properties.items.items.properties.id.pattern,
+  '^(?:AP-)?[A-H][1-5]$',
+  'provider id enum must not mutate the worker contract',
+);
+const antipatternCatalogue = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/antipatterns.json', import.meta.url), 'utf8'));
+assert.deepEqual(
+  antipatternCatalogue.criteria.filter(item => item.batch === 'C').map(item => item.id),
+  ['AP-C1', 'AP-C2', 'AP-C3', 'AP-C4', 'AP-C5'],
+);
 const geminiRequiredBothIds = {
   items: forensicAudit.items.map((item, index) => index === 0 ? {
     stream: 'maturity',
