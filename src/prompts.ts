@@ -87,10 +87,10 @@ Review the document inside the <UNTRUSTED_CONTENT> tags below. Some submissions 
 </audit_scope>
 
 <ssot_definitions>
-=== MATURITY / CAPABILITY (JSON stream is "maturity"; every id is ${columnId}1-${columnId}5) ===
+=== MATURITY / CAPABILITY (JSON stream is "maturity"; copy each item id ${columnId}1-${columnId}5) ===
 ${definitions.maturity}
 
-=== ANTI-PATTERNS (JSON stream is "antipattern"; every id is ${columnId}1-${columnId}5) ===
+=== ANTI-PATTERNS (JSON stream is "antipattern"; copy each item id AP-${columnId}1-AP-${columnId}5) ===
 ${definitions.antipattern}
 </ssot_definitions>
 
@@ -99,8 +99,8 @@ ${SHARED_GUARDRAILS}
 </investigation_rules>
 
 <execution_task>
-For the 5 maturity criteria (${columnId}1-${columnId}5) AND the 5 anti-pattern criteria (${columnId}1-${columnId}5), perform the audit.
-Every item "id" MUST be ${columnId}1-${columnId}5 for BOTH streams. Capability vs anti-pattern is the JSON "stream" field, not the id letter. Never use a different design-area letter for anti-pattern items.
+For the 5 maturity criteria (${columnId}1-${columnId}5) AND the 5 anti-pattern criteria (AP-${columnId}1-AP-${columnId}5), perform the audit.
+Copy each item id from its <item id="..."> attribute. Maturity ids are ${columnId}1-${columnId}5. Anti-pattern ids are AP-${columnId}1-AP-${columnId}5. Do not emit a maturity id on the antipattern stream.
 
 **FOR EACH ITEM:**
 1. Read the 3 specific sub-criteria in the definition.
@@ -112,7 +112,7 @@ Every item "id" MUST be ${columnId}1-${columnId}5 for BOTH streams. Capability v
 7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Be concise; do not reproduce definitions or add recommendations.
 
 **REQUIRED OUTPUT STRUCTURE (JSON Only):**
-Return exactly 10 items: maturity ${columnId}1 ${columnId}2 ${columnId}3 ${columnId}4 ${columnId}5, then antipattern ${columnId}1 ${columnId}2 ${columnId}3 ${columnId}4 ${columnId}5.
+Return exactly 10 items: maturity ${columnId}1 ${columnId}2 ${columnId}3 ${columnId}4 ${columnId}5, then antipattern AP-${columnId}1 AP-${columnId}2 AP-${columnId}3 AP-${columnId}4 AP-${columnId}5.
 {
   "items": [
     {
@@ -127,7 +127,7 @@ Return exactly 10 items: maturity ${columnId}1 ${columnId}2 ${columnId}3 ${colum
     },
     {
       "stream": "antipattern",
-      "id": "${columnId}1",
+      "id": "AP-${columnId}1",
       "count": 0,
       "assessment_status": "not_assessed",
       "question_results": ["unknown", "unknown", "unknown"],
@@ -168,10 +168,10 @@ ${verifierFeedback}
 </verifier_feedback>
 
 <ssot_definitions>
-=== MATURITY / CAPABILITY (JSON stream is "maturity"; every id is ${columnId}1-${columnId}5) ===
+=== MATURITY / CAPABILITY (JSON stream is "maturity"; copy each item id ${columnId}1-${columnId}5) ===
 ${definitions.maturity}
 
-=== ANTI-PATTERNS (JSON stream is "antipattern"; every id is ${columnId}1-${columnId}5) ===
+=== ANTI-PATTERNS (JSON stream is "antipattern"; copy each item id AP-${columnId}1-AP-${columnId}5) ===
 ${definitions.antipattern}
 </ssot_definitions>
 
@@ -188,7 +188,7 @@ Rules:
 3. For every assessed result, including 0/3, include at least one criterion-relevant direct quote or visible-image description. If there is no relevant evidence, return assessment_status="not_assessed", Count 0, three unknown question results, and no quotes.
 4. Source-text quotes must include source_id and chunk_id from the enclosing CHUNK. Do not emit evidence_class or page/sheet/row locators. Derived quotes must instead include evidence_source="derived", source_id, derived_evidence_id, and an exact summary_lines entry from approved <DERIVED_EVIDENCE>. Never cite content outside the referenced evidence unit. Never invent provider checks or control-plane facts.
 5. For anti-pattern Count = 0, distinguish verified absence from unknown absence in the evidence/reasoning text. Verified absence requires Class 1 coverage that would reveal the anti-pattern if present; silence, documents, or workshop material alone are not tested absence.
-6. Do not return criteria that were not listed in <target_criteria>. Every remaining "id" still uses this batch letter ${columnId} for both streams; never retarget anti-patterns onto a different letter.
+6. Do not return criteria that were not listed in <target_criteria>. Copy those ids exactly. Anti-pattern ids keep the AP- prefix.
 7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Return decisions and references only—no recommendations or repeated definitions.
 
 Required JSON shape:
