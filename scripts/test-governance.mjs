@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { approvedPacketBytes,approvedPacketHash,approveRequest,approveRequestArtifact,authorizeDestination,evaluatePacketBinding,inspectOutput,packetRuntimeDiagnostics,parseApprovedPacketBody,validateGovernedOutput,POLICY_VERSION,STAGE_PACKET_REQUEST_VERSION } from '../lib/governance.js';
+import { approvedPacketBytes,approvedPacketHash,approveRequest,approveRequestArtifact,authorizeDestination,evaluatePacketBinding,inspectOutput,MAX_APPROVED_TEXT_CHARS,packetRuntimeDiagnostics,parseApprovedPacketBody,sanitizeText,validateGovernedOutput,POLICY_VERSION,STAGE_PACKET_REQUEST_VERSION } from '../lib/governance.js';
 import { OUTPUT_CONTRACT_IDS } from '../lib/outputContracts.js';
 import { governedPacketHandler } from '../api/governed-packet.js';
 import { issueCookie } from '../lib/auth.js';
@@ -22,6 +22,9 @@ const securitySource=await readFile(new URL('../src/services/securityService.ts'
 for(const text of ['negotiated discount rate: 37%','contract value: $250000','billing account id: BA-12345','invoice number: INV-99887','SSN 123-45-6789','passport number: AB123456','home address: 12 Private Street'])assert.throws(()=>approveRequest({...request,parts:[{type:'text',text}]}),/RESIDUAL_CLASSIFICATION_REJECTED/);
 for(const text of ['{"password":"hunter2"}','Format: CSV\nHeaders: contract value\nValues: $250000','{"invoice_number":"INV-99887"}'])assert.throws(()=>approveRequest({...request,parts:[{type:'text',text}]}),/SECRET_MATERIAL_REJECTED|RESIDUAL_CLASSIFICATION_REJECTED/);
 assert.throws(()=>approveRequest({...request,system_instruction:'password=',parts:[{type:'text',text:'hunter2'}]}),/SECRET_MATERIAL_REJECTED/);
+assert.equal(sanitizeText('x'.repeat(600000)).length, 600000, 'roadmap knowledge text above 500000 characters must be approvable');
+assert.throws(() => sanitizeText('x'.repeat(MAX_APPROVED_TEXT_CHARS + 1)), /INVALID_TEXT/);
+assert.throws(() => sanitizeText('has\0null'), /INVALID_TEXT/);
 assert.throws(()=>approveRequest({...request,parts:[{type:'text',text:'data:image/png;base64,AAAA'}]}),/IMAGE_PAYLOAD_DISABLED/);
 assert.throws(()=>approveRequest({...request,parts:[{type:'text',text:'{"type":"input_image","source":{"type":"base64","data":"AAAA"}}'}]}),/IMAGE_PAYLOAD_DISABLED/);
 assert.doesNotThrow(()=>approveRequest({...request,parts:[{type:'text',text:'{"type":"image","ocr_confidence":88,"visual_interpretation_status":"OCR_TEXT_ONLY"}'}]}),'OCR visual-evidence metadata is not an external image part');

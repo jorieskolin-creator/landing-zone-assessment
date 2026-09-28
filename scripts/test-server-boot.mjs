@@ -39,6 +39,7 @@ assert.match(server, /publisher\?\.stop/);
 assert.doesNotMatch(server, /STARTUP_FAILED code=\$\{code==='INTERNAL_ERROR'\?'INFRASTRUCTURE_UNAVAILABLE'/);
 assert.match(server, /INFRASTRUCTURE_UNAVAILABLE code=/);
 assert.match(server, /serving UI; workers not started/);
+assert.match(server, /express\.json\(\{ limit: '4mb' \}\)/);
 assert.match(server, /deploymentExpectsInfrastructure\(process\.env\)/);
 assert.match(server, /readyzResponse\(/);
 assert.equal(deploymentExpectsInfrastructure({}), false);
