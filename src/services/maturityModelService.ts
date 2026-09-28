@@ -135,6 +135,16 @@ const resolveAntipattern = (id: CapabilityId, item: AuditItem | undefined): Matu
   return resolvedRecord('antipattern', id, count, (3 - count) / 3, basis, 'PROVENANCE_BOUND_EVIDENCE', status);
 };
 
+export const governedCriterionState = (
+  stream: 'maturity' | 'antipattern',
+  id: string,
+  item: AuditItem | undefined,
+): MaturityCriterionResolutionRecord['state'] => (
+  stream === 'maturity'
+    ? resolveCapability(id as CapabilityId, item)
+    : resolveAntipattern(id as CapabilityId, item)
+).state;
+
 export const buildMaturityCriterionResolutions = (
   logs: Phase1AuditLogs,
   registry: MaturityPairRegistry = FINOPS_MATURITY_PAIR_REGISTRY,
