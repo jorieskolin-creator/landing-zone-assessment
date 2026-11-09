@@ -1,0 +1,92 @@
+{
+  "schema_version": "solution_assurance_evidence_v1",
+  "solution": "landing-zone-assessment",
+  "reviewed_on": "2026-11-09",
+  "source_review_commit": "b1010b75147a49af9e50db7d98ea95fcbf1fdf53",
+  "artifact_type": "pre_call_redaction_dlp_verification",
+  "contains_actual_run_evidence": false,
+  "result": "NOT_RUN",
+  "execution_timestamp_utc": null,
+  "executed_by": null,
+  "independent_reviewer": null,
+  "reviewed_result": null,
+  "test_environment": null,
+  "actual_observations": null,
+  "sanitized_test_log_reference": null,
+  "approval_reference": null,
+  "provenance_note": "Repository paths indicate code/test definitions; no command execution, deployed configuration, customer permission, external provider attestation or human approval is claimed.",
+  "matrix_step": 3,
+  "requirement": [
+    "B2-Q3",
+    "B4-Q3"
+  ],
+  "source_code_observations": [
+    {
+      "item": "Regex block for private keys, cloud keys, API keys, bearer tokens and credential assignments",
+      "path": "src/services/deterministicPrivacyService.ts",
+      "proof_level": "CODE_ONLY"
+    },
+    {
+      "item": "Redaction patterns for email, phone, selected personal fields, IP addresses, billing IDs and financial details",
+      "path": "src/services/deterministicPrivacyService.ts",
+      "proof_level": "CODE_ONLY"
+    },
+    {
+      "item": "Governed stage packets enforce schemas/policy, canonical byte hashing and role-model restrictions",
+      "path": "lib/governance.js",
+      "proof_level": "CODE_ONLY"
+    },
+    {
+      "item": "Automated scripts exist for privacy, distributed sampling, stage packet construction and table cells",
+      "path": "scripts/test-dlp-distributed-sampling.mjs",
+      "proof_level": "TEST_CODE_EXISTS_NOT_EXECUTED"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "DLP-01",
+      "case": "Private/cloud/API key in direct input",
+      "expected": "BLOCK_OR_WITHHOLD",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "DLP-02",
+      "case": "Personal identifiers in row/table/hidden cell",
+      "expected": "NO_UNAPPROVED_IDENTIFIERS_IN_DISPATCH",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "DLP-03",
+      "case": "OCR/visual extraction contains secret",
+      "expected": "NO_UNSCREENED_DERIVED_CONTENT_IN_DISPATCH",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "DLP-04",
+      "case": "Intermediate summary reconstructs restricted information",
+      "expected": "BLOCK_OR_REDACT_BEFORE_REUSE",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "DLP-05",
+      "case": "Model fallback/rescan tries to dispatch unapproved fields",
+      "expected": "NO_UNAUTHORIZED_EGRESS",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "DLP-06",
+      "case": "Report or operational log repeats protected identifier",
+      "expected": "NO_PROTECTED_VALUE_IN_EXPORT_OR_LOG",
+      "actual": null,
+      "status": "NOT_RUN"
+    }
+  ],
+  "outbound_request_capture_hash": null,
+  "provider_endpoint_checked": null,
+  "unverified": "No executed outbound request, report/log scan, OCR complete-path or enterprise provider negative test attached."
+}

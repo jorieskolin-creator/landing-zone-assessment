@@ -1,149 +1,92 @@
 ---
 document_id: LZA-ASSURANCE-05
-title: Architecture and Control Contract
-version: 0.1.0
-prepared_on: 2026-11-08
-status: ARCHITECTURE REVIEW DRAFT
-step: 5
+title: Architecture, Cognitive Model and Control
+version: 0.2.0
+reviewed_on: 2026-11-09
+status: LEVEL_C_CANDIDATE_NOT_APPROVED
+matrix_step: 5
+solution_assurance_mappings: [C3, D3, E3, E4, E5]
 ---
 
-# 05 — Architecture and Control
+# 05 — Architecture, Authority and Cognitive Contract (Step 5)
 
-## 1. Architectural decision [REPO]
+> Status notation: **[CODE]** inspected implementation/constant, not runtime proof; **[DOC]** documented design or historical account; **[GAP]** not established by supplied code, configuration, run evidence or contract. Missing status is not evidence that a control is absent. Reference commit: `b1010b75147a49af9e50db7d98ea95fcbf1fdf53`.
+> Solution Assurance matrix mappings (A1, B2, C3, etc.) are distinct from Landing Zone Assessment criterion IDs (A1–H5).
 
-The Landing Zone Assessment is an **independent solution** built and maintained in its own repository. It uses a locally owned source copy of a recorded FinOps Engine kernel; it must not use the FinOps deployment, package, repository, queue or database at build or runtime. The active diagnostic domain is src/domain-packs/landing-zone. Remaining FinOps data is characterization fixture material only.
 
-The first implementation is **file and questionnaire based**. It does not directly connect to AWS, Azure or GCP tenants and does not have cloud administration credentials. Criteria follow the frozen A–H catalogue, 40 paired capability/anti-pattern constructs and provider-specific evidence contracts.
+## Architectural level — use the definitions in the attached matrix
 
-## 2. End-to-end cognitive/execution contract
+| Level | Meaning in reference | Relationship to this solution |
+|---|---|---|
+| **A — Generate** | Direct request → draft; human owns acceptance | Too narrow to describe the Engine's intended *evidence-based scored conclusions*; appropriate for independent text-drafting support only |
+| **B — Ground** | Retrieval/source support and citations; retrieval is not conclusive validation | Engine has source registry, bounded retrieval and citation mechanisms |
+| **C — Govern** | Defined evidence and decision criteria, independent deterministic verification, `UNKNOWN` / `BLOCK` and human authority | **Candidate** architectural classification: code contains provenance, scoring, gate and tactic safeguards; full effectiveness and human approval not demonstrated |
 
-~~~text
-Customer and assessor agree purpose, permission and scope
-                        |
-                 Step 0 scope lock
-      providers, roots, A-H, exports and exclusions
-                        |
-          Uploaded files + interview JSON
-                        |
-        Parsing / OCR / structured analysis
-                        |
-                  Source Registry
-     authority class, scope, provenance, timestamp
-                        |
-        Deterministic privacy / DLP gate
-         BLOCK | WITHHOLD | REDACT | PASS
-                        |
-        A-H evidence routing + coverage
-                        |
-     Approved KB release + criterion contract
-                        |
- Governed model stages: discovery, audit, verification,
-       rescan and bounded structured synthesis
-                        |
-   Provenance and contradiction / absence verification
-                        |
- Deterministic pair scoring + Assessment Sufficiency
-                        |
-        Fact check + code-owned Quality Gate
-                        |
-         GO / WARN / BLOCK publication bounds
-                        |
-       Expert finding lock + customer decisions
-                        |
-           Approved exact TAC-* mapping
-                        |
-  Human-authorized implementation outside the Engine
-                        |
-         New evidence -> independent reassessment
-~~~
+**Classification status:** **Candidate Level C, NOT human selected or certified.** The matrix's Level C is **not equivalent to an autonomous agent**. The Engine's design uses bounded AI reasoning without cloud action tools. The separate *consequence tier* remains **unassigned** in [02 Risk and Impact](02-Risk-and-Impact.md). A synthetic demonstration dataset is **not** a Level A architectural classification.
 
-This is the **logical contract**, not a claim that every component has passed an integrated production test. Actual deployment includes a browser UI, Node/Railway API, PostgreSQL control plane, Redis execution coordination/recovery, Vercel Blob reference Knowledge Base, and model provider gateways.
+## Current architecture and six-element cognitive model
 
-## 3. Proposed handling levels A/B/C
+| Element from attached matrix | Present code/design evidence | Missing to establish effective contract |
+|---|---|---|
+| 1. Purpose & decision criteria | [Pack](../src/domain-packs/landing-zone/pack.json), fixed A–H criteria and [Step 0](../src/components/Step0ScopeForm.tsx) | Owner-approved use case and explicit outcome authorization |
+| 2. Evidence requirements (coverage, currency, provenance) | [Source Registry](../src/services/sourceRegistryService.ts), [lzForensicEvaluation](../src/services/lzForensicEvaluation.ts), [evidence policy](../src/domain-packs/landing-zone/evidence-taxonomy.json) | Measured source freshness/completeness/quote accuracy on representative runs |
+| 3. Access & context rules | Scoped A–H/provider packets, governed schema, HMAC session; reference KB separated | Per-user/tenant authorization, enterprise IAM, independent RAG/RBAC test |
+| 4. Inference & deterministic tool rules | Model-role routing, governed packet hashes and deterministic [scoring](../src/services/landingZoneScoringAdapter.ts) | Provider/config attestation and proven prompt-injection/tool permission tests |
+| 5. Permitted outputs, schemas & recipients | Output-contract validation, forensic report, [Quality Gate](../src/domain-packs/landing-zone/quality-gate-policy.json) | Recipient RBAC and actual external-release enforcement |
+| 6. Exceptions, `UNKNOWN`, `BLOCK` & release rules | Anti-pattern unknown semantics, code-owned gate and exact tactical matching | Working human override/customer decision audit and stop/release proof |
 
-**[PROPOSED]** The repository does not establish a canonical Engine-specific “Level A/B/C” classification. The following is a **new local assurance profile** for this documentation test; it is **not** the design-area IDs A–H or a known legal risk taxonomy. Solution-owner approval is required before operational use.
+## Implementation/trust path (documented)
 
-| Level | Inputs | Hosting and models | Authorization |
+1. Human records **Step 0 scope** and supplies evidence files/interview JSON; no initial direct cloud provider connectors.
+2. Browser/client parses files and creates source registry/locators; privacy screening precedes governed model packets.
+3. Provider/criterion-specific packets and Knowledge Base context are used for bounded generative forensic work; the KB is reference knowledge, **not customer evidence**.
+4. Reconcile statements to attributable source and evidence class; independent code applies provider-scoped pair scoring, Assessment Sufficiency and GO/WARN/BLOCK Quality Gate. Unknown or unsupported absence is **not silently cleared**.
+5. Human finding lock is required before an exact-ID Tactical Playbook remediation suggestion can become mandatory. Completion of a tactic produces evidence; does not update scoring or authorize cloud change.
+6. Expert/customer release and residual-risk acceptance are **documented authority requirements**, but dated Implementation Plan says Work 13 expert calibration/customer disposition not started; no newer validated completion provided.
+
+Sources: [ADR-001](../docs/architecture/ADR-001-execution-and-evidence-lineage.md), [ADR-002](../docs/architecture/ADR-002-resolution-based-maturity-model.md), [ADR-003](../docs/architecture/ADR-003-required-tactic-contract.md), [Implementation Plan](../Landing_Zone_Assessment_Implementation_Plan.md).
+
+## Model/tool permission and write-path inventory
+
+| Execution participant | Demonstrated scope | Denied/unsupported activity | Validation gap |
 |---|---|---|---|
-| **A — Synthetic/documentary sandbox** | Public, fictional, synthetic and licensed materials | Test environment, governed hosted processing, no real customer secrets | Documentation/tool test only, not customer assurance |
-| **B — Bounded customer assessment** | Approved, minimized/sanitized customer exports excluding restricted content | Contractually approved enterprise tenant, model providers, region and validated retention | Assessor + customer + security/privacy sign-off; no autonomous production action |
-| **C — Restricted/critical estate** | Sensitive or regulated content only after explicit case approval | Isolated private/in-house processing where required, stronger access and network controls | Separate legal/security/risk and customer approvals, augmented validation |
+| User/browser | Select scope/files and view results; session cookie | Cannot infer enterprise role/tenant privilege from shared cookie | Independent authorization tests |
+| Server governance / model router | Approved packet staging, stage/model routing, output schema | No evidence of arbitrary agent-hosted shell/cloud write tools | Provider allowlist/timeout and bypass tests |
+| Reference Knowledge Base | Reads controlled Landing Zone KB in Vercel Blob | Cannot attest customer implementation or silently switch to FinOps KB | Deployed KB release/version and licence check |
+| Scoring/Quality Gate code | Validates evidence and determines publication/actionability | Model self-approval of gate | End-to-end bypass/exception negative tests |
+| Human assessment/release owner | Required by playbook and design, identity unknown | AI must not sign or accept risk for owner | Human release/override test and signed record |
 
-**Selected default for this documentation exercise: Level A.** Higher levels may not be inferred from a successfully generated report.
+## Q1 — Design specification demands
 
-## 4. Non-negotiable invariants
-
-1. **Evidence, not publication, proves current state.** Customer Class 1 platform exports are strongest if complete, fresh and attributable. Class 2 design and Class 3 workshop statements cannot silently become proof of enforcement.
-2. **Unknown is not failure or absence.** Unassessed providers, silent batches and incompletely searched estates are not zero and cannot support anti-pattern clearance.
-3. **Providers stay separate.** A canonical criterion ID can exist across Azure/AWS/GCP while its actual evidence and score remain bound to the selected provider; an unqualified blended headline is prohibited.
-4. **Model and source cannot modify the rules.** Source documents are untrusted data; scoring, gate decisions, scope, proof standards and tactic eligibility are code-controlled.
-5. **Human accountability is explicit.** Legal applicability, evidence disputes, risk acceptance, finding locks and production authorization remain with named humans.
-6. **Tactics follow diagnosis.** Approved Tactical KB IDs are matched only to exact locked findings. Remediation completion produces evidence but does not close a finding.
-
-## 5. Trust and authorization boundaries
-
-| Boundary | Allowed action | Not allowed without new design/approval |
+| Matrix demand | Current reading | Source / absent verification |
 |---|---|---|
-| User → browser | Inspect criteria, select scope, upload approved material and view controlled report | Background collection, arbitrary persistence of originals |
-| Browser → API | Authenticated scoped run/checkpoint/packet requests | Unauthenticated cross-run data, unbounded payload or arbitrary tool invocation |
-| API → PostgreSQL | Versioned runs, content-bearing canonical packet body, minimal metadata and hashes | Long-lived raw source repository or unrestricted query to other tenants |
-| API → Redis | Leases, fences, transient checkpoints, results and deletion tombstones | Never-expiring content or replay after deletion |
-| Engine → Vercel Blob | Controlled Landing Zone **reference KB** only | Customer exports and FinOps KB fallback |
-| Engine → external models | Exact authorized model/role/stage and **screened** governed packet | Raw original file, secrets, unrestricted tool calls, unapproved provider or destination |
-| Engine → report | Supported claims, citations, uncertainty and gate status | Unqualified assurance, personnel grading or hidden false clearance |
-| Assessment → tactics | Eligible, mapped implementation guidance after human lock | Autonomous cloud remediation or risk acceptance |
+| Requirement Level A/B/C Selection | [DOC] Level C **candidate**, not authorized; epistemic distance is material | Derived maturity and findings from multiple evidence classes; Step 2 tier missing |
+| Six-Element Cognitive Model Specification | [CODE/DOC] Six elements traced above; no single approved signed contract | A–H pack, governance, ADRs, output schemas |
+| Agent Autonomy & Write-Path Inventory (C3) | [DOC] No cloud-write capability in initial scope; no approved complete tool register | Implementation Plan; source gateway and API inventory |
+| Transparency, Oversight & Recourse (E3–E5) | [DOC] Expert/customer authority intended; approved UI review/recourse workflow unverified | Playbook, personas; Work 13 pending in dated plan |
 
-**[REPO]** lib/modelRoutingPolicy.js defines WORKHORSE, REASONER, QUALITY_CHECKER and primary/fallback policy selection. The values in .env.example are examples, **not evidence of currently deployed provider/model selection**. Different models require equivalent security, output and packet controls.
 
-**[PROPOSED]** Production agent permission allowlist: read selected, in-scope, authorized files and controlled KB; generate criterion-bounded analyses; use approved model endpoints; write only versioned run results. Deny shell commands, repository writes, email sending, open web access, direct cloud APIs, access to credentials, arbitrary URL fetching and self-directed tool expansion. Software development agents are distinct from assessment runtime agents and require separate tool contracts.
+## Q2 — Technical and enterprise parameters
 
-## 6. Component-to-evidence obligations
-
-**Acquisition.** evidenceFileService.ts supports PDF, HTML, CSV/TSV, JSON, XLSX and image formats; sourceRegistryService.ts holds source kinds, scoped routing and locators; questionnaireIngestion.ts converts 48 interview answers to Class 3 evidence leads. Test file-type spoofing, hidden spreadsheet data, missing pages, OCR errors, incomplete exports and out-of-scope provider signals.
-
-**Privacy and packets.** deterministicPrivacyService.ts implements sensitive-pattern detection, while lib/governance.js binds canonical body bytes to hash, policy, run, stage, model and expiry. The effective contract must be tested at *every* LLM fallback and generated/derived payload. ADR-001 separates stage execution from model attempt so failed attempts never silently reuse an authorization.
-
-**Knowledge.** Source Register identity and licensing constraints bound what reference text may be used. docs/kb-authoring/README.md describes Drive as authoring storage and Vercel Blob as runtime storage for 80 canonical PDF objects. Runtime must never use workshop text, playbook entries or public reference guidance as proof of a specific customer's controls.
-
-**Diagnosis.** lzForensicEvaluation.ts enforces authority-sensitive interpretations; ADR-002 defines resolution-based maturity arithmetic (unknown excluded rather than forced to zero). The active Landing Zone labels are Foundation / Pilot / Rollout / Operate; provider scope remains explicit.
-
-**Gates.** Assessment Sufficiency owns maturity publication, Quality Gate GO/WARN/BLOCK owns action/publication safety. Model outputs may propose narratives but must not determine or override gate states. A BLOCK is a request for evidence and a decision conversation, not a customer pass/fail verdict.
-
-**Remediation.** Approved Tactical Playbook v1.0.0 transcribes 80 TAC-* IDs with exact mapping. ADR-003 defines required-tactic dispositions; a contraindication or excluded tactic must be traceable, not silently omitted. Human-authorized implementation occurs outside the Engine and leads to reassessment.
-
-## 7. Traceability map
-
-| Assurance control | Code / source | Validation |
+| Matrix demand | Current reading | Source / absent verification |
 |---|---|---|
-| Step 0 lock | src/components/Step0ScopeForm.tsx | scripts/test-step0-scope.mjs |
-| Evidence class | evidence-taxonomy.json, lzForensicEvaluation.ts | scripts/test-lz-forensic-evaluation.mjs |
-| Safety/egress | deterministicPrivacyService.ts; lib/governance.js | scripts/test-governance.mjs, test-dlp-distributed-sampling.mjs |
-| Provenance | ADR-001, sourceRegistryService.ts | scripts/test-evidence-provenance.mjs |
-| KB independence | docs/kb-authoring/README.md; landingZoneKnowledgeIndex.ts | scripts/test-lz-knowledge-index.mjs, test-lz-kb-blob-prefix.mjs |
-| Deterministic scoring | ADR-002, landingZoneScoringAdapter.ts | scripts/test-lz-pair-scoring.mjs |
-| Gate safety | quality-gate-policy.json; qualityGateService.ts | scripts/test-quality-gate-severity.mjs |
-| Tactical selection | playbook, tactic-bindings.json, ADR-003 | scripts/test-lz-tactics.mjs, test-tactic-grounding.mjs |
-| Lifecycle and deletion | controlPlanePolicy.js; runLifecycleService.js | scripts/test-run-lifecycle.mjs |
-| Solution isolation | Implementation Plan §6.1 | scripts/check-independence.mjs |
+| Context Contract Enforcement (D1/D3) | [CODE] Provider-scoped inputs and privacy gating; user identity/tenant entitlement binding unproven | Step 0, sourceRegistryService, lib/auth.js |
+| Instruction vs Untrusted Evidence Separation (D3) | [CODE] Governed system_instruction and source parts; injection resistance not independently proven | lib/governance.js; lib/outputContracts.js |
+| Least-Privilege Agent Tool Gates (C3) | [DOC/CODE] No cloud action tools in documented scope; agent-tool authorization and abort tests absent | Initial scope; model router; no agentic tool runner demonstrated |
+| Verification Contract & State Machine (Level C) | [CODE] Checkpoint/attempt states, provenance, unknown semantics, scoring/gates | lib/controlPlaneRepository.js; scoring adapter; Quality Gate |
+| Human Review & Override Interface (E4) | [GAP] No signed proof of working reviewed override and onward release gate | Historical plan Work 13 not started |
 
-## 8. Remaining architecture decisions [VERIFY]
 
-- **Multi-provider summary:** the September 2026 implementation plan withheld multi-provider headlines pending provider-keyed lineage. Verify latest implementation before permitting an aggregate.
-- **Runtime readiness:** that historical plan recorded UI-only mode without Redis and subsequent analysis retries; get a new dated /readyz and governed end-to-end test before claiming ready.
-- **Human calibration:** Work 13 was not started in the historical plan. Confirm current reviewer, customer decision and adjudication paths; never assume they exist.
-- **Model/residency:** confirm actual infrastructure regions, vendors, retention, access and contracts as detailed in LZA-04.
-- **A/B/C levels:** approve or replace the proposed classification before marking it active policy.
+## Q3 — Verifiable evidence artifacts
 
-## 9. Architecture release gate
+| Matrix demand | Current reading | Source / absent verification |
+|---|---|---|
+| Architecture & Cognitive Contract Specification | [DOC/CODE] This record + implementation source trace; no signed Level C decision | Architecture Plan; this file |
+| Write-Path & Tool Authorization Test (C3-Q3) | [GAP] No executed valid/missing/expired/replayed/bypass test evidence | No runtime execution of agent write paths shown |
+| Human Oversight & Override Effectiveness (E4-Q3) | [GAP] No reviewed approve/reject/halt test | evidence/human-release-decision-record.md |
+| Transparency & Recourse Verification (E3/E5-Q3) | [GAP] No UI screenshot/test confirming disclosure, correction/appeal propagation | Report UI code exists; no captured Q3 result |
 
-- [ ] Scope, release and deployment SHA recorded.
-- [ ] Threat model reviewed for all trust boundaries and provider fallback.
-- [ ] Security gate tested independently of model instructions.
-- [ ] No unauthorized cloud administration tool/credential reachable.
-- [ ] Provider-specific scores, unknowns, contradictions and absence test demonstrated.
-- [ ] Human lock, TAC exact matching and independent reassessment demonstrated.
-- [ ] Fail-visible behavior tested for missing KB, model failure, Redis loss, malformed input and report sanitation.
 
-**Related:** [LZA-01](01-Intended-Use-and-Scope.md), [LZA-03](03-Data-Rights-and-Lineage.md), [LZA-04](04-Storage-Retention-Contract.md), [LZA-06](06-Operations-and-Change.md), [verification plan](evidence/verification-plan.md).
+## Truthful release boundary
 
-**Sources:** Landing_Zone_Assessment_Implementation_Plan.md; ADR-001/002/003; domain pack; approved Tactical Playbook; docs/kb-authoring/README.md; the named code and test modules.
+No customer action may be justified simply by a model recommendation, a code comment or this document. An actual **Level C acceptance** requires completed independent tests, transparent UI and meaningful human control, approved endpoint/identity boundaries, signed risk decision and system behavior observed at the relevant deployed version. Reference [human release record](evidence/human-release-decision-record.md).

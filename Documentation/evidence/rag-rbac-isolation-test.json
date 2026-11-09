@@ -1,0 +1,88 @@
+{
+  "schema_version": "solution_assurance_evidence_v1",
+  "solution": "landing-zone-assessment",
+  "reviewed_on": "2026-11-09",
+  "source_review_commit": "b1010b75147a49af9e50db7d98ea95fcbf1fdf53",
+  "artifact_type": "rag_rbac_isolation_test",
+  "contains_actual_run_evidence": false,
+  "result": "NOT_RUN",
+  "execution_timestamp_utc": null,
+  "executed_by": null,
+  "independent_reviewer": null,
+  "reviewed_result": null,
+  "test_environment": null,
+  "actual_observations": null,
+  "sanitized_test_log_reference": null,
+  "approval_reference": null,
+  "provenance_note": "Repository paths indicate code/test definitions; no command execution, deployed configuration, customer permission, external provider attestation or human approval is claimed.",
+  "matrix_step": 4,
+  "requirement": [
+    "D1-Q3",
+    "B4-Q3"
+  ],
+  "system_scope_observations": [
+    {
+      "path": "lib/auth.js",
+      "fact": "HMAC-signed session cookie using a shared SECRET_KEY password",
+      "proof_level": "CODE_ONLY"
+    },
+    {
+      "path": "src/services/boundedRetrievalService.ts",
+      "fact": "Bounded retrieval module present",
+      "proof_level": "CODE_ONLY"
+    },
+    {
+      "path": "docs/kb-authoring/README.md",
+      "fact": "Reference KB authoring is Google Drive; runtime reference documents ingested via Vercel Blob",
+      "proof_level": "DOCUMENTED_DESIGN"
+    }
+  ],
+  "unverified_architecture": {
+    "enterprise_sso_enabled": null,
+    "tenant_claim_bound_to_requests": null,
+    "per_document_or_chunk_acl_enforced": null,
+    "vector_store_deployed": null,
+    "query_time_permission_trimming_verified": null,
+    "cross_run_isolation_verified": null
+  },
+  "test_cases": [
+    {
+      "id": "RBAC-01",
+      "case": "User A requests a source authorized only for User B",
+      "expected": "ACCESS_DENIED_WITHOUT_CONTENT_LEAK",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "RBAC-02",
+      "case": "User A guesses User B source/run/packet ID",
+      "expected": "ACCESS_DENIED_WITHOUT_METADATA_LEAK",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "RBAC-03",
+      "case": "Unauthorized user searches KB/vector index for restricted chunk",
+      "expected": "NO_UNAUTHORIZED_RETRIEVAL",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "RBAC-04",
+      "case": "Session changes or expires mid-retrieval",
+      "expected": "NO_STALE_AUTHORIZATION",
+      "actual": null,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "RBAC-05",
+      "case": "Model summarizes data that was excluded by permissions",
+      "expected": "MODEL_CANNOT_INFER_UNAUTHORIZED_SOURCE",
+      "actual": null,
+      "status": "NOT_RUN"
+    }
+  ],
+  "test_principals": null,
+  "resource_acl_manifest_hash": null,
+  "unverified": "No enterprise identity integration, per-tenant RBAC contract, ACL-scoped retrieval result or live isolation test supplied. Do not mark vector-index checks N/A without proving architecture."
+}

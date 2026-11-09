@@ -1,117 +1,82 @@
 ---
 document_id: LZA-ASSURANCE-03
-title: Data Rights and Lineage Contract
-version: 0.1.0
-prepared_on: 2026-11-08
-status: DRAFT - VALIDATION AND CONTRACT REVIEW REQUIRED
-step: 3
+title: Data Rights and Lineage
+version: 0.2.0
+reviewed_on: 2026-11-09
+status: DATA_RIGHTS_AND_PERMISSION_UNVERIFIED
+matrix_step: 3
+solution_assurance_mappings: [B1, B2, B3, B5]
 ---
 
-# 03 — Data Rights and Lineage
+# 03 — Processing Permission, Minimization, IP and Provenance (Step 3)
 
-## 1. Prime rule
+> **Reading rule:** `[CODE]` = source definition identified, not executed assurance; `[DOC]` = project statement or design, not a runtime finding; `[GAP]` = unverified, absent from supplied evidence; `NOT_RUN` is not a pass. Source baseline: `b1010b75147a49af9e50db7d98ea95fcbf1fdf53`.
 
-**Customer evidence is the only source of truth about the assessed customer's current estate.** External reference publications specify desired controls, evidence contracts and interpretation. The Knowledge Base and Tactical Playbook are not customer evidence. A workshop is a valuable discovery channel, not a platform inspection.
+> **Namespace:** the A/B/C and A1–F5 mappings in the attached **Solution Assurance** matrix are distinct from Landing Zone's A–H capability/anti-pattern IDs.
 
-**[REPO]** Source lineage vocabulary is defined in [ADR-001](../docs/architecture/ADR-001-execution-and-evidence-lineage.md): source artifact → evidence-lane packet → knowledge release / analysis context revision → stage execution → model attempt → governed dispatch packet → validated output. Hashes and revision IDs bind the selected content to the resulting claim. Never collapse these distinct entities into a generic “packet”.
 
-## 2. Data classes and handling dispositions
+## Evidence and personal/confidential data boundaries
 
-| Category | Examples | Default disposition | Justification and caveat |
+The [implementation plan](../Landing_Zone_Assessment_Implementation_Plan.md) defines customer-provided exports, policy/design records and a 48-question questionnaire. [Evidence taxonomy](../src/domain-packs/landing-zone/evidence-taxonomy.json) separates **Class 1 control-plane exports** from **Class 2 materials** (intent/documentation) and **Class 3 people/workshop statements** (leads and operating descriptions). A source being available as a file does not establish customer authorization, lawful basis, intellectual-property rights or permission to send its derived text to any AI model.
+
+**Documented transformation path:** file format inspection → extraction (PDF, image/OCR, structured table, JSON, etc.) → Source Registry with source IDs/locators/provider → source classification → deterministic privacy screening → bounded packets → model attempt → validated output → provider-scoped findings. See [sourceRegistryService.ts](../src/services/sourceRegistryService.ts), [deterministicPrivacyService.ts](../src/services/deterministicPrivacyService.ts), [lib/governance.js](../lib/governance.js) and [ADR-001](../docs/architecture/ADR-001-execution-and-evidence-lineage.md).
+
+## Input, source and derived-data inventory (design, not approved data contract)
+
+| Category / fields observed in design | Processing need described by criterion | Real permission / data necessity status | Potential derived artifact |
 |---|---|---|---|
-| Public / approved references | Provider architecture guidance and registered publications | ALLOW by exact approved source IDs, authority and licensing restrictions | Cannot prove customer state |
-| Customer control-plane export | Hierarchy, MG/OU/folder, roles, policy assignment, network peerings, logs | CONDITIONAL, scope-restricted and screened | Often necessary; may disclose security posture and names |
-| Customer architecture/process material | IaC, topology diagrams, operating instructions, exception register | CONDITIONAL; only relevant excerpt or derived facts | Does not prove configuration |
-| Questionnaire answers | Named facilitators, owners, comments, interview observations | MINIMIZE / PSEUDONYMIZE before model dispatch | Class 3 evidence leads |
-| Secret / credential | Passwords, PEM keys, bearer tokens, API keys, cloud access keys | BLOCK external dispatch; quarantine or reject affected source | Never put credentials in Git, logs or prompts |
-| Personal information | Names, emails, phone numbers, employee IDs, login records, IPs | REDACT or replace with functional role/opaque identifier unless approved necessary | Person names rarely needed for a control assessment |
-| Commercially sensitive | Billing account IDs, invoice IDs, negotiated rates, contract values | MINIMIZE and REDACT; BLOCK if consent/contract absent | Billing organizational mapping may be necessary, amounts often are not |
-| Security-sensitive configuration | Public endpoint lists, admin memberships, network paths, finding details | STRICTLY BOUNDED; customer profile authorization required | Sensitive even when no personal data appears |
-| Highly restricted / regulated | Critical infrastructure, defence, health or special-category personal data | BLOCK until explicit enterprise/legal permission | May require isolated processing or non-public models |
-| Generated assessment | Raw trace, issue narratives, citations, report export, roadmap | CONFIDENTIAL; filtered output and limited access | May reproduce sensitive input facts |
-| System telemetry | Run IDs, dates, durations, error codes, token counts and gate states | MINIMUM NECESSARY; sanitize and time-bound | Avoid filenames, raw prompts, customer identifiers |
+| Step 0 root, provider, A–H scope, exclusion, export availability | Bind claims to locked estate and provider | Engagement authorization and exact identifiers **unknown** | Run scope, source bindings |
+| Cloud organization/account/subscription/project hierarchy | Prove inventory boundary and governance structure | Minimization of tenant/account IDs not signed off | Provider-scope source packet and finding |
+| IAM principal type/role/scope, identities and access configuration | Evaluate privileged/control-plane access | Person identifiers and credential redaction require testing | IAM observation and anti-pattern claim |
+| Network paths, policy assignments, detection/logging settings | Evaluate control deployment/effectiveness | Sensitive topology and operational details not individually authorized | Derived control assertions |
+| Billing/contract ownership linkages | Evaluate ownership boundary where relevant | Pricing, payer identifiers, contracts may be restricted; rights not evidenced | Summaries and quality outputs |
+| IaC, platform workflow, exception records | Interpret planned controls and deployment process | Proprietary/third-party license and source rights unknown | Class 2 analysis, comparison to Class 1 |
+| Workshop JSON responses, owner/contact information | Discovery leads, contradiction explanation | Names/emails should be minimized; actual notice/lawful basis unknown | Class 3 records, report phrases |
+| Reference 80 PDF KB and Tactical Playbook | Criterion meaning/remediation; never customer current-state evidence | Approved source identities documented; reuse license and exact permitted quotation boundaries require review | KB retrieval context, tactic references |
+| Outputs, checkpoints, prompts, model responses and potential embeddings | Diagnosis, recovery, source-grounded reports | May disclose restricted facts; classify based on content, not format | RunTrace, report, packet/hash |
 
-**[REPO]** deterministicPrivacyService.ts contains explicit redaction/block signatures for private keys, cloud keys, API credentials, bearer tokens, government IDs, personal financial identifiers, addresses, names, email, phone, IPs, billing identifiers and sensitive financial values. This confirms **implemented pattern classes**, not complete detection of every sensitive item. Structured tables, OCR/images, base64 strings and derived values require targeted tests.
+**No source indicates an approved customer field-by-field necessity register, a signed processor agreement, or an enterprise AI model contract for actual customer inputs.** The table is an observed *type inventory*, **not authorization to process each field**.
 
-### Significant trade-off to test
+## Q1 — Design specification demands
 
-Blindly removing **all IP addresses** or tenancy identifiers may also destroy the ability to verify network topology, public endpoints, policy assignment or scope. The approved approach is **purpose-bound, pseudonymous preservation of testable relationships** (for example stable within-run aliases for CIDR/tenant/account IDs) where feasible; expose exact addresses to a model only under an expressly approved sensitive-data profile. **[PROPOSED]** Verify that transformations do not turn decisive evidence into misleading statements.
+| Attached matrix requirement | Current finding | Source / missing verification |
+|---|---|---|
+| Purpose Permission & Lawful Basis (B3) | [GAP] No customer-specific basis/contract/notice presented | Engagement terms and GDPR role unresolved |
+| Field-Level Necessity & Minimization (B2) | [DOC] Evidence types identified; exact fields, safe alternatives and approvals not established | Inventory above; not a signed schema |
+| Source & Derived Data Classification (B1/B4) | [CODE] Source class + representation separate; classification of all prompts/checkpoints/embeddings not verified | evidence-taxonomy.json; source registry; no deployed derived store inventory |
+| IP, Licensing & Usage Rights (B5) | [DOC] Approved Global Source Register exists; individual customer rights and reference reuse constraints need proof | Global Source Register v1.0.0; engagement documents missing |
+| Data Quality, Provenance & Currency (B1) | [CODE] Source IDs, locators, provider scope and extraction diagnostics implemented; source owner/freshness acceptance unproven | src/services/sourceRegistryService.ts; ADR-001 |
 
-## 3. Field-level necessity [PROPOSED register]
 
-| Field or group | Need | Preferred representation outside approved local processing | Owner / retention note |
-|---|---|---|---|
-| run_id, stage_id, packet hash, schema version | Required for integrity and rollback | Random opaque ID / digest | Control metadata |
-| customer organization name | Helpful for customer-facing delivery, not scoring | Customer alias | Customer instruction |
-| environment/provider name | Required | azure/aws/gcp enum | Step 0 locked |
-| tenant / org / account reference | Required for evidence-bound scope | Consistent pseudonym or keyed digest; mapping held in restricted context | Not a credential |
-| criterion ID, pair ID, source class | Required | Canonical ID + enum | Version controlled |
-| document filename | Helpful to assessor, not to LLM | Source ID or sanitized generic label | Suppress raw in telemetry |
-| capture timestamp and export window | Required when assessing freshness | ISO timestamp / range | Disclose timezone if relevant |
-| source locator and page/row/object ID | Required for reproducible proof | Non-sensitive stable locator | Do not substitute unsupported quote |
-| account/billing ID | Sometimes required for mapping | Stable alias | Do not send invoice totals unless authorized |
-| role assignment, group name | Required for B/A/G checks | Role and anonymized principal reference | Treat access paths as confidential |
-| actor email, personal name | Usually not required | Functional role or stable pseudonym | Minimize/redact |
-| source IP, network CIDR, endpoint | Often required for D/E control verification | Topology-preserving anonymization or restricted local view | Test false conclusions after redaction |
-| private key, client secret, token | Not necessary | **No value retained or dispatched** | Block, security incident if exposed |
-| architecture text / policy statement | Conditional | Small relevant sanitized excerpt | Class 2, not enforcement |
-| interview answer | Conditional | Claim summary + evidence lead, remove participant identity | Class 3 |
-| numeric metric / structured table | Conditional | Deterministically derived aggregate and provenance | No unnecessary raw rows to LLM |
-| reference source text | Conditional on license | Source ID + authorized locator / short excerpt | License boundary |
-| model completion / generated rationale | Conditional | Validated structured finding + permitted explanation | Consider customer confidentiality |
+## Q2 — Technical and enterprise parameters
 
-The **field register is a proposal**, not a claim about the current complete database schema. Verify every field at each surface listed in [04](04-Storage-Retention-Contract.md).
+| Attached matrix requirement | Current finding | Source / missing verification |
+|---|---|---|
+| Pre-Call DLP, Redaction & Tokenization (B2/B4) | [CODE] Deterministic block/redact paths present; external egress negative test not provided | src/services/deterministicPrivacyService.ts; lib/governance.js |
+| Schema Allow-Listing (B1) | [CODE] Governed packet exact-key and schema validation | lib/governance.js; lib/outputContracts.js |
+| Provenance & License Metadata Tagging (B1/B5) | [CODE] Source locators and KB version; per-chunk contractual license authorization not demonstrated | src/services/sourceRegistryService.ts; source register |
+| Sandbox Data Restriction (A5/B2) | [GAP] No verified blocker for confidential customer data in dev/sandbox | No deployment environment restriction proof |
 
-## 4. Required evidence record
 
-Every imported evidence unit should preserve at least:
+## Q3 — Verifiable evidence artifacts
 
-- **Identity:** run, source ID, content hash, immutable extraction/derivation identifier and locator (page/row/cell/object path).
-- **Authority:** Class 1 platform, Class 2 document or Class 3 workshop, separately from text/image/derived representation.
-- **Scope:** provider, root, account/project/subscription, A–H criterion candidates, capture period and declared exclusions.
-- **Quality:** detection method, extraction completeness, OCR/visual limitations, missing pages/rows/objects, freshness.
-- **Security:** privacy classification, sanitization outcome, approved recipient and allowed uses.
-- **Inference:** original observed statement, interpreted finding, supported claim, conflicting evidence, reviewed/unknown/absent status.
-- **Version:** domain pack, criterion, knowledge release, tactical catalogue, model routing policy, scoring formula, gate decision and software commit.
-- **Decision:** immutable automated result and any subsequent human disagreement or customer confirmation as separate records.
+| Attached matrix requirement | Current finding | Source / missing verification |
+|---|---|---|
+| Data Inventory, Rights & Necessity Record | [GAP] This inventory is not a completed legal/data-owner decision | No signed source-level permission or DPIA screening |
+| Pre-Call Redaction & Minimization Test Log | [CODE] Tests exist, **execution not attested** | scripts/test-dlp-distributed-sampling.mjs; evidence/redaction-dlp-verification.json |
+| Derived-Data / Embedding Leakage Assessment | [GAP] No executed inference-leakage assessment and no asserted vector-store use | Source KB retrieval exists; do not invent embedding deployment |
 
-No citation may be produced by inventing an export, line number, API response, named source object or test result.
 
-## 5. Source identity, authority and intellectual property
+## DLP implementation and evidence limitation
 
-The **Global Source Register v1.0.0** holds stable publisher identities, classifications and allowed uses. The repository implementation plan states its controlled approval effective **2026-09-16**; older HTML copies may still label the same register preliminary, so edition/status must be checked with the owner. The approved **Tactical Playbook v1.0.0** is separate from the assessment KB. Its **80 TAC-* IDs** and mappings are release-controlled.
+[deterministicPrivacyService.ts](../src/services/deterministicPrivacyService.ts) defines block patterns for cloud/API/private keys and bearer credentials, with redaction patterns for email, phone, names in some contexts, IPs, billing/financial fields and other identifiers. Other components handle report scrubbing and governed packet schemas. Pattern matching alone cannot establish that **all** secret formats, ambiguous personal data, OCR regions, hidden spreadsheet cells, derived summaries and fallback dispatches are safe. The evidence file [redaction-dlp-verification.json](evidence/redaction-dlp-verification.json) intentionally records **NOT_RUN** until a reproducible outbound test exists.
 
-The source hierarchy is:
+## Decision boundaries / non-inference
 
-1. **Tier 1 normative:** legislation only where geography, dates, actor, role and material scope apply. Never infer legal applicability solely from registration.
-2. **Tier 2 authoritative:** official hyperscaler, government and consensus guidance. Useful for evidence contracts, not direct proof of customer controls.
-3. **Tier 3 supporting:** benchmarks and accelerators; not independently sufficient for legal compliance or maturity.
+- Platform evidence may establish configuration only within its verified scope/capture time; documentary intent and interviews cannot prove enforcement.
+- **Unknown is not zero.** Absence is only accepted after explicit scope-complete negative testing.
+- No customer file, credential, personal identifier, restricted reference text or unverifiable derived output belongs in the **public GitHub** repository.
+- No claim of permission to ingest, index, embed, fine-tune, disclose or train on any customer's content has been supplied.
+- Reference KB/tactic content is not customer evidence and must retain approved-source licensing limitations.
 
-For licensed ISO/CIS/CSA or third-party copyrighted works, retain **metadata and approved locators**, not protected full text, unless the rights holder and actual license permit the intended storage, transformation and model transmission. Do not assume public discoverability equals a right to reproduce. **[VERIFY]** Obtain an explicit rights inventory for customer material, model processing and external service terms.
-
-## 6. Egress and transformation contract [PROPOSED unless referenced as code]
-
-**Trust boundary T0: user-supplied file or interview → local extraction.** Obtain authorization, classify file and detect content types. Reject unsupported format or unsafe payload; no provider or root expansion based on file contents.
-
-**T1: extraction / source registry → privacy-screened candidate.** Perform deterministic full-source and representative table/visual checks, block known secrets and sensitive classes, redact unnecessary identifiers, validate that derived values preserve relationships. Track what is withheld.
-
-**T2: candidate → governed model dispatch packet.** Include only approved fields and criteria-related excerpts; bind run, stage, source, policy/version, provider/model destination, content hash, expiry and purpose. Never pass full original file merely because a summary or OCR transform exists.
-
-**T3: model response → validation and publication.** Reconcile citations against the Source Registry and scope, reject fabricated source locators, re-run provenance/absence tests, apply code-owned gates and sanitize exported reports.
-
-**T4: report / remediation → human decision.** Keep automatic finding, reviewer annotation and customer decision distinct. Tactic IDs become eligible only from approved exact mappings on locked findings; tactic implementation provides evidence for later reassessment, not automatic clearance.
-
-**[REPO]** Implementations to inspect: lib/governance.js, src/services/deterministicPrivacyService.ts, sourceRegistryService.ts, evidenceStagePacketService.ts, lzForensicEvaluation.ts, tacticGroundingService.ts, pipelineIntegrityService.ts and lib/operationalLogPolicy.js.
-
-## 7. Rights and role approval checklist
-
-- [ ] Customer agrees allowed purpose, file provenance and authority to share each data category.
-- [ ] Document what is forbidden under NDA, commercial terms or intellectual-property licenses.
-- [ ] Establish relevant GDPR processing roles and purpose-specific lawful basis.
-- [ ] Approve exact subprocessors, hosting regions, transfers, retention and support-access policy.
-- [ ] Validate secret and regulated-content exclusion, including intermediate summaries, OCR and report exports.
-- [ ] Confirm the customer's ability to inspect, correct, contest and delete their submitted material.
-- [ ] Preserve a data mapping to the twelve surfaces and test explicit deletion.
-- [ ] Require reviewers to attest that public GitHub contains **sanitized documentation/test fixtures only**.
-
-**References:** [01 scope](01-Intended-Use-and-Scope.md); [04 storage](04-Storage-Retention-Contract.md); [05 architecture](05-Architecture-and-Control.md); evidence-taxonomy.json; approved Source Register and Tactical Playbook; ADR-001; GDPR/privacy role review pending.
+**Step 3 state:** technical data-flow controls have source-code evidence, while lawful basis, field necessity, IP/license permission, sandbox data isolation and executed DLP/derived-data tests remain unverified.

@@ -1,123 +1,84 @@
 ---
 document_id: LZA-ASSURANCE-06
 title: Operations, Monitoring and Change
-version: 0.1.0
-prepared_on: 2026-11-08
-status: OPERATING MODEL PROPOSAL - NOT AN OPERATING ATTESTATION
-step: 7
+version: 0.2.0
+reviewed_on: 2026-11-09
+status: OPERATIONAL_EFFECTIVENESS_NOT_VERIFIED
+matrix_step: 7
+solution_assurance_mappings: [C5, D4, F5]
 ---
 
-# 06 — Operations and Change
+# 06 — Operations, Traceability, Change and Retirement (Step 7)
 
-## 1. Operations principle
+> `[CODE]` = source-defined behavior, not deployed verification; `[DOC]` = stated purpose/history, not implementation proof; `[GAP]` = necessary operational fact not provided. The attached matrix's C5/D4/F5 are **Solution Assurance** mappings, distinct from the Landing Zone A–H rubric. Source review commit: `b1010b75147a49af9e50db7d98ea95fcbf1fdf53`.
 
-The Engine's reliability is not established by a persuasive report or an apparently valid maturity score. It must be demonstrated through **reproducible evidence, deterministic gates, human review, failure handling and longitudinal monitoring**.
+## Observed operational building blocks
 
-This document distinguishes **[REPO] available code/tests** from **[PROPOSED] operating policy**. No current on-call owner, production reliability target, vendor retention, executed Golden Standard baseline or signed production authorization is assumed.
+The repository includes [ADR-001 evidence and execution lineage](../docs/architecture/ADR-001-execution-and-evidence-lineage.md), a [run control plane](../lib/controlPlaneRepository.js), [RunLifecycleService / CleanupWorker](../lib/runLifecycleService.js), [Redis execution plane](../lib/redisExecutionPlane.js), [RunTrace service](../src/services/runTraceService.ts), [client operational logging allowlists](../lib/operationalLogPolicy.js), [safe errors](../lib/safeErrors.js) and [test workflow](../.github/workflows/test.yml).
 
-## 2. Operational ownership [PROPOSED]
+**No verified live operational dashboard, named on-call responder, security incident ticket, safe-shutdown/kill-switch drill, vendor exit procedure, human override telemetry or release decision** was supplied. A 2026-09-18 implementation-plan snapshot noted partial live runs and missing expert calibration; that does not establish the present deployment state.
 
-| Role | Responsibility | Approval boundary |
+## Minimum run reconstruction contract (specified, not yet proven end-to-end)
+
+For each released material conclusion, trace: source artifact/locator, Step 0 locked scope, source authority class and hash, privacy decision, evidence packet and manifest hash, Knowledge Base version, model stage/attempt and provider/model, output schema validation, independent provenance/contradiction assessment, deterministic score and Quality Gate, tactic eligibility, human finding lock, release authority/recipient and correction record. Raw customer content should not be copied into a general audit ledger. The [sample run manifest](evidence/sample-sanitized-run-manifest.json) contains **null fields** pending a real, appropriately sanitized run.
+
+## Monitoring demand and evidence state
+
+| Signal (Step 7 matrix) | Available technical basis | Executed baseline / threshold evidence |
 |---|---|---|
-| Solution Owner | Intended use, architecture, allowed deployment levels, roadmap, overall risk | Authorizes product lifecycle progression |
-| Assessment Method Owner | Criterion interpretation, pair resolution, provider contracts and evidence sufficiency | Approves scoring/rubric changes |
-| Security Owner | Threat model, DLP, authZ, tool access, prompt-injection resilience, incident containment | May suspend intake/model egress |
-| Privacy / Legal | Processing roles, permitted data, subprocessors, provider contracts, retention and rights | Required for expanded data profiles |
-| Platform / Operations Owner | Hosting, Postgres, Redis, Blob, deployment, backups, logs and kill switch | Owns operational incident response |
-| Knowledge and Tactic Owner | 80 KB pair documents, source register, 80 tactical objects and exact mapping | Controls release/version/approval |
-| Customer / engagement authority | Assessment boundary, disputed findings, risk treatment and remediation | Retains final customer decisions |
-| Independent quality reviewer | Golden corpus, drift monitoring, false-clearance and security validation | May block a release |
+| Source coverage, evidence provenance, missing and contradictory claims | Score/gate/quality fields and evidence services in source | No actual monitored trend supplied |
+| False acceptance, false blocking and abstention | Quality Gate status and source semantics; scripts exist | No approved confusion matrix, target rate or current series supplied |
+| Human override and review effectiveness | Human role required by Playbook/design | No operational override event series |
+| Model latency, fallback, timeout, tokens and expenditure | Operational event allowlist and model-routing metadata | No current metric dashboard or cost budget supplied |
+| DLP, unauthorized retrieval and security anomalies | Privacy event types, log allowlist and governed dispatch logic | No executed egress/tenant isolation dashboard |
+| Retention failures and cleanup retries | Cleanup attempt result and lifecycle worker logic | No current deletion propagation test or vendor attestation |
+| Model/prompt/KB/source/config drift | Versioned sources, CI workflow and KB manifest | No evidence that every material change automatically invalidates approval |
 
-Set named primary, deputy, escalation and out-of-hours contacts **outside the public repository**, with a sanitized reference in the approval register.
+**Do not invent operational SLOs, false-accept target percentages, response SLAs or a claim of “100% passed”.** Such values require policy approval and a measured baseline.
 
-## 3. Monitoring measurement contract
+## Q1 — Design specification demands
 
-The following are **proposed candidate measures**, not observed baselines. Record numerator, denominator, confidence interval if relevant, run SHA, model version, dataset revision, date and scope. Track both total and A–H/provider slices where feasible.
-
-| Metric | Definition | Proposed alert / action |
+| Attached requirement | Source-supported observation / status | Missing proof or repository trace |
 |---|---|---|
-| **G01 Gate accuracy** | Exact match of GO/WARN/BLOCK and Assessment Sufficiency to expert Golden Standard | Any critical false-GO / false-clearance = BLOCK and investigate; monitor overall agreement |
-| **G02 Citation integrity** | Valid, in-scope source+locator matches / all material claims | Target **100%** for published material claims |
-| **G03 False absence clearance** | Clearances where no sufficiently complete negative test exists | Target **zero**; any confirmed violation suspends affected criterion |
-| **G04 Privacy egress violations** | Unauthorized sensitive values present in outbound packet or operational log | Target **zero**; immediate kill/incident |
-| **G05 Scope isolation** | Batches, providers, roots and source objects correctly withheld | Target **100%** on adversarial scope fixtures |
-| **G06 Repeatability** | Same reference sample repeated across model/provider routing with stable findings, score and gate | Establish baseline, e.g. 10 repeated runs per scenario; do not set numerical passing threshold before calibration |
-| **G07 Extraction / evidence quality** | Extraction completeness, weak source packet fraction, evidence density and provenance | Compare against control limits per format/batch; rising missing coverage triggers WARN |
-| **G08 KB / mapping integrity** | Canonical 80 KB docs, 80 TAC IDs and exact referential mapping | Any unexpected missing/duplicate object = fail closed |
-| **G09 Execution health** | Stage success, retries, fallback, timeouts, worker availability, 409/state-binding conflicts | Alert on elevated rates; no partial result promoted to complete |
-| **G10 Lifecycle / deletion** | TTL expiry, tombstone correctness, cleanup verified and backup residuals | Any confirmed resurrection or unauthorized retention = incident |
-| **G11 Human override trail** | Share of material finding revisions with role, reason, source and timestamp | Target **100%** traceability, not zero overrides |
-| **G12 Source drift** | Provider rules, legal/source editions, rubric and evidence pack versions diverge | Review prior to model/KB/source/criteria changes |
+| Traceability & Reconstruction Specification (D4) | [CODE/DOC] ADR-001 and run metadata link packet, attempt, stage and outputs; end-to-end report-to-human trace unverified | lib/controlPlaneRepository.js; src/services/runTraceService.ts |
+| Operational & Governance Monitoring Plan (F5) | [DOC] Metrics listed above; exact alert policy/owner values missing | lib/operationalLogPolicy.js; no real dashboard |
+| Incident Response & Safe Takeover (D5/F5) | [GAP] No approved on-call roster, escalation SLA or manual takeover proof | No incident rehearsal record |
+| Material-Change Reassessment Triggers (C5/F5) | [DOC] Versioned KB/tactic and CI checks exist; automated approval expiry unverified | Playbook v1.0.0; .github/workflows/test.yml |
+| Controlled Retirement & Decommissioning (A5/F5) | [GAP] No executable/approved full vendor+DB+Redis+backup retirement record | No signed exit/retirement evidence |
 
-For process improvement, **[PROPOSED]** maintain an internal controlled run database and weekly Golden Standard execution (also at every material release). Use run/control charts for gate and repeatability, Pareto for failure causes and subgroup views by provider, batch, evidence class and input format. Record control-limit methodology and sample sizes; do not mistake a red/green UI badge for statistical proof.
 
-## 4. Golden Standard suite and release gate
+## Q2 — Technical and enterprise parameters
 
-The Golden corpus must contain **synthetic** but realistic configuration exports and contradictory documents, with expert expected outcomes for all eight design areas. Required dimensions: Azure/AWS/GCP; positive control; confirmed anti-pattern; verified absence; unverified silence; missing/incomplete export; stale inventory; workshop-only claim; Class 2 vs Class 1 contradiction; out-of-scope provider; not-applicable control; licensed-source boundary; malicious prompt injection; malformed/hidden spreadsheet material; visual/OCR failure; model/provider fallback; and deletion/recovery.
+| Attached requirement | Source-supported observation / status | Missing proof or repository trace |
+|---|---|---|
+| Tamper-Evident Run Manifests & Audit Ledger (D4) | [CODE] Packet hashing, stage/attempt lineage and run states; human approval linkage unverified | lib/governance.js; ADR-001; sample-sanitized-run-manifest.json |
+| Supply-Chain & Change-Control Gates (C5) | [CODE] CI performs install, independence, migrations, npm tests/build/integration; mandatory prompt/model change-specific reapproval not proven | github/workflows/test.yml; package-lock.json |
+| Telemetry & Drift Dashboards (F5) | [CODE] Log and quality fields present; trend dashboard/override telemetry not attested | lib/operationalLogPolicy.js; src/services/metricsService.ts |
+| Decommissioning & Purge Scripts (F5) | [CODE] Run-scoped cleanup; full enterprise decommissioning including provider/backups not established | lib/runLifecycleService.js |
 
-Each test record should include: sample ID, purpose, classification, provider, design area/criterion, minimum source set, expected finding, expected gate, expected rationale, expected missing-evidence request, prohibited inference, exact source hash, code commit, KB/tactic versions, model routing, date, actual result and reviewer.
 
-**[REPO]** A substantial automated test suite exists under scripts/test-*.mjs. **[VERIFY]** The existence of a test file is not evidence that tests were run or passed on the latest deployment. [evidence/verification-plan.md](evidence/verification-plan.md) is the execution register for this assurance test; [evidence/absence-test-cases.md](evidence/absence-test-cases.md) gives negative-evidence scenarios.
+## Q3 — Verifiable evidence artifacts
 
-## 5. Incident and kill-switch plan [PROPOSED]
+| Attached requirement | Source-supported observation / status | Missing proof or repository trace |
+|---|---|---|
+| End-to-End Run Reconstruction Proof (D4-Q3) | [GAP] No independently reproduced sanitized real run with human decision | evidence/sample-sanitized-run-manifest.json |
+| Operational Monitoring & Override Telemetry (F5-Q3) | [GAP] No live/pilot export supplied | No measured rate series |
+| Change-Gate & Regression Log (C5-Q3) | [CODE] CI workflow exists; no current result/status tied to release decision | github/workflows/test.yml |
+| Incident / Decommissioning Drill (F5-Q3) | [GAP] No executed drill record | No test or approval artifact supplied |
 
-**Triggers to stop model dispatch immediately:** secret in outbound packet/log; authentication/authorization bypass; uncontrolled source expansion; unapproved provider invocation; output claiming unsupported absence/compliance; deletion resurrection; exposed customer artifact; prompt injection commanding actions outside the fixed assessment contract; or known provider compromise.
 
-Incident response sequence:
+## Incident and safe-continuation boundary
 
-1. **Detect** via privacy gate, log alert, test/analyst report or customer complaint.
-2. **Contain** by disabling new intake and external model dispatch, invalidating affected credentials/sessions, fencing affected run IDs, freezing potentially altered KB release and restricting reports. **No automatic production cloud remediation.**
-3. **Preserve sanitized facts**: timestamp, run ID, commit, service version, packet hash, policy version, affected provider, count and nature of suspected content; keep raw sensitive incident material in a secured incident store rather than this repository.
-4. **Investigate** source, derived payload, OCR/table path, provider fallback, logs, database bodies, browser cache, access, backups and customer copies.
-5. **Assess notifications** with privacy/legal and the customer. Apply applicable statutory/contractual clocks once a reportable event is identified.
-6. **Repair, validate and recover** with a reproduced failure, regression tests, independent review, retention/deletion evidence and a **named** go/no-go decision.
-7. **Reassess affected reports** if a detection/gate/scoring defect may have changed findings.
+**Source-defined mechanisms:** code distinguishes active, recovery_required, ready_for_delivery, completed, failed, deletion_requested, deleted and expired run states; Redis tombstone/deadline logic and safe-error status exist. An operator-facing feature flag that halts **in-flight, queued and fallback** model dispatch has **not** been independently demonstrated by the reviewed evidence. Do not claim a complete kill-switch based on the existence of error handlers.
 
-**[REPO]** Runtime code includes run states, deletion requests, Redis tombstones and execution leases. **[VERIFY]** A single documented operational “kill switch” command/procedure and on-call response exercise have not been established by this documentation review. Define the actual control points in the operating environment and test them.
+For actual incidents, **operational owner and escalation route must first be assigned**; intended actions would be to stop new unsafe processing, preserve minimal non-sensitive incident provenance, assess affected model/provider/log/backup surfaces, invalidate compromised credentials under approved procedures, notify authorized parties and only resume after controlled testing. These are **requirements from the attached matrix**, not an attested existing incident process.
 
-## 6. Change, regression and reassessment triggers
+## Reassessment triggers (specified, not verified as automated)
 
-A controlled change record is mandatory for:
+Any change to intended use, affected population, data class/rights, model/provider/region or fallback, prompt, retrieval/KB release, scoring/Quality Gate, deterministic validator, tool scope, security identity, retention, logging, architecture or relevant law/contract requires human review of risk, Q2 configuration and relevant Q3 test results. In particular, semantic revisions to the approved Tactical Playbook require controlled versioning, exact mapping checks and reapproval.
 
-- Frozen criterion/sub-criterion wording, pair semantics, provider evidence contract or scoring math.
-- Evidence authority, absence test, citation/provenance, DLP or egress policy.
-- Global Source Register authority, source edition, permitted licensing usage or exact locator.
-- Knowledge Base PDF identity, release/content, or approved TAC ID trigger, mapping, mechanism, acceptance or verification.
-- Primary/fallback model, prompt, temperature/output schema, model provider, location or retention terms.
-- Parser/OCR/structured table handling, browser persistence, storage lifetime or backup settings.
-- Authentication, authorization, hosting, infrastructure, Redis/Postgres schema or export workflow.
-- Material target customer population, use case, region, restricted data category or transition from file-based to live-cloud collection.
-- Incident, confirmed false clearance, severe model drift or new regulation affecting the service.
+**Retirement controls still unverified:** revocation of deployment/model credentials, worker stop, approved erasure of browser/DB/Redis/reference backups, data-subject/customer obligations, contract/provider exit, audit disposition and final signed ledger. No purge or vendor-exit rehearsal record supplied.
 
-**Change workflow:** proposal → impact/risk analysis → bounded diff → affected tests and Golden corpus → security/privacy review when applicable → version bump / explicit dependency update → independent reviewer acceptance → deployment → post-release sampled monitoring. A tactical implementation cannot authorize itself or change the assessment KB diagnosis.
+## Human authority
 
-## 7. Minimum records per release
-
-| Record | Minimum fields |
-|---|---|
-| Build | Git commit SHA, dependency lock hash, deployment ID, timestamp |
-| Knowledge | Pack v1.0.0 or later, KB release/hash, Source Register edition, Playbook edition |
-| Models | Role/profile, actual provider/model ID, fallback, approved destination and policy version |
-| Tests | Suite command, environment, pass/fail, failure classes, redacted outputs and fixture hashes |
-| Golden sample | Scenario, expected/observed result, gate agreement, failure mode and independent reviewer |
-| Security | Egress/absence/injection/regression tests, access and deletion exercise |
-| Decision | Approver identity stored securely, role, scope, evidence hash, date and exceptions |
-| Operational | Incident list, open defects, last cleanup check, restoration exercise, next review date |
-
-No signed authority can be manufactured by an LLM; use [evidence/approval-register.md](evidence/approval-register.md) as a *non-sensitive index* into real signatures.
-
-## 8. Current review limitations
-
-The repository's implementation plan v1.22 documents live analysis issues in September 2026 and marks expert calibration Work 13 as not started in that historical snapshot. It also records a KB integration milestone and a Redis-dependent runtime. Those are **historical facts**, not proof of present readiness or unreadiness. This documentation exercise did **not** execute a live customer assessment, deploy a new build or conduct penetration testing.
-
-## 9. Readiness checklist
-
-- [ ] On-call/security/privacy/knowledge and customer decision owners identified.
-- [ ] Kill-switch runbook and restoration rehearsed using synthetic data.
-- [ ] Golden suite executed repeatedly across A–H and all provider packs.
-- [ ] Gate errors, repeatability and false-absence metrics have dated baselines.
-- [ ] S01–S12 deletion/storage evidence checked including cloud providers, backups and reports.
-- [ ] Every material change and acceptance has an immutable reference.
-- [ ] Signed go/no-go and next review date recorded.
-
-**References:** Implementation Plan §§9–13; ADR-001/002/003; approved Tactical Playbook; lib/controlPlanePolicy.js; lib/runLifecycleService.js; lib/operationalLogPolicy.js; src/domain-packs/landing-zone/quality-gate-policy.json; scripts/test-*.mjs.
+A signed human release/withdrawal decision and residual risk acceptance are separate from code-owned Quality Gate. [Human-release-decision-record.md](evidence/human-release-decision-record.md) records **NOT APPROVED / NOT RECORDED** until authentic evidence exists. This document cannot authorize production deployment or a customer report.

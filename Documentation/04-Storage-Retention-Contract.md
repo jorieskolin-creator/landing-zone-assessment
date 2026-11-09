@@ -1,108 +1,97 @@
 ---
 document_id: LZA-ASSURANCE-04
-title: Storage, Retention and Deletion Contract
-version: 0.1.0
-prepared_on: 2026-11-08
-status: DRAFT - DEPLOYMENT AND VENDOR VERIFICATION REQUIRED
-step: 4
-storage_matrix_version: 12-surfaces-v1
+title: Storage, Retention and Enterprise AI Contract
+version: 0.2.0
+reviewed_on: 2026-11-09
+status: PARTIAL_CODE_EVIDENCE_DEPLOYMENT_CONTRACT_UNVERIFIED
+matrix_step: 4
+solution_assurance_mappings: [B2, B3, B4, C1, C2, C4, D1]
 ---
 
-# 04 — Storage, Retention and Deletion Contract
+# 04 — Twelve-Layer Data, Retention, Deletion and Access Contract (Step 4)
 
-## 1. Coverage statement
+> Status notation: **[CODE]** inspected implementation/constant, not runtime proof; **[DOC]** documented design or historical account; **[GAP]** not established by supplied code, configuration, run evidence or contract. Missing status is not evidence that a control is absent. Reference commit: `b1010b75147a49af9e50db7d98ea95fcbf1fdf53`.
+> Solution Assurance matrix mappings (A1, B2, C3, etc.) are distinct from Landing Zone Assessment criterion IDs (A1–H5).
 
-This contract maps **twelve storage and processing surfaces**. It covers original files, intermediate text, OCR, generated packets, PostgreSQL content bodies, Redis data, browser persistence, logging, vendor systems, reference Knowledge Base and exported reports. Source-code retention parameters are **policy definitions, not proof of actual deletion**. No blanket deletion guarantee is supported until the deployment and its vendors have been checked.
 
-## 2. Twelve-surface matrix
+## Twelve-layer storage matrix (exact attached Information Demand Matrix taxonomy)
 
-| ID | Surface | Information and boundary | Policy / required verification |
-|---|---|---|---|
-| **S01** | Browser file selection and runtime memory | Customer originals, previews, parsed local data and UI state | **[PROPOSED]** No persistent originals; release previews/object URLs on clear, close and logout. Inspect memory and crash recovery |
-| **S02** | Browser persistent state | Questionnaire autosave, localStorage, IndexedDB, caches, download history | **[SOURCE]** Questionnaire supports local autosave. **[PROPOSED]** Never cache secrets or unredacted exports; inspect all storage on reset/reload |
-| **S03** | Network, proxy, ingress | TLS requests, multipart/JSON bodies, reverse proxy and edge buffers | **[PROPOSED]** Encrypted transport, request-size bounds, disabled body logging, no edge caches; inspect hosting settings and failures |
-| **S04** | Parsers, OCR and temporary processing | PDF renders, image crops, spreadsheet cells, temporary files, process memory | **[REPO]** File parsing services exist. **[VERIFY]** File-system, crash dumps, error logs and cleanup on failure |
-| **S05** | Source Registry and intermediate analysis | Chunks, citations, derived table facts, redacted excerpts and in-memory stage context | **[PROPOSED]** Run-local and ephemeral, no unbounded serialization; inspect checkpoints and browser state |
-| **S06** | Redis execution plane | Leases, fences, authorized-send markers, tombstones, recovery and checkpoints | **[REPO]** TTL/deadline and tombstone code. Verify every key class, index, Redis persistence/snapshot and expiry |
-| **S07** | PostgreSQL content records | Governed canonical packet bytes in governed_packet_bodies | **[REPO]** Packet expiry is bounded by 30 min and absolute run deadline; pruning exists. Verify DB rows and replicas |
-| **S08** | PostgreSQL control metadata | Run ledger, hashes, stage/model-attempt metadata, quality and gate measurements | **[REPO]** Metadata retention policy 90 days. Verify that every field is truly content-minimized and expiry works |
-| **S09** | Vercel Blob reference KB | Controlled 80 PDF Landing Zone Knowledge Base objects; **reference**, not customer evidence | **[REPO]** Versioned KB lifecycle, separate from run TTL. Verify store separation, permissions, license and release IDs |
-| **S10** | External AI/model providers | Sanitized prompt excerpt, visual/OCR manifest, completion and provider service metadata | **[PROPOSED]** Approved model/region/contract only. Verify training use, vendor-side retention, subprocessors and international transfers |
-| **S11** | Operational logs, APM, platform backup | Event metadata, service errors, process diagnostics, DB/Redis backups and snapshots | **[REPO]** Log allowlist exists. Verify actual host/APM settings, snapshots, backup purge and restored-copy deletion |
-| **S12** | Export, delivery and human review | HTML/PDF/other reports, RunTrace, Master Data, downloads, support email and approval records | **[PROPOSED]** Controlled copy/distribution, redacted report review, customer retention terms. Downloaded copies are user-held |
+Each row requires **data, exact region, TTL, deletion method and access entitlement**. The table distinguishes *source-controlled code* from unverifiable hosted configuration. It is not an attestation that a layer currently stores customer data.
 
-**No live tenant access in the initial implementation:** user-supplied exports are the input, not Azure/AWS/GCP API calls. Future live connectors create new surfaces and require new approval.
+| # | Mandatory layer (exact attachment) | Stored / state | Location | Retention | Deletion | Access |
+|---|---|---|---|---|---|---|
+| 1 | Browser / Client Memory | [DOC] File selection, local extraction; standalone interview HTML has autosave behavior | Not confirmed | Not confirmed | Browser clear/logout and questionnaire localStorage purge not audited | Actual user/browser permissions unverified |
+| 2 | Application Memory & State | [CODE] Server worker/gateway state and analysis context; concrete sizes/dumps unverified | Not confirmed | No independent post-run memory purge measurement | Worker restarts and memory sanitation test required | Process operator/admin privileges unknown |
+| 3 | Prompts & Model Inputs | [CODE] Governed, hashed stage packet; canonical bytes also stored in PostgreSQL | Destination depends on configured provider | Code packet lifetime 30 min; provider memory independent | Packet-body TTL/pruning code; egress capture and downstream copies not tested | Configured stage/router access; operational privileges unverified |
+| 4 | AI Provider Endpoint & Memory | [CODE] Model routing supports listed providers and fallbacks; actual contracted endpoint not provided | Unknown actual region | Unknown vendor input/output/abuse retention and training terms | Unknown provider erase/exit contract | Supplier/support access not evidenced |
+| 5 | Primary Application Database | [CODE] PostgreSQL packet canonical body and run metadata/checkpoints | Unknown deployed DB region | Packet 30 min; checkpoint policy 24 h; metadata 90 d; code values | PruneExpiredPacketBodies / pruneMetadata and terminal lifecycle exist; not runtime verified | DB admin/application access policies not supplied |
+| 6 | Vector Stores & RAG Indexes | [DOC/CODE] KB Blob retrieval/indexing exists; deployed vector store or embedding persistence not established | Unknown / not established | Unknown / not evidenced | No vector-index source-delete propagation proven | No per-user vector ACL evidence |
+| 7 | Caches, Queues & Temp Files | [CODE] Redis transient state, leases, checkpoints/recovery, tombstones; parser temporary surfaces uncertain | Unknown Redis/tmp region | Result recovery 30 min, checkpoint 24 h; Redis tombstone 24 h | Redis tombstone cleanup and TTL code; complete propagation not tested | Redis service/admin permissions unknown |
+| 8 | Application & Error Logs | [CODE] Event/field allowlist and safe-error code logic | Unknown log host/region | Unknown hosting log TTL | Log redaction and deletion not runtime inspected | Log reader roles unknown |
+| 9 | Platform & APM Telemetry | [GAP] No authoritative deployed APM/proxy trace configuration | Unknown | Unknown | Unknown deletion/redaction policy | Unknown |
+| 10 | Backups & Snapshots | [GAP] No DB/Redis/storage backup or WAL/AOF/residency agreement supplied | Unknown | Unknown residual window | Restore/purge proof missing | Unknown recovery/admin access |
+| 11 | Exports & Downstream Channels | [CODE] Client report and HTML/Master Data export paths; actual distribution/recipient restrictions unverified | User machine or chosen destination unknown | Under recipient/user or contractual policy, not server TTL | User-held downloads not erased by server DELETE; no downstream purge test | Recipient authorization unknown |
+| 12 | Governance Audit Ledger | [CODE] Runs, packet hashes, quality snapshots, stage/attempt lineage; real signed approval ledger not shown | PostgreSQL location unknown | Code metadata 90 days; approval retention not established | PruneMetadata in cleanup worker; human decision purge/access unverified | DB/auth and audit-reader roles not demonstrated |
 
-## 3. Source-code lifetimes — do not generalize these to all data
 
-**[REPO]** lib/controlPlanePolicy.js specifies:
+## Concrete code-owned lifetimes
 
-| Element | Current declared duration | Correct interpretation |
+[lib/controlPlanePolicy.js](../lib/controlPlanePolicy.js) specifies `packet=30 minutes`, `resultRecovery=30 minutes`, `checkpoint=24 hours`, `inactivity=2 hours`, `absoluteRun=24 hours`, `metadata=90 days`. [lib/redisExecutionPlane.js](../lib/redisExecutionPlane.js) uses a separate 24-hour tombstone. [lib/runLifecycleService.js](../lib/runLifecycleService.js) attempts Redis tombstone cleanup and records verified/retryable-failure codes; the worker prunes packet bodies and metadata. The [api/run.js](../api/run.js) `DELETE` route requests a lifecycle transition. **Those facts do not establish deletion from vendor memory, backup, logs, client downloads, all checkpoints or replicas.** In particular, a universal “everything deleted in 30 minutes” statement is contradicted by the code's distinct lifetimes.
+
+## Four-layer responsibility matrix — ownership not supplied
+
+| Layer | Responsibility suggested by attached matrix | Named person / signed RACI |
 |---|---|---|
-| Governed packet | **30 minutes** | Packet canonical content and validity window; deletion job must be demonstrated |
-| Result recovery | **30 minutes** | Time-bounded result recovery, not external provider retention |
-| Checkpoint | **24 hours** | May hold derived or resumable state longer than packets |
-| Inactivity expiry | **2 hours** | Time since last activity |
-| Absolute run lifetime | **24 hours** | Overall run ceiling |
-| Metadata | **90 days** | Control/quality trace may outlive deleted transient content |
+| AI Provider | Endpoint, training/abuse retention terms, subcontractors, provider-side deletion | **Unknown** |
+| Shared enterprise platform | Central identity, network/security baseline, hosting/backup/log contract | **Unknown** |
+| Landing Zone solution | Payload minimization, API access, packet hash, app/Redis/DB cleanup and output safeguards | **Role described; named owner unknown** |
+| Business process/customer | Intended use, legal rights, field necessity, recipient release, human override, customer decisions | **Unknown** |
 
-**A 30-minute packet TTL is not a universal 30-minute retention guarantee.** Redis and PostgreSQL, UI/local storage, provider processing, logs, replication and backups have different rules. A 90-day metadata lifetime is not automatically a legitimate or necessary personal-data retention period; it requires separate privacy review.
+## Q1 — Design and contract information demands
 
-**[REPO]** lib/redisExecutionPlane.js provides TTL and tombstone operations; lib/runLifecycleService.js coordinates cleanup; lib/controlPlaneRepository.js prunes expired packet bodies and metadata. A DELETE request may put a run into **deletion_requested** before verified cleanup. Review the state transitions and actual execution worker, not just API responses.
-
-## 4. Deletion workflow [PROPOSED acceptance contract]
-
-1. **Authorize** the user/request, bind to run ID and data subject/customer contract.
-2. **Fence** the run: no further AI dispatch, retry or read-after-delete; create a tombstone.
-3. **Remove** Redis transient children, checkpoint/recovery material, server temporary data and canonical Postgres packet bodies.
-4. **Verify** key sets, packet rows and permitted control metadata separately. Do not declare “deleted” while content deletion remains pending.
-5. **Enumerate** reports and downloaded/exported copies; disclose which are no longer inside Engine control.
-6. **Handle provider and backup residuals** according to contracts; maintain backup restore/re-deletion and support-access procedures.
-7. **Record** non-sensitive evidence by surface: VERIFIED, PARTIAL_PENDING, FAILED or NOT_APPLICABLE, with timestamp and operator.
-8. **Escalate** any failure as an incident; automatic retries may not recreate tombstoned content.
-
-Delete-now semantics, backup lag, vendor exceptions and legally justified audit retention must be presented accurately to the user. This document does **not** claim those controls already work end-to-end.
-
-## 5. Enterprise contract and deployment parameters
-
-| Parameter | Proposed/current | Owner and proof |
+| Matrix demand | Current reading | Source / absent verification |
 |---|---|---|
-| ALLOWED_DATA_CLASSES | **TBD** per customer/synthetic test | Customer, security; data inventory |
-| ALLOWED_MODEL_PROVIDERS_AND_IDS | Role-based model routing code exists; actual approved deployment **TBD** | Architecture, privacy; configuration export |
-| MODEL_REGION_AND_TRANSFER_BASIS | **TBD** | Privacy/legal; agreement |
-| PROVIDER_TRAINING_AND_RETENTION | **TBD contract**; never assume zero retention | Procurement/legal; provider terms |
-| SUBPROCESSOR_LIST | **TBD** | Privacy, procurement; dated list |
-| SOURCE_AND_BACKUP_RESIDENCY | **TBD** | Platform; hosting contract |
-| INPUT_FORMATS_AND_MAX_SIZE | Code lists PDF/HTML/CSV/TSV/JSON/XLSX/images; limits **TBD** | Engineering/security; abuse test |
-| REDACTION_AND_EGRESS_POLICY | Code exists; accepted release and negative tests **TBD** | Security; packet traces |
-| PACKET_TTL | **30 min** in code | Platform; TTL trace |
-| CHECKPOINT_TTL | **24 h** in code | Privacy/platform; retention necessity |
-| RUN_INACTIVITY/ABSOLUTE_TTL | **2 h / 24 h** in code | Platform; expiry trace |
-| METADATA_RETENTION | **90 d** in code | Privacy/platform; field inventory |
-| LOG/APM_RETENTION | **TBD**, metadata only | Ops/security; configured sinks |
-| REPLICA_AND_BACKUP_RETENTION | **TBD** | Ops; snapshot/restore documentation |
-| REPORT_DISTRIBUTION_RETENTION | **TBD** | Customer and engagement owner |
-| DELETION_SLA_AND_EXCEPTIONS | **TBD** | Legal, platform; signed policy |
-| ACCESS/EXPORT/SUPPORT_AUDIT | **TBD** | Ops/security; RBAC and sampling |
-| INCIDENT_NOTIFICATIONS | **TBD** contractual and regulatory | Security/legal |
+| 12-Layer Storage & Retention Policy (B2/B3) | [DOC/CODE] All layers above listed; actual regions/TTL/access largely unknown | lib/controlPlanePolicy.js; lib/runLifecycleService.js |
+| Enterprise AI Contract Baseline (C2/C4) | [GAP] No executed no-training/retention/subprocessor/region/SLA/exit contract supplied | Model gateway support is not contractual proof |
+| Access & Tenant Isolation (B4/D1) | [CODE] Shared secret session; no verified enterprise SSO, tenant-scoped RBAC or retrieval trimming | lib/auth.js; no independent access test result |
+| Four-Layer Responsibility Matrix (A3/F1) | [GAP] Roles segmented above; named RACI not provided | Provider/platform/solution/business process decision absent |
 
-Do not commit actual secrets, tenant identifiers, customer evidence, negotiated commercial terms or vendor credentials to this public repository.
 
-## 6. Validation cases required
+## Q2 — Runtime and enterprise parameter information demands
 
-| Case | Required check |
+| Matrix demand | Current reading | Source / absent verification |
+|---|---|---|
+| Contract-Matched Endpoint Config (C1/C4) | [CODE] Model role and fallback routing; contract/region match unverified | lib/modelRoutingPolicy.js; .env.example |
+| Automated TTL & Deletion Propagation (B2/B3) | [CODE] DB expiry/worker/Redis tombstone path; 12-layer cascade not demonstrated | lib/controlPlanePolicy.js, lib/runLifecycleService.js |
+| Identity-Bound Retrieval Filtering (B4/D1) | [GAP] No executed user A/user B unauthorized retrieval proof; enterprise IAM not present in source auth | src/services/boundedRetrievalService.ts; lib/auth.js |
+| Structured Log Sanitization (B4/D4) | [CODE] Client event allowlist; deployed stdout/APM/raw-body log absence unverified | lib/operationalLogPolicy.js |
+
+
+## Q3 — Verifiable evidence artifacts
+
+| Matrix demand | Current reading | Source / absent verification |
+|---|---|---|
+| Component & Provider BOM (C1-Q3) | [DOC/CODE] Repo manifests exist; complete current deployed provider/infra manifest absent | package.json; .env.example; server.js |
+| Contract-to-Config Reconciliation (C4-Q3) | [GAP] No redacted deployed endpoint/region/no-training snapshot | No enterprise contract/config attestation |
+| End-to-End Deletion Propagation (B2/B3-Q3) | [GAP] No executed 12-layer deletion report | evidence/deletion-propagation-test.json |
+| Log & Browser Inspection Sample (B4-Q3) | [GAP] No captured stdout/browser-clearing evidence | operational log allowlist is design only |
+| Cross-Tenant Unauthorized Access (D1-Q3) | [GAP] No independent cross-tenant or retrieval isolation test evidence | evidence/rag-rbac-isolation-test.json |
+
+
+## Contract-to-configuration reconciliation (open, not fabricated)
+
+| Contract field | Evidence-backed value |
 |---|---|
-| ST-01 Browser reset | Original file, local/autosave and object URLs cleared or limitation disclosed |
-| ST-02 Secret-bearing upload | No raw secret in model packet, error log, analytics or export |
-| ST-03 Normal completion | Run and body states/timeouts recorded; report remains bounded |
-| ST-04 Explicit delete | Run tombstoned and Redis/Postgres transient content verifiably removed |
-| ST-05 Inactivity / absolute timeout | 2h / 24h expiry and race handling tested |
-| ST-06 Worker crash/retry | Cannot resurrect deleted or expired content |
-| ST-07 90-day metadata | Schema-minimized retained columns and purge test |
-| ST-08 Vendor/backup | Signed and dated provider+backup deletion/retention proof |
-| ST-09 KB isolation | Reference Blob never receives customer evidence |
-| ST-10 Export path | User-visible retained copies, handling and access controls documented |
+| Executed enterprise agreement / provider or processor role | **Unknown** |
+| Actual deployed endpoint, model ID and provider fallback | **Unknown** (`.env.example` is illustrative) |
+| Legal/service region for each deployed vendor, database, log and backup | **Unknown** |
+| Provider zero-training, output/abuse monitoring retention, subprocessors | **Unknown** |
+| SLA, breach notification, audit rights, vendor exit and retention exception | **Unknown** |
+| IAM/SSO, per-assessment RBAC, tenant-scoped retrieval, DB and log access | **Enterprise SSO and cross-tenant authorization not demonstrated** |
+| Real API log/body retention, browser persistent state, deletion propagation | **Runtime verification not supplied** |
 
-**Exit criteria:** every applicable S01–S12 row has a dated outcome in [evidence/verification-plan.md](evidence/verification-plan.md), and accepted service/customer parameters in [evidence/approval-register.md](evidence/approval-register.md).
+**No approval is inferred** from the fact that Model Routing accepts a provider. Employer/customer production allowlists and contracts require separate evidence.
 
-**Sources:** lib/controlPlanePolicy.js; lib/redisExecutionPlane.js; lib/runLifecycleService.js; lib/controlPlaneRepository.js; lib/operationalLogPolicy.js; migrations/008_authoritative_packet_bodies.sql; ADR-001; docs/kb-authoring/README.md; questionnaire HTML.
+## Step 4 acceptance
+
+To advance beyond a source-code inventory, attach the [deletion propagation test](evidence/deletion-propagation-test.json), [RAG/RBAC isolation test](evidence/rag-rbac-isolation-test.json), sanitized browser/log inspection, region/endpoint snapshots and human-reviewed contract mappings. They have **not been attested** in the provided sources. Current status: **PARTIAL IMPLEMENTATION TRACE; Q3 INCOMPLETE**.
