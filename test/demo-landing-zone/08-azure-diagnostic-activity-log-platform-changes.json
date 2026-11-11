@@ -1,0 +1,92 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Azure Resource Manager deployment history", "Azure Activity Log", "Azure DevOps release and service catalogue records"],
+  "scope": "All platform management group and subscription writes in the last 90 days, with approved deployments joined by correlation ID. Includes all self-service requests in the demo estate.",
+  "completeForDeclaredScope": true,
+  "deploymentHistory": [
+    {
+      "correlationId": "DEP-401",
+      "operation": "Microsoft.Resources/deployments/write",
+      "scope": "Platform",
+      "result": "Succeeded",
+      "actor": "mi-platform-release",
+      "repository": "northstar-platform-alz",
+      "sourceVersion": "platform-4.2.1",
+      "pullRequest": "PR-382",
+      "reviewedBy": ["Cloud Platform", "Security Architecture"],
+      "method": "Versioned Bicep promoted through validate, what-if, approval and deploy"
+    },
+    {
+      "correlationId": "DEP-402",
+      "operation": "Microsoft.Resources/deployments/write",
+      "scope": "Platform",
+      "result": "Succeeded",
+      "actor": "mi-platform-release",
+      "sourceVersion": "platform-4.2.1",
+      "purpose": "Isolated rebuild rehearsal from the released Bicep baseline",
+      "resources": ["management groups", "policy assignments", "connectivity hub", "central logging"]
+    }
+  ],
+  "subscriptionVending": [
+    {
+      "request": "VEND-107",
+      "requester": "Retail Engineering",
+      "requestChannel": "Self-service catalogue",
+      "actor": "mi-subscription-vending",
+      "target": "Corp-Prod",
+      "result": "Succeeded",
+      "baselineChecks": "Policy, scoped RBAC, hub spoke, activity logs and Defender passed",
+      "requestToReadyMinutes": 38
+    },
+    {
+      "request": "VEND-108",
+      "requester": "Retail Engineering",
+      "requestChannel": "Self-service catalogue",
+      "actor": "mi-subscription-vending",
+      "target": "Corp-NonProd",
+      "result": "Succeeded",
+      "baselineChecks": "Policy, scoped RBAC, hub spoke, activity logs and Defender passed",
+      "requestToReadyMinutes": 27
+    },
+    {
+      "request": "VEND-109",
+      "requestChannel": "Self-service catalogue",
+      "target": "Corp-Prod",
+      "result": "Rejected before provisioning",
+      "policyReason": "Required data classification field missing"
+    }
+  ],
+  "driftAndChangeAudit": {
+    "scheduledComparison": "Nightly ARM what-if against northstar-platform-alz",
+    "lastDriftIncident": {
+      "id": "DRIFT-43",
+      "origin": "Activity Log emergency write correlation CHG-840",
+      "reviewedBy": "Cloud Platform On-Call",
+      "status": "Reconciled by PR-391 before next deployment"
+    },
+    "portalWrites": [
+      {
+        "id": "CHG-840",
+        "type": "Emergency recovery only",
+        "approval": "INC-308",
+        "linkedCatchUpPullRequest": "PR-391"
+      }
+    ],
+    "writesWithoutPipelineOrApprovedEmergencyRecord": 0,
+    "lastRollbackExercise": {
+      "id": "ROLL-24",
+      "result": "Reverted a sandbox policy assignment using the previous released Bicep version"
+    }
+  },
+  "diagnosticSettings": [
+    {
+      "source": "Platform management groups and subscriptions",
+      "categories": ["Administrative", "Policy"],
+      "workspace": "law-platform",
+      "coverageDays": 90
+    }
+  ]
+}

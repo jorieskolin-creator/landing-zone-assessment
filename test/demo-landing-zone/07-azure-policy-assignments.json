@@ -1,0 +1,114 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Azure Policy assignments and exemptions", "Policy Insights policy states", "Cost Management budgets"],
+  "scope": "All effective root and descendant Azure Policy assignments, exemptions and Policy Insights states for the five subscriptions.",
+  "completeForDeclaredScope": true,
+  "policyExemptions": [
+    {
+      "id": "waiver-prod-legacy-recovery",
+      "assignment": "pa-prod-storage-recovery",
+      "scope": "sub-retail-prod",
+      "scopeType": "Production subscription",
+      "expiresOn": null,
+      "rationale": null,
+      "approvalRecord": null,
+      "owner": "Former Retail Data Team",
+      "ownerStatus": "Retired without reassignment",
+      "status": "Active"
+    },
+    {
+      "id": "waiver-test-migration",
+      "assignment": "pa-detect-legacy-tls",
+      "scope": "sub-retail-test/rg-retail-test",
+      "expiresOn": "2026-11-20",
+      "rationale": "Scheduled test data migration",
+      "owner": "Retail Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "waiver-pilot-closed",
+      "scope": "sub-retail-test",
+      "expiresOn": "2026-10-01",
+      "owner": "Cloud Platform",
+      "status": "Removed at review"
+    }
+  ],
+  "policyState": {
+    "source": "Policy Insights query PI-208",
+    "conflictingEffectiveAssignments": 0,
+    "unassignedSubscriptions": 0,
+    "productionDenyTest": "Synthetic create requests in an unapproved region and with a missing owner tag were both rejected in sub-retail-prod.",
+    "assignedResourcesEvaluated": 64,
+    "noncompliantResources": [
+      {
+        "id": "retail-orders-archive",
+        "control": "Storage recovery",
+        "owner": "Retail Engineering",
+        "tracking": "GOV-309"
+      }
+    ],
+    "reviewCadence": "Monthly with Cloud Governance"
+  },
+  "budgets": [
+    {
+      "scope": "Platform",
+      "enabled": true,
+      "owner": "Platform Finance",
+      "alertRouting": "Platform Finance and Cloud Platform"
+    },
+    {
+      "scope": "sub-retail-prod",
+      "enabled": true,
+      "owner": "Retail Finance",
+      "alertRouting": "Retail Finance and Retail Engineering"
+    },
+    {
+      "scope": "sub-retail-test",
+      "enabled": true,
+      "owner": "Retail Finance",
+      "alertRouting": "Retail Finance and Retail Engineering"
+    }
+  ],
+  "policyAssignments": [
+    {
+      "id": "pa-root-guardrails",
+      "scope": "northstar-root",
+      "policyDefinition": "Northstar-Platform-4.2",
+      "enforcementMode": "Default",
+      "effects": ["Deny public IP outside Connectivity", "Deny public network access on vault and storage", "Deny storage outside North Europe and West Europe", "Deny missing owner, application or environment tag"],
+      "effectiveAt": ["sub-connectivity", "sub-management", "sub-identity", "sub-retail-prod", "sub-retail-test"]
+    },
+    {
+      "id": "pa-baseline-observability",
+      "scope": "northstar-root",
+      "enforcementMode": "Default",
+      "effect": "DeployIfNotExists",
+      "control": "Export Activity Logs to law-platform"
+    },
+    {
+      "id": "pa-prod-restrictions",
+      "scope": "Corp-Prod",
+      "enforcementMode": "Default",
+      "effect": "Deny",
+      "control": "Production key vault purge protection required",
+      "effectiveAt": ["sub-retail-prod"]
+    },
+    {
+      "id": "pa-prod-storage-recovery",
+      "scope": "Corp-Prod",
+      "enforcementMode": "Default",
+      "effect": "Deny",
+      "control": "Production storage soft delete must be enabled"
+    },
+    {
+      "id": "pa-detect-legacy-tls",
+      "scope": "northstar-root",
+      "enforcementMode": "Default",
+      "effect": "Audit",
+      "control": "Detect older TLS configuration. This assignment is audit-only."
+    }
+  ]
+}

@@ -166,7 +166,7 @@ assert.match(app, /Lock Step 0 scope before uploading source material/);
 assert.match(app, /setLockedScope\(null\)/);
 assert.match(app, /disabled=\{files\.length >= MAX_FILES \|\| !lockedScope\}/);
 assert.match(app, /Lock Step 0 first/);
-assert.match(app, /scope: lockScope\(demoAssessmentScopeDraft\(\)\)/);
+assert.match(app, /const scope = lockScope\(demoAssessmentScopeDraft\(\)\)/);
 
 const form = await readFile(new URL("../src/components/Step0ScopeForm.tsx", import.meta.url), "utf8");
 assert.match(form, /Inventory exports are included in the file set/);
@@ -182,7 +182,7 @@ assert.doesNotMatch(form, /live_collection_permitted: true/);
 assert.doesNotMatch(form, /lockScope\([^)]*workshopSession/);
 
 assert.match(app, /emptyWorkshopSession/);
-assert.match(app, /workshopSession: normalizeWorkshopSession\(workshopSession\)/);
+assert.match(app, /workshopSession: opts \? undefined : normalizeWorkshopSession\(workshopSession\)/);
 assert.match(app, /setWorkshopSession\(emptyWorkshopSession\(\)\)/);
 assert.match(app, /IntakeHero/);
 

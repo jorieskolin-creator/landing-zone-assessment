@@ -1,0 +1,83 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Azure Network Resource Provider", "Network Watcher effective routes and connectivity tests", "Azure Policy Insights"],
+  "scope": "All VNets, peerings, gateways, route tables, NSGs, DNS links and public endpoints across the five enabled subscriptions.",
+  "completeForDeclaredScope": true,
+  "hybridConnectivity": {
+    "expressRouteCircuits": ["er-primary", "er-secondary"],
+    "gatewaySubscription": "sub-connectivity",
+    "gatewayOwner": "Cloud Networking On-Call",
+    "lastFailoverTest": "2026-10-22",
+    "failoverResult": "Secondary circuit carried on-premises DNS and checkout traffic in 41 seconds.",
+    "applicationGatewaysOfTypeVpnOrExpressRoute": 0,
+    "effectivePolicy": "Deny creation of hybrid gateways outside Connectivity."
+  },
+  "privateDns": {
+    "owner": "Cloud Networking",
+    "resolver": "dns-private-resolver",
+    "inboundAndOutboundRulesets": "Enabled",
+    "linkedNetworks": ["vnet-hub", "vnet-retail-prod", "vnet-retail-test"],
+    "linkedZones": ["privatelink.blob.core.windows.net", "privatelink.vaultcore.azure.net"],
+    "nameResolutionTests": "Storage, vault and hybrid names resolved in both spokes and on-premises.",
+    "unmanagedForwarders": [],
+    "hostsFileOverridesFound": 0
+  },
+  "publicExposure": {
+    "applicationPublicIpCount": 0,
+    "applicationDataPublicEndpoints": 0,
+    "allPublicIps": [
+      {
+        "name": "pip-afw-platform",
+        "subscriptionId": "sub-connectivity",
+        "owner": "Cloud Networking",
+        "purpose": "Central firewall egress"
+      }
+    ],
+    "storageAndVaultPublicNetworkAccess": "Disabled",
+    "activePublicAccessExemptions": [],
+    "policyTest": "Public IP in application spoke, public storage and public vault creation all denied."
+  },
+  "eastWestVerification": {
+    "addressSpaceOverlap": false,
+    "spokeToSpokePeerings": [],
+    "testToProdRoutes": 0,
+    "testToProdConnectivity": "Denied",
+    "ruleSet": "Default deny. Only shared DNS, explicitly approved service routes and approved firewall egress destinations are allowed.",
+    "unownedPeerings": 0,
+    "temporaryPeerings": []
+  },
+  "virtualNetworks": [
+    {
+      "name": "vnet-hub",
+      "subscriptionId": "sub-connectivity",
+      "addressSpaceRef": "hub-prefix",
+      "firewall": "afw-platform",
+      "firewallPolicy": "Hub-Inspection-v4",
+      "defaultAction": "Deny",
+      "owner": "Cloud Networking"
+    },
+    {
+      "name": "vnet-retail-prod",
+      "subscriptionId": "sub-retail-prod",
+      "addressSpaceRef": "prod-prefix",
+      "peer": "vnet-hub",
+      "changeRecord": "NET-116",
+      "route": "Default IPv4 route -> afw-platform",
+      "nsg": "nsg-retail-prod",
+      "owner": "Cloud Networking"
+    },
+    {
+      "name": "vnet-retail-test",
+      "subscriptionId": "sub-retail-test",
+      "addressSpaceRef": "test-prefix",
+      "peer": "vnet-hub",
+      "changeRecord": "NET-117",
+      "route": "Default IPv4 route -> afw-platform",
+      "nsg": "nsg-retail-test",
+      "owner": "Cloud Networking"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build } from "esbuild";
@@ -79,6 +79,66 @@ const classified = (sourceId, fileName, kind, text, lockedProviders) =>
     kind,
     text,
   }], lockedProviders)[0];
+
+// A simulation with weak routing would warn before the model could use the fixture.
+const [
+  { demoAssessmentScopeDraft, lockScope },
+  { inspectEvidenceFile },
+  { sanitizeEvidenceSources },
+  { validateEvidenceAcquisition },
+] = await Promise.all([
+  bundle("demo-scope", "../src/scope/step0Scope.ts"),
+  bundle("demo-file-validation", "../src/services/evidenceFileService.ts"),
+  bundle("demo-privacy", "../src/services/deterministicPrivacyService.ts"),
+  bundle("demo-acquisition", "../src/services/pipelineIntegrityService.ts"),
+]);
+const demoScope = lockScope(demoAssessmentScopeDraft());
+assert.deepEqual(demoScope.providers, ["azure"]);
+assert.deepEqual(demoScope.design_area_ids, AREA_IDS);
+assert.equal(demoScope.inventory_exports_included, true);
+
+const demoFolder = new URL("../test/demo-landing-zone/", import.meta.url);
+const demoNames = (await readdir(demoFolder)).filter(name => name.endsWith(".json")).sort();
+assert.equal(demoNames.length, AREA_IDS.length);
+const demoSources = await Promise.all(demoNames.map(async (name, index) => {
+  const raw = await readFile(new URL(name, demoFolder), "utf8");
+  const fixture = JSON.parse(raw);
+  assert.equal(fixture.synthetic, true);
+  assert.equal(fixture.tenant, demoScope.estate_roots[0].reference);
+  const acquisition = await inspectEvidenceFile(new File([raw], name, { type: "application/json" }));
+  assert.equal(acquisition.validation_status, "PASS", name);
+  return {
+    schema_version: "source_record_v1",
+    source_id: `src-demo-${index + 1}`,
+    source_name: `Document ${index + 1}`,
+    original_file_name: name,
+    kind: "json",
+    text: `Format: JSON\n\n${raw}`,
+    acquisition: { ...acquisition, extraction_method: "browser_json", extraction_version: "json_parse_v1", extraction_status: "PASS" },
+  };
+}));
+const demoPrivacy = sanitizeEvidenceSources(demoSources);
+assert.equal(demoPrivacy.decision.decision, "PASS");
+const demoAcquired = applyLandingZoneSourceClassification(demoPrivacy.sources, demoScope.providers);
+for (const source of demoAcquired) {
+  assert.equal(source.lz_classification.evidence_class, "platform", source.original_file_name);
+  assert.deepEqual(source.lz_classification.providers_detected, ["azure"]);
+}
+const demoRegistry = buildSourceRegistry(demoAcquired);
+assert.deepEqual(demoRegistry.warnings, []);
+const demoDlp = scanRegistryDlp(demoRegistry);
+assert.equal(demoDlp.blocked, false);
+assert.deepEqual(demoDlp.caution_hits, []);
+const demoPackets = buildDomainPackets(demoRegistry);
+validateEvidenceAcquisition(demoAcquired, demoRegistry, demoPackets);
+for (const [index, area] of AREA_IDS.entries()) {
+  const primaryChunks = demoRegistry.chunks.filter(chunk => chunk.source_id === demoAcquired[index].source_id);
+  assert.equal(demoPackets[area].weak_coverage, false, `Simulation packet ${area} has weak routing coverage`);
+  assert.ok(primaryChunks.length > 0);
+  for (const chunk of primaryChunks) {
+    assert.ok(demoPackets[area].manifest.some(item => item.chunk_id === chunk.chunk_id), `Simulation packet ${area} omitted ${chunk.chunk_id}`);
+  }
+}
 
 const hint = (registry, domain) =>
   registry.chunks[0].routing.find((item) => item.domain === domain);

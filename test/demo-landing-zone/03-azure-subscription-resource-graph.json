@@ -1,0 +1,101 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Azure Resource Graph", "Management Groups", "Azure Policy Insights", "Subscription vending registry"],
+  "scope": "All enabled subscriptions, resource-group placement and effective baseline assignments. Export includes the last two vending requests.",
+  "completeForDeclaredScope": true,
+  "inheritanceReview": {
+    "subscriptionsDirectlyUnderRoot": 0,
+    "withoutManagementGroupOwner": 0,
+    "placementCheck": "Corp-Prod inherits the root guardrails plus production restrictions. Corp-NonProd inherits the root guardrails without the production-only assignment. A Policy Insights preview compares effective assignments before a move is approved.",
+    "sharedProdAndNonProdAdminGroups": [],
+    "nonProdToProdVaultAccessTest": "Denied"
+  },
+  "createTimeControls": {
+    "namePattern": "<type>-<workload>-<environment>",
+    "requiredTags": ["owner", "application", "environment"],
+    "validation": "Vending rejects names that fail validation. Management group Azure Policy denies create when required tags are missing.",
+    "test": "Create request NEG-177 with no owner tag returned RequestDisallowedByPolicy.",
+    "remediation": [
+      {
+        "id": "POL-401",
+        "issue": "Legacy application tag missing",
+        "owner": "Retail Engineering",
+        "status": "Resolved by policy remediation"
+      }
+    ]
+  },
+  "vendingEvents": [
+    {
+      "requestId": "VEND-107",
+      "requestedBy": "Retail Engineering",
+      "purpose": "Checkout production",
+      "subscriptionId": "sub-retail-prod",
+      "createdBy": "mi-subscription-vending",
+      "managementGroup": "Corp-Prod",
+      "attachedBeforeHandover": ["policy baseline", "RBAC group", "hub spoke", "activity logs", "Defender plan"]
+    },
+    {
+      "requestId": "VEND-108",
+      "requestedBy": "Retail Engineering",
+      "purpose": "Checkout integration tests",
+      "subscriptionId": "sub-retail-test",
+      "createdBy": "mi-subscription-vending",
+      "managementGroup": "Corp-NonProd",
+      "attachedBeforeHandover": ["policy baseline", "RBAC group", "hub spoke", "activity logs", "Defender plan"]
+    }
+  ],
+  "subscriptions": [
+    {
+      "subscriptionId": "sub-connectivity",
+      "managementGroup": "Connectivity",
+      "parent": "Platform",
+      "environment": "platform",
+      "owner": "Cloud Platform",
+      "resourceGroups": ["rg-platform-hub", "rg-platform-dns"],
+      "applicationResourceCount": 0
+    },
+    {
+      "subscriptionId": "sub-management",
+      "managementGroup": "Management",
+      "parent": "Platform",
+      "environment": "platform",
+      "owner": "Cloud Platform",
+      "resourceGroups": ["rg-platform-logs", "rg-platform-soc"],
+      "applicationResourceCount": 0
+    },
+    {
+      "subscriptionId": "sub-identity",
+      "managementGroup": "Identity",
+      "parent": "Platform",
+      "environment": "platform",
+      "owner": "Identity Operations",
+      "resourceGroups": ["rg-platform-identity"],
+      "applicationResourceCount": 0
+    },
+    {
+      "subscriptionId": "sub-retail-prod",
+      "managementGroup": "Corp-Prod",
+      "parent": "Landing Zones",
+      "environment": "production",
+      "owner": "Retail Engineering",
+      "resourceGroups": ["rg-retail-prod"],
+      "uses": ["vnet-hub", "dns-private-resolver", "law-platform"],
+      "administrators": ["retail-prod-delivery"],
+      "keyVault": "kv-retail-prod"
+    },
+    {
+      "subscriptionId": "sub-retail-test",
+      "managementGroup": "Corp-NonProd",
+      "parent": "Landing Zones",
+      "environment": "nonproduction",
+      "owner": "Retail Engineering",
+      "resourceGroups": ["rg-retail-test"],
+      "uses": ["vnet-hub", "dns-private-resolver", "law-platform"],
+      "administrators": ["retail-test-delivery"],
+      "keyVault": "kv-retail-test"
+    }
+  ]
+}
