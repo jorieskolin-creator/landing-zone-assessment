@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeDocument } from './services/analysisService';
-import { scanInputText, sanitizeInput } from './services/preFlightService';
+import { scanInputText } from './services/preFlightService';
 import { extractPagesFromPdf } from './services/pdfService';
 import type { PdfParseQuality } from './services/pdfService';
 import { renderDelimitedTableForAnalysis } from './services/tableService';
@@ -24,7 +24,6 @@ import { checkSession, logout } from './services/authService';
 import { acknowledgeRun, deleteRun, getRun } from './services/runLifecycleService';
 import { recoverCheckpointResult } from './services/checkpointRecoveryService';
 import { buildReportViewModel } from './services/reportViewModel';
-import demoSimulation from '../test/demo-simulation.txt?raw';
 import { persistencePrefix } from './knowledge_base';
 import { LANDING_ZONE_PACK } from './domain-packs/loadLandingZonePack';
 import { demoAssessmentScopeDraft, lockScope, type AssessmentScope } from './scope/step0Scope';
@@ -39,7 +38,12 @@ import {
   type LzQuestionnaireSession,
 } from './acquisition/questionnaireIngestion';
 
-const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Demo Pack';
+const DEMO_SIMULATION_LABEL = 'Engine Simulation — Northstar Retail Azure Landing Zone';
+const demoEvidence = import.meta.glob<string>('../test/demo-landing-zone/*.json', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
 const PERSISTENCE_PREFIX = persistencePrefix();
 const SAVED_ASSESSMENT_KEY = `${PERSISTENCE_PREFIX}:last-assessment:v1`;
 const SAVED_ASSESSMENT_META_KEY = `${PERSISTENCE_PREFIX}:last-assessment-meta:v1`;
@@ -740,6 +744,134 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [aggregatedText, files]);
 
+  const parseEvidenceFile = async (file: File, scope: AssessmentScope): Promise<UploadedFile> => {
+    let text = "";
+    let kind: UploadedFile['kind'] = undefined;
+    let parseMetadata: UploadedFile['parseMetadata'] | undefined;
+    let pages: SourcePage[] | undefined;
+    let structuredTable: StructuredTableData | undefined;
+    let structuredTables: StructuredTableData[] | undefined;
+    let visualUnits: VisualEvidenceUnit[] | undefined;
+    let processedQuestionnaireSession: LzQuestionnaireSession | undefined;
+    const lowerName = file.name.toLowerCase();
+    let acquisition = await inspectEvidenceFile(file);
+    if (acquisition.validation_status !== 'PASS') {
+      throw new Error(`File ${file.name} failed deterministic type validation (${acquisition.validation_codes.join(', ')}).`);
+    }
+
+    if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
+      const { text: pdfText, pages: extractedPages, visualUnits: extractedVisualUnits, metadata } = await extractPagesFromPdf(file, { sourceHash: acquisition.original_sha256 });
+      text = pdfText;
+      parseMetadata = {
+        totalPages: metadata.totalPages,
+        parsedTextPages: metadata.parsedTextPages,
+        parseQuality: metadata.parseQuality,
+        warnings: metadata.warnings
+      };
+      pages = extractedPages;
+      visualUnits = extractedVisualUnits;
+      kind = 'pdf';
+    } else if (file.type === 'text/html' || lowerName.endsWith('.html')) {
+      const rawHtml = await file.text();
+      text = extractTextFromHtml(rawHtml);
+      kind = 'html';
+    } else if (file.type === 'text/csv' || lowerName.endsWith('.csv')) {
+      const raw = await file.text();
+      const rendered = renderDelimitedTableForAnalysis(raw, { fileName: file.name, delimiter: 'auto', sourceHash: acquisition.original_sha256 });
+      text = rendered.text;
+      kind = 'csv';
+      parseMetadata = { rowCount: rendered.rowCount, renderedRowCount: rendered.renderedRowCount, analyzedRowCount: rendered.structuredTable.analysis_rows?.length || 0, analysisComplete: rendered.structuredTable.analysis_complete, clippedCellCount: rendered.clippedCellCount, cellCharacterCoverageRatio: rendered.cellCharacterCoverageRatio, warnings: rendered.warnings };
+      structuredTable = rendered.structuredTable;
+    } else if (file.type === 'text/tab-separated-values' || lowerName.endsWith('.tsv')) {
+      const raw = await file.text();
+      const rendered = renderDelimitedTableForAnalysis(raw, { fileName: file.name, delimiter: '\t', sourceHash: acquisition.original_sha256 });
+      text = rendered.text;
+      kind = 'tsv';
+      parseMetadata = { rowCount: rendered.rowCount, renderedRowCount: rendered.renderedRowCount, analyzedRowCount: rendered.structuredTable.analysis_rows?.length || 0, analysisComplete: rendered.structuredTable.analysis_complete, clippedCellCount: rendered.clippedCellCount, cellCharacterCoverageRatio: rendered.cellCharacterCoverageRatio, warnings: rendered.warnings };
+      structuredTable = rendered.structuredTable;
+    } else if (lowerName.endsWith('.xlsx')) {
+      const extracted = await extractXlsx(file, acquisition.original_sha256);
+      text = extracted.text;
+      kind = 'xlsx';
+      parseMetadata = {
+        rowCount: extracted.tables.reduce((sum, table) => sum + table.total_row_count, 0),
+        renderedRowCount: extracted.tables.filter(table => table.model_eligible).reduce((sum, table) => sum + table.rows.length, 0),
+        analyzedRowCount: extracted.tables.reduce((sum, table) => sum + (table.analysis_rows?.length || 0), 0),
+        analysisComplete: extracted.tables.every(table => table.analysis_complete),
+        clippedCellCount: 0,
+        cellCharacterCoverageRatio: extracted.tables.some(table => table.truncated) ? undefined : 1,
+        warnings: extracted.warnings
+      };
+      structuredTables = extracted.tables;
+    } else if (file.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(lowerName)) {
+      const visualUnit = await extractImageOcr(file, acquisition.original_sha256);
+      text = `Format: IMAGE_OCR\nOCR confidence: ${visualUnit.confidence}\nVisual interpretation: OCR text only; non-text visual semantics withheld.\n\n${visualUnit.text}`;
+      kind = 'image';
+      parseMetadata = {
+        warnings: [
+          'Local OCR extracted text only. Graph structure, spatial relationships, colors, shapes and other non-text visual semantics remain UNINSPECTED_VISUAL_REGION.',
+          ...(visualUnit.confidence < 70 ? [`OCR confidence ${visualUnit.confidence.toFixed(1)} is observationally low; extracted text requires cautious interpretation.`] : [])
+        ]
+      };
+      visualUnits = [visualUnit];
+    } else if (file.type === 'application/json' || lowerName.endsWith('.json')) {
+      const raw = await file.text();
+      const questionnaireSession = tryIngestQuestionnaireFromText(raw, { fileName: file.name });
+      text = `Format: JSON\n\n${raw}`;
+      kind = 'json';
+      if (questionnaireSession) {
+        parseMetadata = {
+          warnings: [
+            `Class 3 questionnaire session · ${questionnaireSession.answered_observation_count} observations · ${questionnaireSession.evidence_lead_count} evidence leads (requests, not findings)`,
+          ],
+        };
+      }
+      processedQuestionnaireSession = questionnaireSession || undefined;
+    } else {
+      throw new Error(`File ${file.name} is not a supported format (PDF, HTML, CSV, TSV, XLSX, PNG, JPEG, WEBP, JSON).`);
+    }
+
+    const extraction = kind === 'pdf'
+      ? { extraction_method: 'browser_pdfjs' as const, extraction_version: 'pdfjs-dist@4' }
+      : kind === 'html'
+        ? { extraction_method: 'browser_dom' as const, extraction_version: 'dompurify@3' }
+        : kind === 'csv' || kind === 'tsv'
+          ? { extraction_method: 'browser_delimited' as const, extraction_version: 'delimited_parser_v3' }
+          : kind === 'xlsx'
+            ? { extraction_method: 'browser_xlsx_worker' as const, extraction_version: 'sheetjs-ce@0.20.3+zipjs@2.8.49' }
+            : kind === 'image'
+              ? { extraction_method: 'local_ocr' as const, extraction_version: 'tesseract.js@7.0.0' }
+            : { extraction_method: 'browser_json' as const, extraction_version: 'json_parse_v1' };
+    acquisition = { ...acquisition, ...extraction, extraction_status: 'PASS' };
+    const lzClassification = classifyLandingZoneSource({
+      fileName: file.name,
+      kind,
+      text,
+      pages,
+      visualUnits,
+      tables: [...(structuredTables || []), ...(structuredTable ? [structuredTable] : [])],
+      lockedProviders: [...scope.providers],
+    });
+
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      name: file.name,
+      size: file.size,
+      text,
+      pages,
+      structuredTable,
+      structuredTables,
+      acquisition,
+      visualUnits,
+      kind,
+      lzClassification,
+      lzQuestionnaireSession: processedQuestionnaireSession,
+      status: 'parsed',
+      scan: scanParseableFile(text, kind, false),
+      parseMetadata
+    };
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
     const newFiles = Array.from(event.target.files);
@@ -812,131 +944,7 @@ const App: React.FC = () => {
     const rejectedFiles: Array<{ name: string; code: string }> = [];
     for (const file of newFiles) {
       try {
-        let text = "";
-        let kind: UploadedFile['kind'] = undefined;
-        let parseMetadata: UploadedFile['parseMetadata'] | undefined;
-        let pages: SourcePage[] | undefined;
-        let structuredTable: StructuredTableData | undefined;
-        let structuredTables: StructuredTableData[] | undefined;
-        let visualUnits: VisualEvidenceUnit[] | undefined;
-        let processedQuestionnaireSession: LzQuestionnaireSession | undefined;
-        const lowerName = file.name.toLowerCase();
-        let acquisition = await inspectEvidenceFile(file);
-        if (acquisition.validation_status !== 'PASS') {
-          throw new Error(`File ${file.name} failed deterministic type validation (${acquisition.validation_codes.join(', ')}).`);
-        }
-
-        if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
-          const { text: pdfText, pages: extractedPages, visualUnits: extractedVisualUnits, metadata } = await extractPagesFromPdf(file, { sourceHash: acquisition.original_sha256 });
-          text = pdfText;
-          parseMetadata = {
-            totalPages: metadata.totalPages,
-            parsedTextPages: metadata.parsedTextPages,
-            parseQuality: metadata.parseQuality,
-            warnings: metadata.warnings
-          };
-          pages = extractedPages;
-          visualUnits = extractedVisualUnits;
-          kind = 'pdf';
-        } else if (file.type === 'text/html' || lowerName.endsWith('.html')) {
-          const rawHtml = await file.text();
-          text = extractTextFromHtml(rawHtml);
-          kind = 'html';
-        } else if (file.type === 'text/csv' || lowerName.endsWith('.csv')) {
-          const raw = await file.text();
-          const rendered = renderDelimitedTableForAnalysis(raw, { fileName: file.name, delimiter: 'auto', sourceHash: acquisition.original_sha256 });
-          text = rendered.text;
-          kind = 'csv';
-          parseMetadata = { rowCount: rendered.rowCount, renderedRowCount: rendered.renderedRowCount, analyzedRowCount: rendered.structuredTable.analysis_rows?.length || 0, analysisComplete: rendered.structuredTable.analysis_complete, clippedCellCount: rendered.clippedCellCount, cellCharacterCoverageRatio: rendered.cellCharacterCoverageRatio, warnings: rendered.warnings };
-          structuredTable = rendered.structuredTable;
-        } else if (file.type === 'text/tab-separated-values' || lowerName.endsWith('.tsv')) {
-          const raw = await file.text();
-          const rendered = renderDelimitedTableForAnalysis(raw, { fileName: file.name, delimiter: '\t', sourceHash: acquisition.original_sha256 });
-          text = rendered.text;
-          kind = 'tsv';
-          parseMetadata = { rowCount: rendered.rowCount, renderedRowCount: rendered.renderedRowCount, analyzedRowCount: rendered.structuredTable.analysis_rows?.length || 0, analysisComplete: rendered.structuredTable.analysis_complete, clippedCellCount: rendered.clippedCellCount, cellCharacterCoverageRatio: rendered.cellCharacterCoverageRatio, warnings: rendered.warnings };
-          structuredTable = rendered.structuredTable;
-        } else if (lowerName.endsWith('.xlsx')) {
-          const extracted = await extractXlsx(file, acquisition.original_sha256);
-          text = extracted.text;
-          kind = 'xlsx';
-          parseMetadata = {
-            rowCount: extracted.tables.reduce((sum, table) => sum + table.total_row_count, 0),
-            renderedRowCount: extracted.tables.filter(table => table.model_eligible).reduce((sum, table) => sum + table.rows.length, 0),
-            analyzedRowCount: extracted.tables.reduce((sum, table) => sum + (table.analysis_rows?.length || 0), 0),
-            analysisComplete: extracted.tables.every(table => table.analysis_complete),
-            clippedCellCount: 0,
-            cellCharacterCoverageRatio: extracted.tables.some(table => table.truncated) ? undefined : 1,
-            warnings: extracted.warnings
-          };
-          structuredTables = extracted.tables;
-        } else if (file.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(lowerName)) {
-          const visualUnit = await extractImageOcr(file, acquisition.original_sha256);
-          text = `Format: IMAGE_OCR\nOCR confidence: ${visualUnit.confidence}\nVisual interpretation: OCR text only; non-text visual semantics withheld.\n\n${visualUnit.text}`;
-          kind = 'image';
-          parseMetadata = {
-            warnings: [
-              'Local OCR extracted text only. Graph structure, spatial relationships, colors, shapes and other non-text visual semantics remain UNINSPECTED_VISUAL_REGION.',
-              ...(visualUnit.confidence < 70 ? [`OCR confidence ${visualUnit.confidence.toFixed(1)} is observationally low; extracted text requires cautious interpretation.`] : [])
-            ]
-          };
-          visualUnits = [visualUnit];
-        } else if (file.type === 'application/json' || lowerName.endsWith('.json')) {
-          const raw = await file.text();
-          const questionnaireSession = tryIngestQuestionnaireFromText(raw, { fileName: file.name });
-          text = `Format: JSON\n\n${raw}`;
-          kind = 'json';
-          if (questionnaireSession) {
-            parseMetadata = {
-              warnings: [
-                `Class 3 questionnaire session · ${questionnaireSession.answered_observation_count} observations · ${questionnaireSession.evidence_lead_count} evidence leads (requests, not findings)`,
-              ],
-            };
-          }
-          processedQuestionnaireSession = questionnaireSession || undefined;
-        } else {
-          throw new Error(`File ${file.name} is not a supported format (PDF, HTML, CSV, TSV, XLSX, PNG, JPEG, WEBP, JSON).`);
-        }
-
-        const extraction = kind === 'pdf'
-          ? { extraction_method: 'browser_pdfjs' as const, extraction_version: 'pdfjs-dist@4' }
-          : kind === 'html'
-            ? { extraction_method: 'browser_dom' as const, extraction_version: 'dompurify@3' }
-            : kind === 'csv' || kind === 'tsv'
-              ? { extraction_method: 'browser_delimited' as const, extraction_version: 'delimited_parser_v3' }
-              : kind === 'xlsx'
-                ? { extraction_method: 'browser_xlsx_worker' as const, extraction_version: 'sheetjs-ce@0.20.3+zipjs@2.8.49' }
-                : kind === 'image'
-                  ? { extraction_method: 'local_ocr' as const, extraction_version: 'tesseract.js@7.0.0' }
-                : { extraction_method: 'browser_json' as const, extraction_version: 'json_parse_v1' };
-        acquisition = { ...acquisition, ...extraction, extraction_status: 'PASS' };
-        const lzClassification = classifyLandingZoneSource({
-          fileName: file.name,
-          kind,
-          text,
-          pages,
-          visualUnits,
-          tables: [...(structuredTables || []), ...(structuredTable ? [structuredTable] : [])],
-          lockedProviders: lockedScope?.providers ? [...lockedScope.providers] : undefined,
-        });
-
-        processedFiles.push({
-          id: Math.random().toString(36).substr(2, 9),
-          name: file.name,
-          size: file.size,
-          text,
-          pages,
-          structuredTable,
-          structuredTables,
-          acquisition,
-          visualUnits,
-          kind,
-          lzClassification,
-          lzQuestionnaireSession: processedQuestionnaireSession,
-          status: 'parsed',
-          scan: scanParseableFile(text, kind, false),
-          parseMetadata
-        });
+        processedFiles.push(await parseEvidenceFile(file, lockedScope));
       } catch (error) {
         rejectedFiles.push({ name: file.name, code: acquisitionErrorCode(error) });
       }
@@ -953,7 +961,7 @@ const App: React.FC = () => {
 
   const removeFile = (id: string) => setFiles(files.filter(f => f.id !== id));
 
-  const runAnalyze = async (opts?: { textOverride?: string; sourcesOverride?: SourceRecord[]; label?: string; scope?: AssessmentScope }) => {
+  const runAnalyze = async (opts?: { evidenceFiles: UploadedFile[]; label: string; scope: AssessmentScope }) => {
     const scope = opts?.scope || lockedScope;
     if (!scope) {
       setError('Lock Step 0 scope before scoring. Scoring cannot begin against an unnamed estate.');
@@ -965,44 +973,43 @@ const App: React.FC = () => {
     setError(null);
     PerformanceMonitor.start('FullAnalysis');
     try {
-      const sources: SourceRecord[] = opts?.sourcesOverride ?? (opts?.textOverride !== undefined
-        ? [{ schema_version:'source_record_v1', source_id:'src-001', source_name:'Document 001', original_file_name: opts.label, kind:'text', text:opts.textOverride }]
-        : files.map((file,index) => ({
-            schema_version:'source_record_v1' as const,
-            source_id:`src-${String(index+1).padStart(3,'0')}`,
-            source_name:`Document ${String(index+1).padStart(3,'0')}`,
-            original_file_name: file.name,
-            kind:file.kind || 'text',
-            lz_classification: file.lzClassification,
-            acquisition:file.acquisition,
-            visual_units:file.visualUnits?.map(unit => ({
-              ...unit,
-              source_id:`src-${String(index+1).padStart(3,'0')}`
-            })),
-            parse_warnings:file.parseMetadata?.warnings || file.parseMetadata?.parseQuality?.warnings,
-            extraction: file.kind === 'pdf' && file.parseMetadata
-              ? {
-                  unit: 'page' as const,
-                  total_units: file.parseMetadata.totalPages || file.pages?.length || 0,
-                  processed_units: file.parseMetadata.parsedTextPages || file.pages?.length || 0,
-                  text_coverage_ratio: file.parseMetadata.parseQuality?.textCoverageRatio,
-                  sparse_units: file.parseMetadata.parseQuality?.sparseTextPages,
-                  truncated: (file.parseMetadata.parsedTextPages || 0) < (file.parseMetadata.totalPages || 0),
-                  quality: file.parseMetadata.parseQuality?.quality
-                }
-              : (file.kind === 'csv' || file.kind === 'tsv' || file.kind === 'xlsx') && file.parseMetadata
-                ? {
-                    unit: 'row' as const,
-                    total_units: file.parseMetadata.rowCount || 0,
-                    processed_units: file.parseMetadata.analyzedRowCount || 0,
-                    text_coverage_ratio: file.parseMetadata.analysisComplete ? 1 : 0,
-                    truncated: !file.parseMetadata.analysisComplete
-                  }
-                : { unit: 'document' as const, total_units: 1, processed_units: 1, truncated: false },
-            structured_table:file.structuredTable,
-            structured_tables:file.structuredTables,
-            ...(file.kind === 'image' ? {} : file.pages?.length ? {pages:file.pages} : {text:file.text})
-          })));
+      const evidenceFiles = opts?.evidenceFiles ?? files;
+      const sources: SourceRecord[] = evidenceFiles.map((file,index) => ({
+        schema_version:'source_record_v1' as const,
+        source_id:`src-${String(index+1).padStart(3,'0')}`,
+        source_name:`Document ${String(index+1).padStart(3,'0')}`,
+        original_file_name: file.name,
+        kind:file.kind || 'text',
+        lz_classification: file.lzClassification,
+        acquisition:file.acquisition,
+        visual_units:file.visualUnits?.map(unit => ({
+          ...unit,
+          source_id:`src-${String(index+1).padStart(3,'0')}`
+        })),
+        parse_warnings:file.parseMetadata?.warnings || file.parseMetadata?.parseQuality?.warnings,
+        extraction: file.kind === 'pdf' && file.parseMetadata
+          ? {
+              unit: 'page' as const,
+              total_units: file.parseMetadata.totalPages || file.pages?.length || 0,
+              processed_units: file.parseMetadata.parsedTextPages || file.pages?.length || 0,
+              text_coverage_ratio: file.parseMetadata.parseQuality?.textCoverageRatio,
+              sparse_units: file.parseMetadata.parseQuality?.sparseTextPages,
+              truncated: (file.parseMetadata.parsedTextPages || 0) < (file.parseMetadata.totalPages || 0),
+              quality: file.parseMetadata.parseQuality?.quality
+            }
+          : (file.kind === 'csv' || file.kind === 'tsv' || file.kind === 'xlsx') && file.parseMetadata
+            ? {
+                unit: 'row' as const,
+                total_units: file.parseMetadata.rowCount || 0,
+                processed_units: file.parseMetadata.analyzedRowCount || 0,
+                text_coverage_ratio: file.parseMetadata.analysisComplete ? 1 : 0,
+                truncated: !file.parseMetadata.analysisComplete
+              }
+            : { unit: 'document' as const, total_units: 1, processed_units: 1, truncated: false },
+        structured_table:file.structuredTable,
+        structured_tables:file.structuredTables,
+        ...(file.kind === 'image' ? {} : file.pages?.length ? {pages:file.pages} : {text:file.text})
+      }));
       const data = await analyzeDocument(sources, update => {
         setPipelineProgress(current => ({ ...current, [update.stage]: update }));
         if (update.stage === 'analysis' && update.domain_id) {
@@ -1011,7 +1018,7 @@ const App: React.FC = () => {
       }, {
         deepMode,
         scope,
-        workshopSession: normalizeWorkshopSession(workshopSession),
+        workshopSession: opts ? undefined : normalizeWorkshopSession(workshopSession),
         onRunStarted: runId => {
           if (typeof window !== 'undefined') window.localStorage.setItem(ACTIVE_RUN_KEY, runId);
         }
@@ -1022,7 +1029,7 @@ const App: React.FC = () => {
       }
       const source_parse_warnings = [...new Set([
         ...(data.meta.source_parse_warnings || []),
-        ...sourceParseWarningsForFiles(files)
+        ...sourceParseWarningsForFiles(evidenceFiles)
       ])];
       if (source_parse_warnings.length > 0) {
         data.meta = { ...data.meta, source_parse_warnings };
@@ -1055,22 +1062,31 @@ const App: React.FC = () => {
     await runAnalyze();
   };
 
-  const startEngineSimulation = () => {
-    runAnalyze({
-      textOverride: sanitizeInput(demoSimulation),
-      label: DEMO_SIMULATION_LABEL,
-      scope: lockScope(demoAssessmentScopeDraft()),
-    });
+  const startEngineSimulation = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const scope = lockScope(demoAssessmentScopeDraft());
+      const demoEntries = Object.entries(demoEvidence).sort(([left], [right]) => left.localeCompare(right));
+      const evidenceFiles = await Promise.all(demoEntries.map(([path, contents]) => {
+        const name = path.slice(path.lastIndexOf('/') + 1);
+        return parseEvidenceFile(new File([contents], name, { type: 'application/json' }), scope);
+      }));
+      await runAnalyze({ evidenceFiles, label: DEMO_SIMULATION_LABEL, scope });
+    } catch (error) {
+      setError(`Could not parse the bundled Landing Zone simulation evidence (${acquisitionErrorCode(error)}).`);
+      setLoading(false);
+    }
   };
 
   const handleEngineSimulation = () => {
-    if (loading) return;
+    if (loading || parsing) return;
     if (!authenticated) {
       pendingSimulationRef.current = true;
       setShowLogin(true);
       return;
     }
-    startEngineSimulation();
+    void startEngineSimulation();
   };
 
   const reset = () => {
@@ -1434,7 +1450,7 @@ const App: React.FC = () => {
           <div className="max-w-5xl mx-auto mt-8 transition-all duration-500 ease-in-out animate-fade-in-up">
             {!loading ? (
               <>
-                <IntakeHero loading={loading} onSimulate={handleEngineSimulation} />
+                <IntakeHero loading={loading || parsing} onSimulate={handleEngineSimulation} />
 
                 <Step0ScopeForm
                   key={scopeFormKey}
@@ -1970,7 +1986,7 @@ const App: React.FC = () => {
             runAnalyze();
           } else if (pendingSimulationRef.current) {
             pendingSimulationRef.current = false;
-            startEngineSimulation();
+            void startEngineSimulation();
           }
         }}
       />

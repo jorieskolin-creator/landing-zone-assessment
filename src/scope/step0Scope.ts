@@ -131,12 +131,10 @@ export const defaultRootKind = (provider: ProviderId): EstateRootKind => {
 };
 
 export const demoAssessmentScopeDraft = (): AssessmentScopeDraft => ({
-  estate_name: "Northstar Retail Demo Pack",
-  providers: ["azure", "aws", "gcp"],
+  estate_name: "Northstar Retail Azure Landing Zone",
+  providers: ["azure"],
   estate_roots: [
-    { provider: "azure", kind: "tenant", reference: "contoso.onmicrosoft.com", label: "Contoso Entra tenant" },
-    { provider: "aws", kind: "management_account", reference: "111122223333", label: "Northstar payer" },
-    { provider: "gcp", kind: "organization", reference: "organizations/123456789012", label: "Northstar org" },
+    { provider: "azure", kind: "tenant", reference: "northstar-demo.onmicrosoft.com", label: "Northstar Retail demo tenant" },
   ],
   design_area_ids: packDesignAreaIds(),
   inventory_exports_included: true,

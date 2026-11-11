@@ -1,0 +1,97 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Azure Monitor Diagnostic Settings", "Log Analytics and Storage", "Azure Resource Graph inventory", "Recovery Services drill record"],
+  "scope": "All five subscriptions and tenant Entra activity, platform alert rules and retained platform restore records. Guest fleet and agent compliance were outside this export.",
+  "completeForDeclaredScope": true,
+  "destinations": {
+    "workspace": "law-platform",
+    "subscriptionId": "sub-management",
+    "interactiveRetentionDays": 180,
+    "archive": "stplatformarchive",
+    "archiveRetentionDays": 365,
+    "immutableRetentionLocked": true,
+    "queryRoles": ["Cloud Platform Monitor Reader", "SOC Log Analytics Reader"],
+    "verification": "Query LOG-271 returned activity for all five subscriptions and Entra logs. Oldest retained archive test record was 361 days old."
+  },
+  "inventorySnapshot": {
+    "collectedOnDemand": "2026-10-30",
+    "sources": ["Management Groups", "Policy Insights", "Resource Graph", "Entra PIM"],
+    "subscriptionCount": 5,
+    "billingReconciliationCount": 5,
+    "unknownSubscriptions": [],
+    "rootManagementGroupsExported": true,
+    "effectivePolicyAssignmentsExported": true,
+    "identityBindingsExported": true
+  },
+  "platformAlertRules": [
+    {
+      "name": "Log ingestion heartbeat missing",
+      "actionGroup": "Platform-OnCall",
+      "lastTest": "Triggered and acknowledged"
+    },
+    {
+      "name": "ExpressRoute BGP availability",
+      "actionGroup": "Platform-OnCall",
+      "lastTest": "Triggered and acknowledged"
+    },
+    {
+      "name": "Azure Policy compliance decrease",
+      "actionGroup": "Platform-OnCall",
+      "lastTest": "Triggered and acknowledged"
+    },
+    {
+      "name": "Entra federation and emergency sign-in health",
+      "actionGroup": "Platform-OnCall",
+      "lastTest": "Triggered and acknowledged"
+    }
+  ],
+  "platformRestore": {
+    "drill": "RESTORE-077",
+    "date": "2026-10-18",
+    "result": "Passed isolated recovery rehearsal",
+    "checks": ["Restored versioned remote IaC state", "Redeployed DNS and baseline assignments", "Restored an identity access configuration and validated access", "Restored a backup Key Vault secret and verified its version"],
+    "localOnlyStateFiles": 0,
+    "remoteStateVersioning": "Enabled"
+  },
+  "diagnosticSettings": [
+    {
+      "source": "sub-connectivity",
+      "categories": ["Administrative", "Security", "Policy", "ServiceHealth"],
+      "workspace": "law-platform",
+      "archive": "stplatformarchive"
+    },
+    {
+      "source": "sub-management",
+      "categories": ["Administrative", "Security", "Policy", "ServiceHealth"],
+      "workspace": "law-platform",
+      "archive": "stplatformarchive"
+    },
+    {
+      "source": "sub-identity",
+      "categories": ["Administrative", "Security", "Policy", "ServiceHealth"],
+      "workspace": "law-platform",
+      "archive": "stplatformarchive"
+    },
+    {
+      "source": "sub-retail-prod",
+      "categories": ["Administrative", "Security", "Policy", "ServiceHealth"],
+      "workspace": "law-platform",
+      "archive": "stplatformarchive"
+    },
+    {
+      "source": "sub-retail-test",
+      "categories": ["Administrative", "Security", "Policy", "ServiceHealth"],
+      "workspace": "law-platform",
+      "archive": "stplatformarchive"
+    },
+    {
+      "source": "Entra tenant",
+      "categories": ["SignInLogs", "AuditLogs", "ServicePrincipalSignInLogs"],
+      "workspace": "law-platform",
+      "archive": "stplatformarchive"
+    }
+  ]
+}

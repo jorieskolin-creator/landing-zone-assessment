@@ -1,0 +1,91 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Defender for Cloud plan inventory", "Azure Policy Insights", "Azure Resource Graph", "Key Vault diagnostic settings and Defender XDR"],
+  "scope": "Security configuration for all five enabled subscriptions and all production repositories and deployment connections in scope.",
+  "completeForDeclaredScope": true,
+  "preventiveBaseline": {
+    "scope": "northstar-root",
+    "owners": ["Security Architecture", "Cloud Platform"],
+    "assignment": "Northstar MCSB production baseline",
+    "enforcementMode": "Default",
+    "denyExamples": ["Public access to production vaults", "VM deployment without encryption at host", "Unapproved regions"],
+    "deployIfNotExists": ["Activity Log export", "Key Vault diagnostic settings"],
+    "lastVendingVerification": ["VEND-107 baseline and Defender active before handover", "VEND-108 baseline and Defender active before handover"]
+  },
+  "socRouting": {
+    "workspace": "law-platform",
+    "sentinel": "sentinel-northstar",
+    "subscriptionId": "sub-management",
+    "connector": "Defender XDR",
+    "triageOwner": "Northstar SOC",
+    "escalationOwner": "Cloud Platform On-Call",
+    "severityHighAcknowledgementMinutes": 15,
+    "subscriptionsWithoutDetection": [],
+    "duplicateUnmanagedSiemWorkspaces": [],
+    "tenantHunt": "SOC queries all subscription detections from the central workspace."
+  },
+  "encryptionAndVaults": {
+    "encryptedStorageAccounts": 8,
+    "unencryptedStorageAccounts": 0,
+    "unencryptedDisks": 0,
+    "customerManagedKeyBindings": [
+      {
+        "resource": "retail-orders-prod",
+        "vault": "kv-platform-keys",
+        "rotationPolicyDays": 90,
+        "accessLogsDestination": "law-platform",
+        "lastRotation": "2026-10-10"
+      }
+    ],
+    "secretStore": "Azure Key Vault per workload; platform keys in the platform key vault",
+    "productionSecretRotationAudit": "All active production vault secrets rotated within 90 days.",
+    "liveCredentialsFoundInRepoOrCiScan": 0,
+    "pipelineVariableGroupsWithProductionCredentials": 0,
+    "checks": ["Defender for DevOps scan DEVSEC-81", "Key Vault metadata review KV-209"]
+  },
+  "value": [
+    {
+      "subscriptionId": "sub-connectivity",
+      "defenderCspm": "Enabled",
+      "serverProtection": "Enabled",
+      "storageProtection": "Enabled",
+      "alertsDestination": "sentinel-northstar",
+      "baselineVersion": "MCSB-Northstar-4.2"
+    },
+    {
+      "subscriptionId": "sub-management",
+      "defenderCspm": "Enabled",
+      "serverProtection": "Enabled",
+      "storageProtection": "Enabled",
+      "alertsDestination": "sentinel-northstar",
+      "baselineVersion": "MCSB-Northstar-4.2"
+    },
+    {
+      "subscriptionId": "sub-identity",
+      "defenderCspm": "Enabled",
+      "serverProtection": "Enabled",
+      "storageProtection": "Enabled",
+      "alertsDestination": "sentinel-northstar",
+      "baselineVersion": "MCSB-Northstar-4.2"
+    },
+    {
+      "subscriptionId": "sub-retail-prod",
+      "defenderCspm": "Enabled",
+      "serverProtection": "Enabled",
+      "storageProtection": "Enabled",
+      "alertsDestination": "sentinel-northstar",
+      "baselineVersion": "MCSB-Northstar-4.2"
+    },
+    {
+      "subscriptionId": "sub-retail-test",
+      "defenderCspm": "Enabled",
+      "serverProtection": "Enabled",
+      "storageProtection": "Enabled",
+      "alertsDestination": "sentinel-northstar",
+      "baselineVersion": "MCSB-Northstar-4.2"
+    }
+  ]
+}

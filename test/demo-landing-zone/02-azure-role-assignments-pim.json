@@ -1,0 +1,111 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Microsoft Graph role assignments and sign-in logs", "Azure Resource Manager role assignments", "Entra PIM and Access Reviews"],
+  "scope": "All active and eligible Entra tenant roles, Azure RBAC grants at the Tenant Root Group and descendants, workforce domains, app registrations and CI connections.",
+  "completeForDeclaredScope": true,
+  "privilegedReview": {
+    "completedOn": "2026-10-23",
+    "reviewer": "Identity Operations",
+    "standingHumanOwnerAtManagementGroupRoot": 0,
+    "externalRootAdministrators": 0,
+    "standingHumanTenantAdministratorsOutsideEmergencySet": 0,
+    "sampleActivation": {
+      "id": "PIM-0185",
+      "approvedBy": "Identity Operations",
+      "durationMinutes": 42,
+      "signInAuditExported": true
+    }
+  },
+  "workforceIdentity": {
+    "corporateIdp": "Northstar Corporate AD FS",
+    "federatedDomain": "workforce.northstar.example",
+    "cloudLocalHumanAccounts": ["emergency-access-a", "emergency-access-b"],
+    "sharedLogins": 0,
+    "leaverTest": {
+      "run": "JML-118",
+      "timestamp": "2026-10-16T08:00:00Z",
+      "sessionsRevoked": true,
+      "azureAccessAfterRevocation": "Denied"
+    }
+  },
+  "workloadIdentity": {
+    "runtime": [
+      {
+        "workload": "retail-prod-api",
+        "method": "SystemAssigned managed identity"
+      },
+      {
+        "workload": "retail-test-api",
+        "method": "SystemAssigned managed identity"
+      }
+    ],
+    "platformCiConnection": "Azure DevOps workload identity federation",
+    "applicationCiConnections": "Azure DevOps workload identity federation",
+    "passwordCredentialCount": 0,
+    "unfederatedPipelineConnections": 0
+  },
+  "emergencySignIns": {
+    "cloudOnly": true,
+    "independentCustodians": ["Security Duty Manager", "Platform Duty Manager"],
+    "dailyUse": false,
+    "coverageWindowDays": 90,
+    "routineSignIns": 0,
+    "testEvents": [
+      {
+        "event": "ER-TEST-1020",
+        "incident": "SOC-1842",
+        "severity": "High",
+        "alertDelaySeconds": 94
+      }
+    ]
+  },
+  "roleAssignments": [
+    {
+      "principalId": "emergency-access-a",
+      "principalType": "Member",
+      "roleDefinitionId": "Global Administrator",
+      "scope": "tenant",
+      "assignmentType": "Active",
+      "signInMethod": "Hardware-bound passkey",
+      "purpose": "Emergency access only"
+    },
+    {
+      "principalId": "emergency-access-b",
+      "principalType": "Member",
+      "roleDefinitionId": "Global Administrator",
+      "scope": "tenant",
+      "assignmentType": "Active",
+      "signInMethod": "Hardware-bound passkey",
+      "purpose": "Emergency access only"
+    },
+    {
+      "principalId": "platform-operators",
+      "principalType": "Group",
+      "roleDefinitionId": "Privileged Role Administrator",
+      "scope": "tenant",
+      "assignmentType": "Eligible",
+      "maximumActivationMinutes": 60,
+      "requiresApproval": true,
+      "requiresJustification": true,
+      "auditDestination": "law-platform"
+    },
+    {
+      "principalId": "retail-prod-delivery",
+      "principalType": "Group",
+      "roleDefinitionId": "Retail Workload Deployer",
+      "scope": "sub-retail-prod/rg-retail-prod",
+      "assignmentType": "Eligible",
+      "permittedActions": "Application deployment only. Policy, connectivity and logging are excluded."
+    },
+    {
+      "principalId": "retail-test-delivery",
+      "principalType": "Group",
+      "roleDefinitionId": "Retail Workload Deployer",
+      "scope": "sub-retail-test/rg-retail-test",
+      "assignmentType": "Eligible"
+    }
+  ]
+}

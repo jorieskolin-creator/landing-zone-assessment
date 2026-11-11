@@ -1,0 +1,108 @@
+{
+  "synthetic": true,
+  "provider": "Azure",
+  "tenant": "northstar-demo.onmicrosoft.com",
+  "capturedAt": "2026-10-30T12:00:00Z",
+  "collectedFrom": ["Azure Management Groups", "Azure Resource Graph", "Microsoft Billing", "Entra sign-in and access reviews"],
+  "scope": "Tenant Root Group and all five enabled subscriptions. Corporate directory and billing reconciliation includes external directories and unused agreements.",
+  "completeForDeclaredScope": true,
+  "directoryReconciliation": {
+    "registeredDirectories": [
+      {
+        "name": "northstar-demo.onmicrosoft.com",
+        "scopeStatus": "included",
+        "productionSubscriptions": 1
+      },
+      {
+        "name": "Partner B2B collaboration directory",
+        "scopeStatus": "excluded",
+        "productionSubscriptions": 0
+      },
+      {
+        "name": "Training sandbox directory",
+        "scopeStatus": "excluded",
+        "productionSubscriptions": 0
+      }
+    ],
+    "unmappedProductionSubscriptions": 0,
+    "unownedExternalDirectories": 0,
+    "acquisitionTenants": []
+  },
+  "billingReconciliation": {
+    "agreement": "Microsoft Customer Agreement",
+    "billingAccount": "mca-northstar",
+    "associatedTenant": "northstar-demo.onmicrosoft.com",
+    "invoiceSections": [
+      {
+        "name": "Platform",
+        "owner": "Platform Finance",
+        "subscriptions": ["sub-connectivity", "sub-management", "sub-identity"]
+      },
+      {
+        "name": "Retail Production",
+        "owner": "Retail Finance",
+        "subscriptions": ["sub-retail-prod"]
+      },
+      {
+        "name": "Retail Nonproduction",
+        "owner": "Retail Finance",
+        "subscriptions": ["sub-retail-test"]
+      }
+    ],
+    "unmatchedInvoices": 0,
+    "ownerlessSubscriptions": 0,
+    "unusedAgreements": [
+      {
+        "name": "Legacy EA",
+        "status": "Closed"
+      }
+    ]
+  },
+  "managementPlaneReview": {
+    "subscriptions": ["sub-connectivity", "sub-management", "sub-identity"],
+    "applicationResources": 0,
+    "applicationTeamContributorAssignments": 0,
+    "approvedResourceTypes": ["Azure Firewall", "Virtual Network Gateway", "Private DNS Resolver", "Log Analytics", "Sentinel", "Key Vault"],
+    "accessReview": "Platform subscription roles reviewed separately on 2026-10-23. All elevated operator grants are PIM eligible."
+  },
+  "rootRecoveryReview": {
+    "packageReference": "ER-01",
+    "custodians": ["Security Duty Manager", "Platform Duty Manager"],
+    "storage": "Offline sealed recovery package under dual control",
+    "lastRecoveryDrill": "2026-10-20",
+    "drillResult": "Recovered tenant administrator access with either independent hardware-backed identity. Sentinel incident SOC-1842 delivered in 94 seconds."
+  },
+  "managementGroups": [
+    {
+      "displayName": "Tenant Root Group",
+      "id": "/providers/Microsoft.Management/managementGroups/northstar-root",
+      "parentId": null,
+      "owner": "Cloud Platform",
+      "productionPlacement": "Vending rejects production subscriptions outside Corp-Prod in this tenant."
+    },
+    {
+      "displayName": "Platform",
+      "parentId": "northstar-root",
+      "children": ["Connectivity", "Management", "Identity"],
+      "owner": "Cloud Platform"
+    },
+    {
+      "displayName": "Landing Zones",
+      "parentId": "northstar-root",
+      "children": ["Corp-Prod", "Corp-NonProd"],
+      "owner": "Cloud Platform"
+    },
+    {
+      "displayName": "Corp-Prod",
+      "parentId": "Landing Zones",
+      "subscriptions": ["sub-retail-prod"],
+      "owner": "Retail Engineering"
+    },
+    {
+      "displayName": "Corp-NonProd",
+      "parentId": "Landing Zones",
+      "subscriptions": ["sub-retail-test"],
+      "owner": "Retail Engineering"
+    }
+  ]
+}
