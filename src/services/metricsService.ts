@@ -18,8 +18,8 @@ const hasSourceQuote = (item: AuditItem): boolean =>
 
 export const hasVerifiedSourceCoverage = (item: AuditItem, stream: 'maturity' | 'antipattern'): boolean => {
   if (item.verification_unresolved) return false;
-  if (item.assessment_status !== 'not_assessed' && hasSourceQuote(item)) return true;
-  if (item.evidence_check_status === 'unsupported' || item.evidence_check_status === 'missing') return false;
+  if (item.assessment_status === 'not_assessed' || item.evidence_check_status === 'unsupported' || item.evidence_check_status === 'missing') return false;
+  if (hasSourceQuote(item)) return true;
   if (stream === 'antipattern') {
     return inferAntiPatternAbsenceStatus(item) === 'tested_absent' && Boolean(item.coverage_reason);
   }
@@ -166,8 +166,8 @@ export const calculateMetrics = (
     if (absenceStatus === 'confirmed_present') {
       antipatternUncontrolled++;
     }
-    if (absenceStatus === 'confirmed_present' || absenceStatus === 'partially_present') antipatternCount++;
-    if (absenceStatus === 'confirmed_present' || absenceStatus === 'partially_present' || item.count > 0) {
+    if (scoreEligible && (absenceStatus === 'confirmed_present' || absenceStatus === 'partially_present')) {
+      antipatternCount++;
       const findingLabel = absenceStatus === 'partially_present' ? 'Partial finding' : 'Finding';
       antipatternFindings.push(`[${key}] ${findingLabel}: ${item.evidence.substring(0, 100)}...`);
     }

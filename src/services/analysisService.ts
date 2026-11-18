@@ -389,14 +389,15 @@ export const analyzeDocument = async (
     );
     const dataSignalCoverage = buildDataSignalCoverageReport(retrievalScope);
     const text = renderPseudonymousSourceContext(sourceRegistry, 120000);
-    const baselineSourcePackets = buildDomainPackets(sourceRegistry, [...scopedBatchIds]);
+    const baselineSourcePackets = buildDomainPackets(sourceRegistry);
+    const scopedSourcePackets = Object.fromEntries(scopedBatchIds.map(id => [id, baselineSourcePackets[id]]));
     const gapPlan = planGapRetrieval({
-      packets: baselineSourcePackets,
+      packets: scopedSourcePackets,
       derived: derivedAnalyticalEvidence,
       locations: derivedRun.locations
     });
-    const boundedRetrievalResult = applyBoundedRetrieval(sourceRegistry, baselineSourcePackets, { gap_plan: gapPlan });
-    let sourcePackets = boundedRetrievalResult.packets;
+    const boundedRetrievalResult = applyBoundedRetrieval(sourceRegistry, scopedSourcePackets, { gap_plan: gapPlan });
+    let sourcePackets = { ...baselineSourcePackets, ...boundedRetrievalResult.packets };
     const boundedRetrieval = boundedRetrievalResult.trace;
     if (boundedRetrieval.domains.some(domain => domain.passes.some(pass => pass.selected_chunk_ids.length > 0))) {
       const privacyAgain = sanitizeEvidenceSources(acquiredSources);
@@ -660,9 +661,6 @@ export const analyzeDocument = async (
       phase_1_audit_logs: auditLogs,
       evidence_check: aggregatedRawData.evidence_check,
       validation: phase1Validation,
-      effective_source_registry_status: sourceRegistryStatus,
-      effective_evidence_integrity: evidenceIntegrity,
-      semantic_gap_retrieval: aggregatedRawData.semantic_gap_retrieval,
     });
     serverLog(runId, 'info', 'stage_complete', {
       stage: 'forensic_audit',
@@ -717,7 +715,11 @@ export const analyzeDocument = async (
     // LOW   → findings (no roadmap, no case studies)
     // MEDIUM → cautious (per-phase confidence + assumptions, hedged verbs)
     // HIGH  → directive (current behavior — full tactics, case studies)
-    const confidenceBracket = aggregatedRawData.evidence_check.failed
+    const deterministicBlockReason = aggregatedRawData.evidence_check.failed
+      ? 'REQUIRED_EVIDENCE_CHECK_FAILED' as const
+      : validationData.metrics.evidence_density < EVIDENCE_DENSITY_BLOCK
+        ? 'EVIDENCE_DENSITY_BELOW_FLOOR' as const : undefined;
+    const confidenceBracket = deterministicBlockReason
       ? 'LOW'
       : bracketFromValidation(validationData);
     const bracketDetail = explainBracket(confidenceBracket, {
@@ -1219,7 +1221,9 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
     });
 
     const buildDeterministicLowConfidenceStrategy = () => {
-      const outcome = `The assessment completed deterministic acquisition and analysis, but evidence density was ${Math.round(validationData.metrics.evidence_density)}% and ${validationData.silent_areas.length} criteria remained silent. This supports a blocking decision, not a directive summary or roadmap.`;
+      const outcome = deterministicBlockReason === 'REQUIRED_EVIDENCE_CHECK_FAILED'
+        ? 'Required source verification did not complete. Findings that depend on the unavailable verification remain unresolved.'
+        : `Verified evidence coverage was ${Math.round(validationData.metrics.evidence_density)}%. ${validationData.silent_areas.length} capability criteria had no verified evidence coverage.`;
       const boundary = 'Decision: NO_GO. No remediation roadmap is issued. Gather the missing evidence identified below, validate the candidate themes, and rerun the assessment before authorizing implementation.';
       return {
         phase_3_strategy: {
@@ -1385,12 +1389,12 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
 
     let strategyData: any;
     let deterministicSynthesisFallback = false;
-    if (validationData.metrics.evidence_density < EVIDENCE_DENSITY_BLOCK) {
+    if (deterministicBlockReason) {
       deterministicSynthesisFallback = true;
       strategyData = buildDeterministicLowConfidenceStrategy();
       serverLog(runId, 'warn', 'synthesis_deterministic_fallback', {
         stage: synthesisStage,
-        reason_code: 'EVIDENCE_DENSITY_BELOW_FLOOR',
+        reason_code: deterministicBlockReason,
         evidence_density: Math.round(validationData.metrics.evidence_density),
         silent_areas: validationData.silent_areas.length,
       });
@@ -1412,13 +1416,18 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
     await checkpoint('synthesis', 'accepted', { phase_3_strategy: strategyData.phase_3_strategy });
     emitProgress({ stage: 'synthesis', status: deterministicSynthesisFallback ? 'completed_with_warnings' : 'completed' });
     emitProgress({ stage: 'verification', status: 'in_progress' });
-    let acceptedFactChecks = await runFactCheck(strategyData, 1);
+    let acceptedFactChecks: Awaited<ReturnType<typeof runFactCheck>> = deterministicBlockReason ? {
+      merged: {
+        attempts: 0, total_claims: 0, supported_count: 0, unsupported_claims: [],
+        failed: false, skipped_reason: deterministicBlockReason,
+      },
+    } : await runFactCheck(strategyData, 1);
     let factCheck = acceptedFactChecks.merged;
-    await checkpoint('fact_check', 'pass_1', { fact_check: factCheck });
+    await checkpoint('fact_check', deterministicBlockReason ? 'skipped' : 'pass_1', { fact_check: factCheck });
     let lastUnsupported: FactCheckClaim[] = factCheck.unsupported_claims;
-    if (!factCheck.failed) trajectory.push(snapshot(factCheck));
+    if (!factCheck.failed && !factCheck.skipped_reason) trajectory.push(snapshot(factCheck));
 
-    let attempt = 1;
+    let attempt = factCheck.attempts;
     while (
       !factCheck.failed &&
       lastUnsupported.length > 0 &&
@@ -1482,7 +1491,9 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
     factCheck.attempts = attempt;
     factCheck.trajectory = trajectory;
 
-    if (factCheck.failed) {
+    if (factCheck.skipped_reason) {
+      console.info(`[Landing Zone] Fact-check skipped: ${factCheck.skipped_reason}.`);
+    } else if (factCheck.failed) {
       console.warn('[Landing Zone] Fact-check unavailable; failure details retained in the governed result, not operational logs.');
     } else {
       console.log(`[Landing Zone] Fact-check complete after ${factCheck.attempts} pass(es): ${factCheck.supported_count}/${factCheck.total_claims} claims supported, ${lastUnsupported.length} unsupported.`);
@@ -1672,7 +1683,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
 
     // LLM-augmented explanation only when the deterministic gate flagged
     // something. GO results don't need narrative — the metrics speak for them.
-    if (qualityGate.decision !== 'GO') {
+    if (qualityGate.decision !== 'GO' && !deterministicBlockReason) {
       const qgExplainStarted = Date.now();
       const explanation = await runQualityGateExplanation(qualityGate, text, { runId });
       qualityGate.llm_explanation = explanation;

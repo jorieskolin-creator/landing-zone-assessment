@@ -843,6 +843,9 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
           logs[stream][id] = {
             ...logs[stream][id],
             evidence_check_status: 'unsupported',
+            evidence: 'No citation could be matched to the source.',
+            reasoning: 'The evidence verification result could not be bound to its cited source.',
+            verified_count: 0,
             assessment_status: 'not_assessed',
             question_results: ['unknown', 'unknown', 'unknown'],
             is_silent: true,
@@ -879,6 +882,7 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
           count: 0,
           status: stream === 'antipattern' ? 'OK' : 'NOK',
           evidence: reason,
+          reasoning: reason,
           evidence_quotes: [],
           assessment_status: 'not_assessed',
           question_results: ['unknown', 'unknown', 'unknown'],
@@ -895,6 +899,7 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
         if (verdict) {
           Object.assign(verdict, {
             status: 'unsupported',
+            assessment_status: 'not_assessed',
             verified_count: 0,
             rationale: reason,
             quote_supported: false,

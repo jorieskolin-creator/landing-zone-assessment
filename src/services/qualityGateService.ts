@@ -205,7 +205,7 @@ export const runQualityGate = (
     }
   }
 
-  if (factCheck && !factCheck.failed) {
+  if (factCheck && !factCheck.failed && !factCheck.skipped_reason) {
     const sanitizedCount = factCheck.sanitized_claims?.length || 0;
     const blockingUnsupported = factCheck.unsupported_claims.filter(isBlockingUnsupportedClaim);
     const hygieneUnsupported = factCheck.unsupported_claims.filter(c => !isBlockingUnsupportedClaim(c));
@@ -237,6 +237,9 @@ export const runQualityGate = (
 
   if (!factCheck) {
     blocking_reasons.push('Required fact-check result is missing. Strategy is not actionable.');
+  } else if (factCheck.skipped_reason) {
+    if (blocking_reasons.length === 0) blocking_reasons.push('Required fact-check did not run.');
+    notes.push('Fact-check was skipped because a required evidence check had already blocked the assessment.');
   } else if (factCheck.failed) {
     blocking_reasons.push(
       `Required fact-check did not complete (${factCheck.failure_reason || 'verification failed'}). Strategy is not actionable.`

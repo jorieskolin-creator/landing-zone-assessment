@@ -1673,6 +1673,7 @@ export interface RequiredTacticDisposition {
 }
 
 export interface FactCheckResult {
+  skipped_reason?: 'REQUIRED_EVIDENCE_CHECK_FAILED' | 'EVIDENCE_DENSITY_BELOW_FLOOR';
   attempts: number;
   total_claims: number;
   supported_count: number;

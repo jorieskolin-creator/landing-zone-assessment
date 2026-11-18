@@ -52,63 +52,24 @@ export const resolveAntiPatternAbsenceStatus = (input: {
   const original = clampScore(input.originalCount);
   const explicit = normalizeAntiPatternAbsenceStatus(input.explicitStatus);
   const status = input.evidenceStatus;
-  const combinedText = [
-    input.rationale,
-    input.coverageReason,
-    input.existing?.coverage_reason,
-    input.existing?.reasoning,
-    input.existing?.evidence
-  ].filter(Boolean).join(' ');
-
+  if (status === 'unsupported' || status === 'missing') return 'unknown_absent';
   if (verified >= 3) return 'confirmed_present';
   if (verified > 0) return 'partially_present';
-
-  // Evidence Check cannot create a harmful finding that the scanner did not
-  // identify. For a zero-score scanner result, only a governed tested-absence
-  // verdict may become positive control; every other absence remains unknown.
-  if (original === 0) {
-    return explicit === 'tested_absent' && (status === undefined || status === 'supported')
-      ? 'tested_absent'
-      : 'unknown_absent';
-  }
-
-  const weakScoredSignal = original > 0 && status === 'weak';
-  const explicitPresenceSignal = explicit === 'confirmed_present' || explicit === 'partially_present';
-  const textualPresenceSignal = hasAntiPatternPresenceSignal(combinedText);
-  if (weakScoredSignal || ((explicitPresenceSignal || textualPresenceSignal) && status !== 'unsupported' && status !== 'missing')) {
-    return 'partially_present';
-  }
-
-  if (original > 0) return 'unknown_absent';
-  if (explicit === 'tested_absent' && (status === undefined || status === 'supported')) return 'tested_absent';
-  if (explicit === 'unknown_absent') return 'unknown_absent';
-
-  return inferAntiPatternAbsenceStatus({
-    ...input.existing,
-    count: verified,
-    antipattern_absence_status: undefined,
-    coverage_reason: input.coverageReason || input.existing?.coverage_reason || input.rationale
-  });
+  if (original === 0 && explicit === 'tested_absent' && status === 'supported') return 'tested_absent';
+  return 'unknown_absent';
 };
 
 export const inferAntiPatternAbsenceStatus = (item: Partial<AuditItem> | undefined): AntiPatternAbsenceStatus => {
-  const count = typeof item?.count === 'number' ? Math.max(0, Math.min(3, Math.round(item.count))) : 0;
+  if (!item || item.verification_unresolved || item.assessment_status === 'not_assessed'
+    || item.evidence_check_status === 'unsupported' || item.evidence_check_status === 'missing') return 'unknown_absent';
+
+  const explicit = normalizeAntiPatternAbsenceStatus(item.antipattern_absence_status);
+  if (explicit === 'unknown_absent') return explicit;
+  const count = clampScore(item.count);
   if (count >= 3) return 'confirmed_present';
   if (count > 0) return 'partially_present';
-
-  const explicit = normalizeAntiPatternAbsenceStatus(item?.antipattern_absence_status);
-  if (explicit === 'confirmed_present' || explicit === 'partially_present') return explicit;
-
-  const text = `${item?.coverage_reason || ''} ${item?.reasoning || ''}`.toLowerCase();
-  if (hasAntiPatternPresenceSignal(text)) return 'partially_present';
-  if (text.includes('not assessed') || text.includes('insufficient to verify absence')) return 'unknown_absent';
-  if (
-    explicit === 'tested_absent'
-    && item?.evidence_check_status === 'supported'
-    && typeof item?.coverage_reason === 'string'
-    && item.coverage_reason.trim().length > 0
-  ) return 'tested_absent';
-  if (explicit === 'unknown_absent') return 'unknown_absent';
+  if (explicit === 'tested_absent' && item.evidence_check_status === 'supported'
+    && item.coverage_reason?.trim()) return explicit;
   return 'unknown_absent';
 };
 
