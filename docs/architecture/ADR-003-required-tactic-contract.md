@@ -27,7 +27,7 @@ Every required tactic ends with exactly one disposition:
   disposition.
 
 The governed roadmap fact-check transport uses
-`finops_roadmap_fact_check_v2`. Because provider structured output is strict,
+`assessment_roadmap_fact_check_v2`. Because provider structured output is strict,
 every claim emits `tactic_disposition`: `not_applicable` for ordinary claims,
 or `contraindicated`/`citation_rejected` for an unsupported roadmap tactic
 citation. `not_applicable` is discarded at the application boundary and can

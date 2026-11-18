@@ -11,13 +11,19 @@ import type {
 const EVIDENCE_CHECK_STATUSES: EvidenceCheckStatus[] = ['supported', 'weak', 'unsupported', 'missing'];
 const ANTIPATTERN_ABSENCE_STATUSES: AntiPatternAbsenceStatus[] = ['confirmed_present', 'partially_present', 'tested_absent', 'unknown_absent'];
 
-const clampScore = (value: unknown): number => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
-  return Math.min(Math.max(Math.round(value), 0), 3);
-};
-
 export const normalizeEvidenceText = (value: string): string =>
   value.toLowerCase().replace(/\s+/g, ' ').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").trim();
+
+const XML_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const decodePacketXml = (text: string): string =>
+  text.replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => XML_ENTITIES[name]);
+
+const containsEvidenceSpan = (text: string, quote: string): boolean => {
+  const source = normalizeEvidenceText(text);
+  const raw = normalizeEvidenceText(quote);
+  const decoded = normalizeEvidenceText(decodePacketXml(quote));
+  return (raw.length >= 4 && source.includes(raw)) || (decoded.length >= 4 && source.includes(decoded));
+};
 
 export const stampQuoteLocators = (
   quote: Partial<EvidenceQuote>,
@@ -43,13 +49,15 @@ export const isEvidenceQuoteBoundToChunk = (
   && typeof quote.quote === 'string'
   && manifestItem
   && chunk
+  && quote.chunk_id === manifestItem.chunk_id
+  && quote.chunk_id === chunk.chunk_id
   && quote.source_id === manifestItem.source_id
+  && quote.source_id === chunk.source_id
   && quote.page_id === manifestItem.page_id
   && quote.page_number === manifestItem.page_number
   && quote.sheet_name === manifestItem.sheet_name
   && quote.row_number === manifestItem.row_number
-  && normalizeEvidenceText(quote.quote).length >= 4
-  && normalizeEvidenceText(chunk.text).includes(normalizeEvidenceText(quote.quote))
+  && containsEvidenceSpan(chunk.text, quote.quote)
 );
 
 export const isEvidenceQuoteBoundToDerivedEvidence = (
@@ -66,6 +74,7 @@ export const isEvidenceQuoteBoundToDerivedEvidence = (
   && evidence.mode === 'authoritative'
   && evidence.report_eligible
   && evidence.eligibility.state === 'ELIGIBLE'
+  && evidence.llm_policy?.may_use_as_evidence !== false
   && evidence.derivation?.analyzer_id !== 'crucial_item_coverage_v1'
   && quote.derived_evidence_id === evidence.evidence_id
   && quote.source_id === evidence.source_id
@@ -105,32 +114,46 @@ export const isValidEvidenceVerifierItem = (input: {
   return true;
 };
 
-export const verifyTextEvidenceSupport = (item: Partial<AuditItem> | undefined, sourceText: string): EvidenceCheckStatus => {
-  const count = clampScore(item?.count);
-  if (item?.assessment_status === 'not_assessed') return 'weak';
+const packetDerivedQuoteMatches = (quote: EvidenceQuote, sourceText: string): boolean => {
+  const section = /<DERIVED_EVIDENCE count="\d+">\s*(\[[\s\S]*?\])\s*<\/DERIVED_EVIDENCE>/.exec(sourceText);
+  if (!section || !quote.derived_evidence_id || !quote.source_id) return false;
+  try {
+    const facts = JSON.parse(section[1]) as Array<Pick<DerivedAnalyticalEvidence, 'evidence_id' | 'source_id' | 'summary_lines'>>;
+    return facts.some(fact => fact.evidence_id === quote.derived_evidence_id && fact.source_id === quote.source_id
+      && fact.summary_lines.some(line => normalizeEvidenceText(line) === normalizeEvidenceText(quote.quote)));
+  } catch {
+    return false;
+  }
+};
 
+export const verifyTextEvidenceSupport = (item: Partial<AuditItem> | undefined, sourceText: string): EvidenceCheckStatus => {
+  if (item?.assessment_status === 'not_assessed') return 'weak';
   const quotes = Array.isArray(item?.evidence_quotes) ? item.evidence_quotes : [];
   const textQuotes = quotes.filter(q => q && q.evidence_source !== 'image' && typeof q.quote === 'string' && q.quote.trim().length > 0);
-  const imageQuotes = quotes.filter(q => q?.evidence_source === 'image');
+  if (!textQuotes.length) return quotes.some(q => q?.evidence_source === 'image') ? 'supported' : 'missing';
 
-  if (textQuotes.length === 0) {
-    return imageQuotes.length > 0 ? 'supported' : 'missing';
+  const chunkText = new Map<string, string>();
+  for (const match of sourceText.matchAll(/<CHUNK id="([^"]+)" source_id="([^"]+)"[^>]*>([\s\S]*?)<\/CHUNK>/g)) {
+    chunkText.set(`${decodePacketXml(match[1])}|${decodePacketXml(match[2])}`, decodePacketXml(match[3]));
   }
+  const isPacket = chunkText.size > 0 || sourceText.includes('<EVIDENCE_LANE_STAGE_PACKET');
+  let weakMatch = false;
+  for (const quote of textQuotes) {
+    if (isPacket && quote.evidence_source === 'derived') {
+      if (packetDerivedQuoteMatches(quote, sourceText)) return 'supported';
+      continue;
+    }
+    const source = isPacket ? chunkText.get(`${quote.chunk_id}|${quote.source_id}`) : sourceText;
+    if (source === undefined) continue;
+    if (containsEvidenceSpan(source, quote.quote)) return 'supported';
 
-  const normalizedSource = normalizeEvidenceText(sourceText);
-  for (const q of textQuotes) {
-    const quote = normalizeEvidenceText(q.quote);
-    if (quote.length >= 4 && normalizedSource.includes(quote)) return 'supported';
-
-    const meaningfulWords = quote
-      .split(/\W+/)
-      .filter(w => w.length > 3)
-      .slice(0, 12);
+    const normalizedSource = normalizeEvidenceText(source);
+    const meaningfulWords = normalizeEvidenceText(decodePacketXml(quote.quote)).split(/\W+/)
+      .filter(word => word.length > 3).slice(0, 12);
     if (meaningfulWords.length >= 4) {
-      const found = meaningfulWords.filter(w => normalizedSource.includes(w)).length;
-      if (found / meaningfulWords.length >= 0.65) return 'weak';
+      const found = meaningfulWords.filter(word => normalizedSource.includes(word)).length;
+      weakMatch ||= found / meaningfulWords.length >= 0.65;
     }
   }
-
-  return 'unsupported';
+  return weakMatch ? 'weak' : 'unsupported';
 };

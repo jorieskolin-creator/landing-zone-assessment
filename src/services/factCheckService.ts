@@ -135,7 +135,7 @@ const compactMetrics = (phase2: Phase2Validation): string => {
     `corroborated_maturity=${m.corroborated_maturity === null ? 'NA' : `${Math.round(m.corroborated_maturity)}%`}`,
     `observed_maturity=${m.observed_maturity === null ? 'NA' : `${Math.round(m.observed_maturity)}%`}`,
     `assessment_resolution=${Math.round(m.assessment_resolution)}%`,
-    `adjusted_finops_maturity=${m.adjusted_maturity === null ? 'NA' : `${Math.round(m.adjusted_maturity)}%`}`,
+    `adjusted_landing_zone_maturity=${m.adjusted_maturity === null ? 'NA' : `${Math.round(m.adjusted_maturity)}%`}`,
     `assessment_sufficiency=${phase2.assessment_sufficiency.decision}`,
     `assessment_sufficiency_warnings=${phase2.assessment_sufficiency.warning_reasons?.join(' | ') || 'none'}`,
     `silent_domains=${phase2.assessment_sufficiency.silent_domain_ids?.join(',') || 'none'}`,

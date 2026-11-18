@@ -1,6 +1,5 @@
 /**
  * Production knowledge access for Landing Zone Assessment.
- * FinOps JSON under this folder is characterization fixtures only.
  */
 import type { AssessmentDomainPack } from "../domain-packs/assessment-domain-pack";
 import tacticsManifest from "../domain-packs/landing-zone/tactics.json";
@@ -253,4 +252,4 @@ export const mustNotFallbackToFinopsContent = (): boolean =>
   Boolean(LANDING_ZONE_PACK.knowledgeBase.must_not_fallback_to_finops_content);
 
 export const landingZoneContentPendingMessage = (kind: "tactics" | "knowledge_base"): string =>
-  `Landing Zone ${kind} content is not available (status=${kind === "tactics" ? landingZoneTacticsStatus() : LANDING_ZONE_PACK.knowledgeBase.status}). This assessment must not fall back to FinOps Engine knowledge or tactics.`;
+  `Landing Zone ${kind} content is not available (status=${kind === "tactics" ? landingZoneTacticsStatus() : LANDING_ZONE_PACK.knowledgeBase.status}).`;

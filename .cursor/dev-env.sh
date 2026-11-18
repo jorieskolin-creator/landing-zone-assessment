@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Development environment defaults for the FinOps Engine Cloud Agent.
+# Development environment defaults for the Landing Zone Assessment Cloud Agent.
 #
 # Each value is only filled when the variable is unset or empty (`:=`), so any
 # real credential injected through Cursor Secrets (SECRET_KEY or the provider
@@ -10,7 +10,7 @@
 # OpenAI/Anthropic/xAI requires real keys added as Cursor Secrets.
 
 # Local infrastructure started by .cursor/start.sh
-: "${DATABASE_URL:=postgresql://finops:finops@localhost:5432/finops_dev}"
+: "${DATABASE_URL:=postgresql://landing_zone:landing_zone@localhost:5432/landing_zone_dev}"
 : "${REDIS_URL:=redis://localhost:6379}"
 
 # Shared login password + HMAC session key (dev-only default).

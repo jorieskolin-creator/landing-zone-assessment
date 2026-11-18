@@ -28,15 +28,6 @@ export const ASSESSMENT_OUTPUT_CONTRACT_IDS = Object.freeze({
   roadmapFactCheck: "assessment_roadmap_fact_check_v2",
 });
 
-export const FINOPS_OUTPUT_CONTRACT_ALIASES: Record<string, string> = {
-  finops_evidence_gap_query_v1: ASSESSMENT_OUTPUT_CONTRACT_IDS.evidenceGapQuery,
-  finops_evidence_synthesis_v1: ASSESSMENT_OUTPUT_CONTRACT_IDS.evidenceSynthesis,
-  finops_roadmap_synthesis_v1: ASSESSMENT_OUTPUT_CONTRACT_IDS.roadmapSynthesis,
-  finops_findings_synthesis_v1: ASSESSMENT_OUTPUT_CONTRACT_IDS.findingsSynthesis,
-  finops_summary_fact_check_v1: ASSESSMENT_OUTPUT_CONTRACT_IDS.summaryFactCheck,
-  finops_roadmap_fact_check_v2: ASSESSMENT_OUTPUT_CONTRACT_IDS.roadmapFactCheck,
-};
-
 export type DomainId = string;
 export type CriterionId = string;
 export type EngineStream = "maturity" | "antipattern";
@@ -96,9 +87,6 @@ export const personaIds = (pack: AssessmentDomainPack): string[] => {
 
 export const persistencePrefix = (pack: AssessmentDomainPack): string =>
   pack.packId.replace(/-/g, "_");
-
-export const resolveOutputContractId = (contractId: string): string =>
-  FINOPS_OUTPUT_CONTRACT_ALIASES[contractId] ?? contractId;
 
 const escapedUniqueIds = (ids: string[]): string[] =>
   [...new Set(ids.filter(Boolean))]

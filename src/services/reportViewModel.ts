@@ -1,5 +1,5 @@
 import type { DiagnosticResult } from '../types';
-import { FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';
+import { LZ_ANTIPATTERNS, LZ_CRITERIA } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 
 export interface ReportMetricCard {
@@ -36,7 +36,7 @@ export interface ReportViewModel {
 }
 
 export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel => {
-  const maturityTotal = FINOPS_CRITERIA.length;
+  const maturityTotal = LZ_CRITERIA.length;
   const metrics = result.phase_2_validation.metrics;
   const evidenceCheck = result.quality_gate.evidence_check;
   const unresolvedAntiPatternIds = new Set(
@@ -50,7 +50,7 @@ export const buildReportViewModel = (result: DiagnosticResult): ReportViewModel 
   let testedAbsent = 0;
   let notAssessed = 0;
 
-  for (const criterion of FINOPS_ANTIPATTERNS) {
+  for (const criterion of LZ_ANTIPATTERNS) {
     const item = result.phase_1_audit_logs.antipattern[criterion.id];
     if (unresolvedAntiPatternIds.has(criterion.id)) continue;
     const status = inferAntiPatternAbsenceStatus(item);

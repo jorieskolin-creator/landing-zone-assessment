@@ -1,5 +1,5 @@
 import type { EvidenceCheckItem } from '../types';
-import { MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { LANDING_ZONE_CRITERION_INDEX } from '../knowledge_base';
 import { runStage, type RunContext } from './modelRouter';
 // @ts-expect-error Pure JS contract is also consumed by the serverless API.
 import { OUTPUT_CONTRACT_IDS, validateOutputContractText } from '../../lib/outputContracts.js';
@@ -7,7 +7,7 @@ import { OUTPUT_CONTRACT_IDS, validateOutputContractText } from '../../lib/outpu
 const MAX_QUERY_TEXT_LENGTH = 80;
 
 interface GapQueryOutput {
-  schema_version: 'assessment_evidence_gap_query_v1' | 'finops_evidence_gap_query_v1';
+  schema_version: 'assessment_evidence_gap_query_v1';
   domain_id: string;
   queries: Array<{ criterion_id: string; themes: string[]; terms: string[] }>;
 }
@@ -61,7 +61,7 @@ export const analyzeEvidenceGaps = async (input: {
   const weakItems = input.items.filter(item => item.status === 'weak' && item.rescan_recommended === true);
   if (weakItems.length === 0) return { failed: false };
   const criteria = weakItems.map(item => {
-    const definition = MASTER_BINGO_FINOPS[item.stream].find(candidate => candidate.id === item.id);
+    const definition = LANDING_ZONE_CRITERION_INDEX[item.stream].find(candidate => candidate.id === item.id);
     return {
       criterion_id: `${item.stream}.${item.id}`,
       title: safeSummary(definition?.title),
@@ -79,7 +79,7 @@ export const analyzeEvidenceGaps = async (input: {
   });
   const systemInstruction = `You are a bounded evidence-retrieval query planner. Convert only the supplied low-evidence criterion summaries into concise semantic search themes and terms for deterministic local search of the already-approved customer Source Registry.
 
-Return the exact ${OUTPUT_CONTRACT_IDS.evidenceGapQuery} JSON contract (finops_evidence_gap_query_v1 remains a versioned alias). Use each supplied criterion_id exactly. Propose synonyms, domain language, and likely labels that may retrieve relevant passages even when wording differs. Do not score, classify, diagnose, recommend, infer facts, request external search, or include source quotes. Do not use or request a knowledge base. Maximum four themes and eight terms per criterion.`;
+Return the exact ${OUTPUT_CONTRACT_IDS.evidenceGapQuery} JSON contract. Use each supplied criterion_id exactly. Propose synonyms, domain language, and likely labels that may retrieve relevant passages even when wording differs. Do not score, classify, diagnose, recommend, infer facts, request external search, or include source quotes. Do not use or request a knowledge base. Maximum four themes and eight terms per criterion.`;
 
   try {
     let validated: GapQueryOutput | undefined;

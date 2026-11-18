@@ -57,7 +57,7 @@ assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.evidenceSynth
 })), /INVALID_OUTPUT_CONTRACT/, 'Landing Zone domain_diagnosis requires pack keys A–H, not A–F');
 
 const gapQuery = {
-  schema_version: 'finops_evidence_gap_query_v1',
+  schema_version: 'assessment_evidence_gap_query_v1',
   domain_id: 'D',
   queries: [{ criterion_id: 'maturity.D1', themes: ['autoscaling controls'], terms: ['utilization threshold'] }],
 };
@@ -149,10 +149,7 @@ assert.deepEqual(
   validateOutputContractText(OUTPUT_CONTRACT_IDS.roadmapFactCheck, JSON.stringify(roadmapFactCheck)),
   roadmapFactCheck,
 );
-assert.deepEqual(
-  validateOutputContractText('finops_roadmap_fact_check_v2', JSON.stringify(roadmapFactCheck)),
-  roadmapFactCheck,
-);
+assert.throws(() => validateOutputContractText('finops_roadmap_fact_check_v2', JSON.stringify(roadmapFactCheck)), /INVALID_OUTPUT_CONTRACT/);
 assert.throws(
   () => validateOutputContractText(OUTPUT_CONTRACT_IDS.roadmapFactCheck, JSON.stringify({
     claims: roadmapFactCheck.claims.map(({ tactic_disposition, ...claim }) => claim),
@@ -246,6 +243,12 @@ const assessedForensic = {
   } : item),
 };
 assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(assessedForensic)), assessedForensic);
+const multiChunkFinding = structuredClone(assessedForensic);
+multiChunkFinding.items[0].evidence_quotes.push({ ...assessedQuote, chunk_id: 'src-001-c002' });
+assert.deepEqual(validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(multiChunkFinding)), multiChunkFinding);
+delete multiChunkFinding.items[0].evidence_quotes[1].chunk_id;
+assert.throws(() => validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify(multiChunkFinding)), /INVALID_OUTPUT_CONTRACT/);
+
 let provenanceError;
 try {
   validateOutputContractText(OUTPUT_CONTRACT_IDS.forensicAudit, JSON.stringify({

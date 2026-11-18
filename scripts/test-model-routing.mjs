@@ -305,8 +305,26 @@ assert.match(orchestrator, /<EVIDENCE_CONTEXT source_role="CUSTOMER_EVIDENCE">/)
 assert.match(orchestrator, /assertEvidenceLaneStagePacket\(packet\)/);
 assert.doesNotMatch(modelContracts, /\| 'preflight'/);
 assert.match(analysis, /model_mode: modelRoutingMode/);
-assert.match(analysis, /evidence_density < EVIDENCE_DENSITY_BLOCK[\s\S]*?reason_code: 'EVIDENCE_DENSITY_BELOW_FLOOR'/);
+assert.match(analysis, /evidence_density < EVIDENCE_DENSITY_BLOCK[\s\S]*?'EVIDENCE_DENSITY_BELOW_FLOOR'[\s\S]*?reason_code: deterministicBlockReason/);
 assert.match(server, /inspectServerBoot\(process\.env\)/);
 assert.doesNotMatch(server, /STARTUP_FAILED code=MODEL_ROUTING_CONFIGURATION_INVALID/);
 
 console.log('AI role routing policy tests passed');
+
+const landingZoneEnv = {
+  ...env,
+  TEST_MODE: 'false',
+  GEMINI_API_KEY: 'test-google',
+  REASONER_MODEL: 'gpt-6.2-sol',
+  REASONER_FALLBACK_MODEL: 'grok-4.7',
+  WORKHORSE_PROVIDER: 'GOOGLE',
+  WORKHORSE_MODEL: 'gemini-3.8-flash',
+  WORKHORSE_FALLBACK_MODEL: 'grok-4.7',
+  QUALITY_CHECKER_MODEL: 'grok-4.7',
+  QUALITY_CHECKER_FALLBACK_PROVIDER: 'OPENAI',
+  QUALITY_CHECKER_FALLBACK_MODEL: 'gpt-6.2-sol',
+};
+const landingZoneRoutes = resolveModelRouting(landingZoneEnv).routes;
+assert.deepEqual(landingZoneRoutes.forensic_audit.map(({ id }) => id), ['gemini-3.8-flash', 'grok-4.7']);
+assert.deepEqual(landingZoneRoutes.evidence_check.map(({ id }) => id), ['grok-4.7', 'gpt-6.2-sol']);
+assert.deepEqual(landingZoneRoutes.evidence_adjudication.map(({ id }) => id), ['gpt-6.2-sol', 'grok-4.7']);

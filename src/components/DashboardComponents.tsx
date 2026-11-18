@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip } from 'recharts';
 import { AuditCategory, AuditItem, PipelineProgressStage, PipelineProgressStatus, PipelineProgressUpdate, QualityGateResult, RemediationStep } from '../types';
-import { BATCH_DEFINITIONS, BATCH_TITLES, expectedPhase1IdsForStream, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { BATCH_DEFINITIONS, BATCH_TITLES, expectedPhase1IdsForStream, LZ_TACTIC_PLAYBOOK_URL, LANDING_ZONE_CRITERION_INDEX } from '../knowledge_base';
 import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { antiPatternStatusLabel, inferAntiPatternAbsenceStatus } from '../services/antiPatternSemantics';
 import { displayQualityGateDiagnostic, scannerEvidenceCheckDisagreementTitle, splitQualityGateDiagnostics } from '../services/reportDiagnosticsService';
@@ -56,7 +56,7 @@ export const TacticLinkedText: React.FC<{ content: string }> = ({ content }) => 
     nodes.push(
       <a
         key={`a${key++}`}
-        href={`${FINOPS_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}`}
+        href={`${LZ_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}`}
         target="_blank"
         rel="noreferrer"
         className="font-mono font-semibold text-emerald-600 hover:text-emerald-500 underline underline-offset-2"
@@ -843,7 +843,7 @@ export const ReferenceLibrary: React.FC = () => {
       ) : (
         <div className="px-6 md:px-12 animate-fade-in-up">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {(activeStream === 'maturity' ? MASTER_BINGO_FINOPS.maturity : MASTER_BINGO_FINOPS.antipattern).map((item) => (
+            {(activeStream === 'maturity' ? LANDING_ZONE_CRITERION_INDEX.maturity : LANDING_ZONE_CRITERION_INDEX.antipattern).map((item) => (
               <div key={item.id} className={`p-6 rounded-2xl border transition-all duration-300 hover:shadow-lg group bg-slate-900/60 backdrop-blur-sm ${activeStream === 'maturity' ? 'border-emerald-900/30 hover:border-emerald-500/50 hover:bg-emerald-950/20' : 'border-rose-900/30 hover:border-rose-500/50 hover:bg-rose-950/20'}`}>
                 <div className="flex items-center justify-between mb-3">
                   <span className={`text-[10px] font-black font-mono px-2 py-1 rounded border ${activeStream === 'maturity' ? 'bg-emerald-950/40 text-emerald-300 border-emerald-900' : 'bg-rose-950/40 text-rose-300 border-rose-900'}`}>{item.id}</span>

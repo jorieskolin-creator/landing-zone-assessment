@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AuditItem, DiagnosticResult, QualityGateResult, ConfidenceBracket, FindingsModeOutput, RemediationStep } from '../types';
 import { MarkdownRenderer, TacticLinkedText } from './DashboardComponents';
-import { BATCH_TITLES, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { BATCH_TITLES, LANDING_ZONE_CRITERION_INDEX } from '../knowledge_base';
 import { SVG_CSS, svgGaugeCard, svgRadar, svgScatter } from '../services/svgChartService';
 import {
   displayPlanningDecisionRationale,
@@ -469,7 +469,7 @@ const ForensicSection: React.FC<{
   criticalHint: string;
 }> = ({ title, stream, logs, criticalLabel, criticalHint }) => {
   const [mode, setMode] = useState<'all' | 'critical'>('all');
-  const catalog = MASTER_BINGO_FINOPS[stream];
+  const catalog = LANDING_ZONE_CRITERION_INDEX[stream];
   const totalCount = catalog.length;
   const isCritical = (item?: AuditItem): boolean => stream === 'antipattern'
     ? (item?.count || 0) > 0

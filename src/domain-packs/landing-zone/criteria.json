@@ -542,7 +542,7 @@
       "stream": "capability",
       "pair": "AP-G4",
       "title": "Cost and tag guardrails",
-      "description": "The landing zone enforces the commercial minimum: required tags, allowed regions, maybe budgets. FinOps is a consumer of this; it is not a substitute for it.",
+      "description": "The landing zone enforces the commercial minimum: required tags, allowed regions, maybe budgets. The platform owns enforcement.",
       "sub_criteria": [
         "Are required tags or labels enforced at vending or by policy?",
         "Are allowed regions constrained?",

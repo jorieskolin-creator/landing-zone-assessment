@@ -45,12 +45,12 @@ step "Preparing local PostgreSQL and Redis"
 sudo service postgresql start
 sudo service redis-server start
 
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='finops'" | grep -Fqx 1; then
-  sudo -u postgres createuser finops
+if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='landing_zone'" | grep -Fqx 1; then
+  sudo -u postgres createuser landing_zone
 fi
-sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER ROLE finops WITH LOGIN PASSWORD 'finops';" >/dev/null
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='finops_dev'" | grep -Fqx 1; then
-  sudo -u postgres createdb --owner=finops finops_dev
+sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER ROLE landing_zone WITH LOGIN PASSWORD 'landing_zone';" >/dev/null
+if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='landing_zone_dev'" | grep -Fqx 1; then
+  sudo -u postgres createdb --owner=landing_zone landing_zone_dev
 fi
 done_step
 
@@ -62,12 +62,12 @@ else
 fi
 
 sed -i \
-  -e 's|^DATABASE_URL=$|DATABASE_URL=postgresql://finops:finops@localhost:5432/finops_dev|' \
+  -e 's|^DATABASE_URL=$|DATABASE_URL=postgresql://landing_zone:landing_zone@localhost:5432/landing_zone_dev|' \
   -e 's|^REDIS_URL=$|REDIS_URL=redis://localhost:6379|' \
   .env.local
 
 step "Applying database migrations"
-DATABASE_URL=postgresql://finops:finops@localhost:5432/finops_dev npm run migrate
+DATABASE_URL=postgresql://landing_zone:landing_zone@localhost:5432/landing_zone_dev npm run migrate
 done_step
 
 echo "[setup] Complete (Node $(node --version), npm $(npm --version))"

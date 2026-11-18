@@ -16,16 +16,17 @@ const dir = await mkdtemp(join(tmpdir(), 'finops-antipattern-semantics-'));
 
 const antiPatternSource = await readFile(new URL('../src/services/antiPatternSemantics.ts', import.meta.url), 'utf8');
 await writeFile(join(dir, 'antiPatternSemantics.mjs'), transpile(antiPatternSource), 'utf8');
-const registry = JSON.parse(await readFile(new URL('../src/knowledge_base/finops_maturity_pair_registry.json', import.meta.url), 'utf8'));
+const registry = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/pair-registry.json', import.meta.url), 'utf8'));
+registry.pairs = registry.pairs.filter(pair => pair.design_area_id <= 'F').map(pair => ({ ...pair, antipattern_id: pair.antipattern_id.replace(/^AP-/, ''), domain_id: pair.design_area_id }));
 const maturityModelSource = (await readFile(new URL('../src/services/maturityModelService.ts', import.meta.url), 'utf8'))
-  .replace("import { FINOPS_MATURITY_PAIR_REGISTRY } from '../knowledge_base';", `const FINOPS_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`)
+  .replace("import { LZ_MATURITY_PAIR_REGISTRY } from '../knowledge_base';", `const LZ_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`)
   .replace('./antiPatternSemantics', './antiPatternSemantics.mjs');
 await writeFile(join(dir, 'maturityModelService.mjs'), transpile(maturityModelSource), 'utf8');
 
 const metricsSource = (await readFile(new URL('../src/services/metricsService.ts', import.meta.url), 'utf8'))
   .replace(
-    "import { BATCH_TITLES, FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';",
-    "const BATCH_TITLES = { A: '', B: '', C: '', D: '', E: '', F: '' }; const FINOPS_ANTIPATTERNS = Array(30); const FINOPS_CRITERIA = Array(30);"
+    "import { BATCH_TITLES, LZ_ANTIPATTERNS, LZ_CRITERIA } from '../knowledge_base';",
+    "const BATCH_TITLES = { A: '', B: '', C: '', D: '', E: '', F: '' }; const LZ_ANTIPATTERNS = Array(30); const LZ_CRITERIA = Array(30);"
   )
   .replace('./antiPatternSemantics', './antiPatternSemantics.mjs')
   .replace('./maturityModelService', './maturityModelService.mjs');
@@ -37,59 +38,27 @@ const {
 } = await import(`file://${join(dir, 'antiPatternSemantics.mjs')}`);
 const { calculateMetrics } = await import(`file://${join(dir, 'metricsService.mjs')}`);
 
-assert.equal(
-  resolveAntiPatternAbsenceStatus({
-    verifiedCount: 0,
-    originalCount: 1,
-    explicitStatus: 'tested_absent',
-    evidenceStatus: 'weak',
-    rationale: 'The cited material supports partial presence of cost-blind architecture, but not a full score.',
-  }),
-  'partially_present',
-  'weak anti-pattern evidence must not collapse into tested_absent'
-);
+assert.equal(resolveAntiPatternAbsenceStatus({
+  verifiedCount: 0, originalCount: 1, explicitStatus: 'partially_present', evidenceStatus: 'weak',
+}), 'partially_present');
+assert.equal(resolveAntiPatternAbsenceStatus({
+  verifiedCount: 0, originalCount: 1, explicitStatus: 'tested_absent', evidenceStatus: 'weak',
+}), 'unknown_absent', 'a weak prior harmful signal cannot become a tested absence');
 
-assert.equal(
-  inferAntiPatternAbsenceStatus({
-    count: 0,
-    antipattern_absence_status: 'tested_absent',
-    reasoning: 'Final anti-pattern assessment: Tested absent. Verifier status: weak. The source supports partial presence of server-hugging behavior.',
-  }),
-  'partially_present',
-  'partial harmful-pattern rationale overrides a stale tested_absent flag'
-);
-
-assert.equal(
-  inferAntiPatternAbsenceStatus({
-    count: 0,
-    evidence_quotes: [{ quote: 'The source discusses the topic.' }],
-    reasoning: 'The source does not establish whether the anti-pattern is absent.',
-  }),
-  'unknown_absent',
-  'a source quote alone must never imply tested absence'
-);
-
-assert.equal(
-  inferAntiPatternAbsenceStatus({
-    count: 0,
-    antipattern_absence_status: 'tested_absent',
-    evidence_check_status: 'supported',
-    coverage_reason: 'Final anti-pattern assessment: Not assessed. Absence cannot be confirmed from silence.',
-    reasoning: 'The source is effectively silent on the criterion.',
-  }),
-  'unknown_absent',
-  'not-assessed language must override a contradictory tested-absence flag'
-);
-
-assert.equal(
-  inferAntiPatternAbsenceStatus({
-    count: 0,
-    antipattern_absence_status: 'tested_absent',
-    reasoning: 'Coverage notes say there is partial tunnel vision in provider operations.',
-  }),
-  'partially_present',
-  'domain-specific partial anti-pattern wording should not stay tested_absent'
-);
+assert.equal(inferAntiPatternAbsenceStatus({
+  count: 0,
+  assessment_status: 'not_assessed',
+  evidence_check_status: 'unsupported',
+  antipattern_absence_status: 'unknown_absent',
+  reasoning: 'Initial scanner suggested partial presence of an ownerless policy exemption.',
+}), 'unknown_absent', 'AP-G3 must not be restored by stale scanner text');
+assert.equal(inferAntiPatternAbsenceStatus({
+  count: 0, antipattern_absence_status: 'tested_absent', evidence_check_status: 'supported',
+  assessment_status: 'not_assessed', coverage_reason: 'Stale reason',
+}), 'unknown_absent', 'structured provenance rejection outweighs a stale absence verdict');
+assert.equal(inferAntiPatternAbsenceStatus({
+  count: 0, evidence_quotes: [{ quote: 'The source discusses the topic.' }],
+}), 'unknown_absent', 'a source quote alone must never imply tested absence');
 
 assert.equal(
   resolveAntiPatternAbsenceStatus({
@@ -132,15 +101,15 @@ const metrics = calculateMetrics({
   antipattern: {
     D2: {
       id: 'D2',
-      criterion: 'Cost-Blind Architecture',
+      criterion: 'Per-application internet edge',
       count: 0,
       status: 'OK',
-      evidence: 'Evidence-check found a partial cost-blind architecture signal.',
+      evidence: 'Evidence-check found a partial per-application internet edge signal.',
       reasoning: 'Final anti-pattern assessment: Partial finding. Verifier status: weak.',
       antipattern_absence_status: 'partially_present',
       assessment_status: 'assessed',
       evidence_check_status: 'weak',
-      evidence_quotes: [{ quote: 'Partial cost-blind architecture signal.', evidence_source: 'text' }],
+      evidence_quotes: [{ quote: 'Partial per-application internet edge signal.', evidence_source: 'text' }],
     },
   },
 });

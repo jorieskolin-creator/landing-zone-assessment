@@ -1,6 +1,6 @@
 
 import { AuditItem, DiagnosticResult, QualityGateResult } from '../types';
-import { BATCH_TITLES, FINOPS_TACTIC_PLAYBOOK_URL, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { BATCH_TITLES, LZ_TACTIC_PLAYBOOK_URL, LANDING_ZONE_CRITERION_INDEX } from '../knowledge_base';
 import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { SVG_CSS, svgGaugeCard } from './svgChartService';
 import {
@@ -32,9 +32,9 @@ const formatKnowledgeBaseStatus = (kb: DiagnosticResult['meta']['knowledge_base'
   const pending = kb.source === 'lz_pack_pending'
     || kb.kb_content_status === 'contract_defined_content_pending';
   if (pending) {
-    return 'Landing Zone Knowledge Base content pending (not FinOps fallback)';
+    return 'Landing Zone Knowledge Base content pending';
   }
-  return 'Landing Zone Knowledge Base unavailable (not FinOps fallback)';
+  return 'Landing Zone Knowledge Base unavailable';
 };
 const ASSESSMENT_METHOD_DISCLAIMER =
   'This assessment was created using the Landing Zone Assessment Engine, which combines deterministic analysis with governed generative-AI processing. Generative AI supports bounded evidence interpretation, verification, diagnosis and synthesis tasks. Scoring, calculations, evidence sufficiency, confidence thresholds and final GO/WARN/BLOCK decisions are controlled by deterministic system logic. Customer evidence remains the source of truth, and raw customer evidence is not supplied directly to generative reasoning models. Generated analytical content is validated against evidence and system rules before publication.';
@@ -42,7 +42,7 @@ const renderAssessmentMethodDisclaimer = (): string =>
   `<p class="footer-disclaimer">${escapeHtml(ASSESSMENT_METHOD_DISCLAIMER)}</p>`;
 const renderTacticAction = (action: string): string =>
   escapeHtml(action).replace(tacticIdCaptureRx(), (_match, id: string) =>
-    `<a href="${FINOPS_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}" target="_blank" rel="noreferrer">[${id}]</a>`
+    `<a href="${LZ_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}" target="_blank" rel="noreferrer">[${id}]</a>`
   );
 
 const qualityGateStatusText = (gate: QualityGateResult): string => {
@@ -185,7 +185,7 @@ const renderSourceRegistryPacketSummary = (result: DiagnosticResult): string => 
   <section class="source-packet-section">
     <h2>Source Registry &amp; Context Packets</h2>
     <div class="source-packet-card">
-      <p class="source-packet-note">This snapshot shows how parsed source material was chunked, sampled for DLP review, and routed into A-F context packets before model audit. Included/candidate ratios measure retrieval candidate inclusion, not evidence coverage. A packet can include every routed candidate and still have weak substantive evidence. Findings still require verified source evidence.</p>
+      <p class="source-packet-note">This snapshot shows how parsed source material was chunked, sampled for DLP review, and routed into Landing Zone design area packets before model audit. Included/candidate ratios measure retrieval candidate inclusion, not evidence coverage. A packet can include every routed candidate and still have weak substantive evidence. Findings still require verified source evidence.</p>
       <div class="source-packet-tables">
         <table class="source-packet-table source-packet-metrics-table">
           <thead><tr><th>Metric</th><th>Value</th></tr></thead>
@@ -430,7 +430,7 @@ const renderForensicSection = (
   stream: 'maturity' | 'antipattern',
   logs: Record<string, AuditItem>
 ): string => {
-  const catalog = MASTER_BINGO_FINOPS[stream];
+  const catalog = LANDING_ZONE_CRITERION_INDEX[stream];
   const body = BATCHES.map(batchId => {
     const items = catalog.filter(c => c.batch === batchId);
     if (items.length === 0) return '';
@@ -556,7 +556,7 @@ const renderEvidenceBackedFindings = (result: DiagnosticResult): string => {
     : '';
   const testedAbsences: string[] = [];
   const notAssessed: string[] = [];
-  for (const criterion of MASTER_BINGO_FINOPS.antipattern) {
+  for (const criterion of LANDING_ZONE_CRITERION_INDEX.antipattern) {
     const item = result.phase_1_audit_logs.antipattern[criterion.id];
     const status = inferAntiPatternAbsenceStatus(item);
     const rationale = item?.coverage_reason || item?.reasoning || 'Source coverage was insufficient to verify absence.';
@@ -683,7 +683,7 @@ const renderHeatmapCells = (
   logs: Record<string, AuditItem>,
   compact = false
 ): string => BATCHES.map(batch => {
-  const items = MASTER_BINGO_FINOPS[stream].filter(c => c.batch === batch);
+  const items = LANDING_ZONE_CRITERION_INDEX[stream].filter(c => c.batch === batch);
   return `
     <div class="${compact ? 'compact-heatmap-row' : 'heatmap-row'}">
       <div class="${compact ? 'compact-heatmap-batch' : 'heatmap-batch'}"><strong>${batch}</strong><span>${escapeHtml(BATCH_TITLES[batch])}</span></div>

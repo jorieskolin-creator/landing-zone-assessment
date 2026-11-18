@@ -12,12 +12,12 @@ const compile = source => ts.transpileModule(source, {
   },
 }).outputText;
 const dir = await mkdtemp(join(tmpdir(), 'finops-semantic-gap-'));
-await writeFile(join(dir, 'knowledgeBase.mjs'), `export const MASTER_BINGO_FINOPS = {
-  maturity: [{ id: 'D1', title: 'Architecture efficiency', desc: 'Workload rightsizing and autoscaling controls' }],
-  antipattern: []
+await writeFile(join(dir, 'lzPack.mjs'), `export const LANDING_ZONE_PACK = {
+  criteria: [{ id: 'D1', title: 'Hub topology with inspection', sub_criteria: ['Inspect traffic through a central firewall policy'] }],
 };`);
 await writeFile(join(dir, 'sourceRegistryService.mjs'), `
-export const routingTermsForDomain = () => ['architecture', 'efficiency'];
+export const routingTermsForDomain = () => ['hub network', 'transit gateway'];
+export const exclusivelyOutOfScopeProviders = (detected = [], excluded = []) => detected.length > 0 && detected.every(provider => excluded.includes(provider));
 export const expandDomainPacket = (registry, packet, ids) => {
   const additions = registry.chunks.filter(chunk => ids.includes(chunk.chunk_id));
   if (additions.length === 0) return { packet, selected_chunk_ids: [] };
@@ -31,14 +31,12 @@ export const expandDomainPacket = (registry, packet, ids) => {
     }
   };
 };`);
-await writeFile(join(dir, 'aliases.mjs'), `export default { concepts: {
-  autoscaling: ['auto scaling', 'automatic scaling', 'automaattinen skaalaus'],
-  rightsizing: ['right sizing', 'resource sizing', 'resurssien mitoitus']
-}};`);
+await writeFile(join(dir, 'coverage.mjs'), `export const retrievalExpectation = () => ({ groups: [['firewall policy', 'network virtual appliance']] });
+export const normalizeRetrievalText = text => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();`);
 const serviceSource = (await readFile(new URL('../src/services/semanticGapRetrievalService.ts', import.meta.url), 'utf8'))
-  .replace("'../knowledge_base'", "'./knowledgeBase.mjs'")
-  .replace("'./sourceRegistryService'", "'./sourceRegistryService.mjs'")
-  .replace("'../knowledge_base/finops_term_aliases.json'", "'./aliases.mjs'");
+  .replace("'../domain-packs/loadLandingZonePack'", "'./lzPack.mjs'")
+  .replace("'../domain-packs/landing-zone/coverage'", "'./coverage.mjs'")
+  .replace("'./sourceRegistryService'", "'./sourceRegistryService.mjs'");
 await writeFile(join(dir, 'semanticGapRetrievalService.mjs'), compile(serviceSource));
 const { expandWeakEvidencePacket } = await import(`file://${join(dir, 'semanticGapRetrievalService.mjs')}`);
 
@@ -50,13 +48,13 @@ const packet = {
 const registry = {
   chunks: [
     { chunk_id: 'c1', source_id: 's1', type: 'text', text: 'baseline' },
-    { chunk_id: 'c2', source_id: 's1', type: 'text', text: 'Kubernetes autoscaling policy is configured but utilization thresholds remain undocumented.' },
+    { chunk_id: 'c2', source_id: 's1', type: 'text', text: 'The firewall policy routes production ingress through central inspection.' },
     { chunk_id: 'c3', source_id: 's1', type: 'text', text: 'Unrelated procurement narrative.' },
   ]
 };
 const weak = {
   stream: 'maturity', id: 'D1', status: 'weak', original_count: 2, verified_count: 1,
-  rationale: 'Autoscaling controls are mentioned, but utilization thresholds are unclear.', rescan_recommended: true,
+  rationale: 'The firewall policy and production ingress paths need verification.', rescan_recommended: true,
 };
 const seenTerms = new Set();
 const first = expandWeakEvidencePacket({ registry, packet, items: [weak], pass: 1, seenTerms });
@@ -65,7 +63,7 @@ assert.equal(first.trace.trigger_status, 'weak');
 assert.deepEqual(first.trace.selected_chunk_ids, ['c2']);
 assert.equal(first.trace.stop_reason, 'NEW_EVIDENCE_SELECTED');
 assert.equal(first.trace.strategy, 'deterministic_semantic_fallback');
-assert.ok(first.trace.proposed_terms.some(term => term.includes('autoscaling')));
+assert.ok(first.trace.proposed_terms.some(term => term.includes('firewall')));
 assert.equal('score' in first.trace, false, 'gap retrieval must have no scoring authority or score output');
 
 const nonWeak = ['supported', 'missing', 'unsupported'].map(status => ({ ...weak, status }));
@@ -84,7 +82,7 @@ assert.deepEqual(second.packet.manifest.map(item => item.chunk_id), ['c1', 'c2']
 
 const generated = expandWeakEvidencePacket({
   registry, packet, items: [weak], pass: 1, seenTerms: new Set(),
-  proposedTerms: ['automatic scaling', 'utilization thresholds'], gapAnalysisModel: 'test-workhorse',
+  proposedTerms: ['central inspection', 'production ingress'], gapAnalysisModel: 'test-workhorse',
 });
 assert.equal(generated.trace.strategy, 'generative_semantic_expansion');
 assert.equal(generated.trace.gap_analysis_model, 'test-workhorse');

@@ -1,6 +1,6 @@
 
 import { AuditItem, EvidenceCheckResult, FactCheckClaim, FactCheckResult, Phase1AuditLogs, Phase2Validation, QualityGateResult, QualityGateLlmExplanation, SourceRegistryRuntimeStatus, ValidationResult } from '../types';
-import { BATCH_IDS, FINOPS_CRITERIA } from '../knowledge_base';
+import { BATCH_IDS, LZ_CRITERIA } from '../knowledge_base';
 import { runStage, RunContext } from './modelRouter';
 
 export const EVIDENCE_DENSITY_BLOCK = 30;
@@ -16,12 +16,12 @@ const THRESHOLDS = {
   silent_areas_warn: SILENT_AREAS_WARN,
   unsupported_claims_block: UNSUPPORTED_CLAIMS_BLOCK
 };
-const maturityCriterionTotal = Math.max(FINOPS_CRITERIA.length, 1);
+const maturityCriterionTotal = Math.max(LZ_CRITERIA.length, 1);
 const totalCriterionCount = maturityCriterionTotal * 2;
 const domainIdClass = BATCH_IDS.map(id => id.toLowerCase()).join('') || 'a-h';
 const domainScoreDenominator = (() => {
   const perDomain = new Map<string, number>();
-  for (const criterion of FINOPS_CRITERIA) {
+  for (const criterion of LZ_CRITERIA) {
     if (!criterion || typeof criterion !== 'object') continue;
     const record = criterion as { id?: string; design_area_id?: string };
     const domainId = record.design_area_id || String(record.id || '').replace(/\d+$/, '');
@@ -205,7 +205,7 @@ export const runQualityGate = (
     }
   }
 
-  if (factCheck && !factCheck.failed) {
+  if (factCheck && !factCheck.failed && !factCheck.skipped_reason) {
     const sanitizedCount = factCheck.sanitized_claims?.length || 0;
     const blockingUnsupported = factCheck.unsupported_claims.filter(isBlockingUnsupportedClaim);
     const hygieneUnsupported = factCheck.unsupported_claims.filter(c => !isBlockingUnsupportedClaim(c));
@@ -237,6 +237,9 @@ export const runQualityGate = (
 
   if (!factCheck) {
     blocking_reasons.push('Required fact-check result is missing. Strategy is not actionable.');
+  } else if (factCheck.skipped_reason) {
+    if (blocking_reasons.length === 0) blocking_reasons.push('Required fact-check did not run.');
+    notes.push('Fact-check was skipped because a required evidence check had already blocked the assessment.');
   } else if (factCheck.failed) {
     blocking_reasons.push(
       `Required fact-check did not complete (${factCheck.failure_reason || 'verification failed'}). Strategy is not actionable.`

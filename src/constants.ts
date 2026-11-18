@@ -1,9 +1,7 @@
 
-import { STRATEGY_GUARDRAILS, FINOPS_PERSONAS } from './knowledge_base';
+import { STRATEGY_GUARDRAILS, LZ_PERSONAS } from './knowledge_base';
 
 export const METRIC_DESCRIPTIONS: Record<string, string> = {
-  finops_readiness:
-    'Compatibility alias for Adjusted Landing Zone Maturity: Observed Maturity multiplied by the square root of assessment resolution. It drives Foundation/Pilot/Rollout/Operate publication only when Assessment Sufficiency passes. Kernel scoring still computes Crawl-Walk-Run internally.',
   corroborated_maturity:
     'Paired maturity using only capability/anti-pattern pairs where both sides are resolved. Unknown pairs are excluded, not scored as zero.',
   observed_maturity:
@@ -68,7 +66,6 @@ Landing Zone Assessment publishes Foundation, Pilot, Rollout, and Operate. Kerne
 </methodology_phases>
 `;
 
-export const FINOPS_METHODOLOGY_CONTEXT = LANDING_ZONE_METHODOLOGY_CONTEXT;
 
 export const STRATEGY_SYSTEM_INSTRUCTION = `
 ${STRATEGY_GUARDRAILS}
@@ -83,7 +80,7 @@ You must not treat framework guidance as proof, treat workshop confidence as pla
 `;
 
 const buildPersonaBlock = (): string => {
-  const raw = FINOPS_PERSONAS as any;
+  const raw = LZ_PERSONAS as any;
   const p = raw?.personas && typeof raw.personas === 'object' ? raw.personas : raw;
   const ids = Object.keys(p).filter((id) => p[id] && typeof p[id] === 'object' && (p[id].title || p[id].description));
   return ids.map(id => {
@@ -142,7 +139,7 @@ ${STRATEGY_PERSONAS_BLOCK}
 2. **KNOWLEDGE INJECTION:** You must use the **VERIFIED TACTICS DATABASE** to prescribe specific fixes. Cite exact transcribed IDs. Do not invent playbook content. If you see unmanaged extra-directory production, you MUST cite [TAC-ORG-AP-A1-01] when that tactic is in the supplied database.
 3. **FLUENT REFERENCE (CRITICAL):** If a tactic in the database contains a mechanism, **mention it by name** as a natural part of the sentence AND immediately follow the mention with the tactic's ID in square brackets.
    - **REQUIRED FORMAT:** "Inventory and contain extra-directory production objects [TAC-ORG-AP-A1-01] using the supplied playbook binding."
-   - **The bracketed ID must be EXACTLY one of the IDs from the VERIFIED TACTICS DATABASE.** Do not invent IDs. Do not use FinOps IDs such as TAC-VIS-001.
+   - **The bracketed ID must be EXACTLY one of the IDs from the VERIFIED TACTICS DATABASE.** Do not invent IDs.
    - **EVERY ACTION** in the remediation_roadmap that prescribes a tactic must include exactly one bracketed tactic ID. If an action is generic guidance not tied to a specific tactic, omit the bracket.
    - **DO NOT** use Markdown links (e.g., [Title](URL)).
    - **DO NOT** use command phrases like "Download", "Read", or "Click here".
@@ -357,7 +354,7 @@ ${LANDING_ZONE_METHODOLOGY_CONTEXT}
 1. **LOCKED FINDINGS:** Do not change, reinterpret, or add factual claims to the evidence summary or diagnosis. The roadmap must answer: what actions logically follow from these findings?
 2. **GROUNDING RULE:** Every roadmap action must trace to at least one confirmed gap, confirmed anti-pattern, silent/missing evidence item, or diagnosis statement in LOCKED FINDINGS. Prefer 2-4 actions per phase when the locked findings support them. If a phase has fewer than 2 genuinely grounded actions, return fewer actions rather than inventing filler.
 3. **TACTICS KB SCOPE:** Use the Verified Tactics Database and Tactic Activity Playbook only for prescriptions, mechanism names, activity detail, artifacts, roles, and acceptance criteria. Never use them to alter current-state findings. Never invent tactic bodies or case studies.
-4. **TACTIC ID RULE:** Follow the supplied Governed Tactic Selection Plan. Every PRIMARY tactic marked REQUIRED must be evaluated and initially represented in at least one roadmap action with its exact bracketed ID so independent review can verify applicability. If authoritative locked findings satisfy a supplied do-not-use condition, do not disguise the conflict; the Quality Checker may quarantine that tactic as contraindicated. For OPTIONAL tactics, include exactly one valid bracketed tactic ID only when the locked finding and applicability guidance support it. Generic evidence-gathering and genuinely supplemental custom actions should omit tactic IDs. Never invent an ID. Never use FinOps IDs such as TAC-VIS-001.
+4. **TACTIC ID RULE:** Follow the supplied Governed Tactic Selection Plan. Every PRIMARY tactic marked REQUIRED must be evaluated and initially represented in at least one roadmap action with its exact bracketed ID so independent review can verify applicability. If authoritative locked findings satisfy a supplied do-not-use condition, do not disguise the conflict; the Quality Checker may quarantine that tactic as contraindicated. For OPTIONAL tactics, include exactly one valid bracketed tactic ID only when the locked finding and applicability guidance support it. Generic evidence-gathering and genuinely supplemental custom actions should omit tactic IDs. Never invent an ID.
 5. **PLANNING DECISION:**
    - GO only when evidence is strong and no unresolved fact-check warnings are being regenerated.
    - CONDITIONAL_GO when action is useful but some source claims, assumptions, or confidence limitations remain.

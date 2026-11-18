@@ -1,6 +1,6 @@
 
 import { ScanResult } from '../types';
-import { FINOPS_KEYWORDS } from '../knowledge_base';
+import { LZ_KEYWORDS } from '../knowledge_base';
 
 export const sanitizeInput = (text: string): string => {
   let clean = text;
@@ -28,7 +28,7 @@ export const scanInputText = (text: string): ScanResult => {
   const uniqueKeywords = new Set<string>();
   let weightedScore = 0;
 
-  const categories = FINOPS_KEYWORDS.categories as Record<string, { keywords?: string[]; weight?: number }>;
+  const categories = LZ_KEYWORDS.categories as Record<string, { keywords?: string[]; weight?: number }>;
   const categoryList = Object.values(categories);
 
   for (const category of categoryList) {
@@ -42,7 +42,7 @@ export const scanInputText = (text: string): ScanResult => {
 
   let structureBonus = 0;
   const foundHeaders: string[] = [];
-  for (const header of FINOPS_KEYWORDS.structural_headers) {
+  for (const header of LZ_KEYWORDS.structural_headers) {
     if (lowerText.includes(header)) {
       structureBonus += 5;
       foundHeaders.push(header);
@@ -62,7 +62,6 @@ export const scanInputText = (text: string): ScanResult => {
   score = Math.min(score, 100);
 
   const coreKeywords = categories.landing_zone_routing?.keywords
-    || categories.core_finops_vocabulary?.keywords
     || [];
   const coreCount = coreKeywords.filter((k: string) => lowerText.includes(k)).length;
   const hasCoreTerm = coreCount > 0;

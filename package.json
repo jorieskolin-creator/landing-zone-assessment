@@ -56,7 +56,6 @@
     "test:internal-result-store": "node scripts/test-internal-result-store.mjs",
     "test:operational-logging": "node scripts/test-operational-logging.mjs",
     "test:tactic-grounding": "node scripts/test-tactic-grounding.mjs",
-    "test:tactic-activity-playbook": "node scripts/test-tactic-activity-playbook.mjs",
     "test:maturity-pair-registry": "node scripts/test-maturity-pair-registry.mjs",
     "test:maturity-model": "node scripts/test-maturity-model.mjs",
     "test:maturity-calibration": "node scripts/test-maturity-calibration.mjs",
@@ -70,18 +69,11 @@
     "test:lz-tactic-catalogue-index": "node scripts/test-lz-tactic-catalogue-index.mjs",
     "test:lz-tactics": "node scripts/test-lz-tactics.mjs",
     "test:acquisition-quality": "node scripts/test-acquisition-quality.mjs",
-    "test:structured-data": "node scripts/test-structured-data-analysis.mjs",
-    "test:crucial-item-coverage": "node scripts/test-crucial-item-coverage.mjs",
-    "test:gap-analyzer": "node scripts/test-gap-analyzer.mjs",
     "test:banding": "node scripts/test-banding.mjs",
-    "test:derived-families": "node scripts/test-derived-families.mjs",
-    "test:theme-bindings": "node scripts/test-theme-bindings.mjs",
     "test:table-cell-withhold": "node scripts/test-table-cell-withhold.mjs",
     "test:bounded-retrieval": "node scripts/test-bounded-retrieval.mjs",
     "test:semantic-gap-retrieval": "node scripts/test-semantic-gap-retrieval.mjs",
     "test:evidence-gap-analysis": "node scripts/test-evidence-gap-analysis.mjs",
-    "test:scenario-boundaries": "node scripts/test-scenario-boundaries.mjs",
-    "test:scale-readiness": "node scripts/test-scale-readiness.mjs",
     "test:pipeline-progress": "node scripts/test-pipeline-progress.mjs",
     "test:source-registry": "node scripts/test-source-registry-packetizer.mjs",
     "test:governance": "node scripts/test-governance.mjs",
@@ -93,7 +85,9 @@
     "test:run-lifecycle": "node scripts/test-run-lifecycle.mjs",
     "test:pipeline-integrity": "node scripts/test-pipeline-integrity.mjs",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:lz-retrieval-and-table-evidence": "node scripts/test-lz-retrieval-and-table-evidence.mjs",
+    "test:lz-simulation-pipeline": "node scripts/test-lz-simulation-pipeline.mjs"
   },
   "engines": {
     "node": ">=20"

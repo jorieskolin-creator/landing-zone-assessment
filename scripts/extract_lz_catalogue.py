@@ -219,7 +219,7 @@ def build_routing_keywords(batches: list[dict]) -> dict:
         }
     return {
         "version": "1.0.0",
-        "description": "Landing Zone routing vocabulary derived from the frozen catalogue plus architecture overlay terms. Replaces FinOps DOMAIN_TERMS.",
+        "description": "Landing Zone routing vocabulary derived from the frozen catalogue plus architecture overlay terms.",
         "categories": categories,
     }
 

@@ -1,5 +1,5 @@
 import type { Phase1AuditLogs, Phase2Validation, RequiredTacticDisposition, StrategicTactic, StrategySanitationItem, TacticActivityPlaybookEntry } from '../types';
-import { CRITERION_REFERENCE_RX, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TACTICS_LOCAL } from '../knowledge_base';
+import { CRITERION_REFERENCE_RX, LZ_TACTIC_ACTIVITY_PLAYBOOK, LZ_TACTICS_LOCAL } from '../knowledge_base';
 import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { hasVerifiedSourceCoverage } from './metricsService';
@@ -55,7 +55,7 @@ const UNSUPPORTED_ACTION_RULES: UnsupportedActionRule[] = [
   {
     actionKeywords: ['product team growth'],
     requiredFindingKeywords: ['product team growth', 'team growth', 'scaling pressure', 'operating model strain'],
-    reason: 'Removed operating-model growth action because the locked findings do not say product-team growth is stressing the FinOps cadence.'
+    reason: 'Removed operating-model growth action because the locked findings do not say product-team growth is straining the Landing Zone operating model.'
   }
 ];
 
@@ -73,8 +73,8 @@ const buildFindingCorpus = (phase2: Phase2Validation): string => [
   ...phase2.silent_areas,
 ].join('\n').toLowerCase();
 
-const tacticById = new Map<string, StrategicTactic>(FINOPS_TACTICS_LOCAL.map(tactic => [tactic.id, tactic]));
-const tacticDomainsById = new Map(FINOPS_TACTIC_ACTIVITY_PLAYBOOK.map(entry => [
+const tacticById = new Map<string, StrategicTactic>(LZ_TACTICS_LOCAL.map(tactic => [tactic.id, tactic]));
+const tacticDomainsById = new Map(LZ_TACTIC_ACTIVITY_PLAYBOOK.map(entry => [
   entry.tactic_id,
   new Set([...entry.maturity_bindings, ...entry.antipattern_bindings]
     .map(binding => binding.criterion_id.replace(/^AP-/, '').charAt(0)))
@@ -131,14 +131,14 @@ export const buildTacticSelectionPlan = (
   const activeCriterionSet = new Set(activeCriteria);
   const activeCategories = new Set(activeCriteria.map(criterion => criterion.replace(/^AP-/, '').charAt(0)));
 
-  const required = FINOPS_TACTIC_ACTIVITY_PLAYBOOK.flatMap(entry => {
+  const required = LZ_TACTIC_ACTIVITY_PLAYBOOK.flatMap(entry => {
     const activatedBy = entry.antipattern_bindings
       .filter(binding => binding.mandatory_when_activated === true && activeCriterionSet.has(binding.criterion_id))
       .map(binding => binding.criterion_id);
     return activatedBy.length > 0 ? [candidateFor(entry, activatedBy)] : [];
   });
   const requiredIds = new Set(required.map(candidate => candidate.tactic_id));
-  const optional = FINOPS_TACTIC_ACTIVITY_PLAYBOOK.flatMap(entry => {
+  const optional = LZ_TACTIC_ACTIVITY_PLAYBOOK.flatMap(entry => {
     if (requiredIds.has(entry.tactic_id)) return [];
     const activatedBy = [...entry.maturity_bindings, ...entry.antipattern_bindings]
       .filter(binding => activeCriterionSet.has(binding.criterion_id))

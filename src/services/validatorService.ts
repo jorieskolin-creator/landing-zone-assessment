@@ -1,8 +1,8 @@
 
 import { Phase1AuditLogs, AuditItem, Phase2Validation, ValidationResult } from '../types';
-import { FINOPS_TACTICS_LOCAL, FINOPS_VALIDATION_RULES } from '../knowledge_base';
+import { LZ_TACTICS_LOCAL, LZ_VALIDATION_RULES } from '../knowledge_base';
 
-const RULES = FINOPS_VALIDATION_RULES as any;
+const RULES = LZ_VALIDATION_RULES as any;
 
 const maturityIds: string[] = Object.values(RULES.phase1.criteria_ids_per_batch || {}).flat() as string[];
 const antipatternIds: string[] = Object.values(RULES.phase1.antipattern_ids_per_batch || RULES.phase1.criteria_ids_per_batch || {}).flat() as string[];
@@ -170,7 +170,7 @@ export const validatePhase3Grounding = (strategyData: any, phase2: Phase2Validat
     matches.forEach((id: string) => referencedTacticIds.add(id));
   }
 
-  const validTacticIds = new Set(FINOPS_TACTICS_LOCAL.map(t => t.id));
+  const validTacticIds = new Set(LZ_TACTICS_LOCAL.map(t => t.id));
   for (const refId of referencedTacticIds) {
     if (!validTacticIds.has(refId)) {
       errors.push(`Strategy cites unknown tactic ID "${refId}". Not present in tactics database.`);

@@ -1,5 +1,5 @@
 import type { AuditItem, DiagnosticResult, DomainId, MaturityCriterionResolutionRecord } from '../types';
-import { BATCH_TITLES, MASTER_BINGO_FINOPS } from '../knowledge_base';
+import { BATCH_TITLES, LANDING_ZONE_CRITERION_INDEX } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { governedCriterionState } from './maturityModelService';
 
@@ -97,8 +97,8 @@ const antiPatternTone = (percent: number, notAssessed: number, total: number): D
 
 export const computeDomainSignalRows = (result: DiagnosticResult): DomainSignalRow[] => (
   BATCHES.map(domain => {
-    const maturityCriteria = MASTER_BINGO_FINOPS.maturity.filter(item => item.batch === domain);
-    const antiPatternCriteria = MASTER_BINGO_FINOPS.antipattern.filter(item => item.batch === domain);
+    const maturityCriteria = LANDING_ZONE_CRITERION_INDEX.maturity.filter(item => item.batch === domain);
+    const antiPatternCriteria = LANDING_ZONE_CRITERION_INDEX.antipattern.filter(item => item.batch === domain);
 
     const maturityItems = maturityCriteria.map(criteria => result.phase_1_audit_logs.maturity[criteria.id]);
     const verificationUnresolved = maturityItems.some(item => item?.verification_unresolved)

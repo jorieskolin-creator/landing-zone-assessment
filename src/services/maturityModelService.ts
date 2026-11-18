@@ -16,7 +16,7 @@ import type {
   ResolutionBasedMaturityRunTrace,
   ResolutionBasedMaturityModel,
 } from '../types';
-import { FINOPS_MATURITY_PAIR_REGISTRY } from '../knowledge_base';
+import { LZ_MATURITY_PAIR_REGISTRY } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 
 const GAMMA = 0.5 as const;
@@ -147,7 +147,7 @@ export const governedCriterionState = (
 
 export const buildMaturityCriterionResolutions = (
   logs: Phase1AuditLogs,
-  registry: MaturityPairRegistry = FINOPS_MATURITY_PAIR_REGISTRY,
+  registry: MaturityPairRegistry = LZ_MATURITY_PAIR_REGISTRY,
 ): MaturityCriterionResolutionRecord[] => registry.pairs.flatMap(pair => [
   resolveCapability(pair.capability_id, logs.maturity[pair.capability_id]),
   resolveAntipattern(pair.antipattern_id, logs.antipattern[pair.antipattern_id]),
@@ -224,7 +224,7 @@ const aggregate = (pairs: MaturityPairResult[]): MaturityAggregate => {
 
 export const calculateResolutionBasedMaturity = (
   logs: Phase1AuditLogs,
-  registry: MaturityPairRegistry = FINOPS_MATURITY_PAIR_REGISTRY,
+  registry: MaturityPairRegistry = LZ_MATURITY_PAIR_REGISTRY,
 ): ResolutionBasedMaturityModel => {
   if (registry.status !== 'ACTIVE') throw new Error('MATURITY_MODEL_REGISTRY_NOT_ACTIVE');
   const criterionResolutions = buildMaturityCriterionResolutions(logs, registry);

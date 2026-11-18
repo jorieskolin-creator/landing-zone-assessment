@@ -1,24 +1,17 @@
 import type { EvidenceCheckItem, RoutedSourcePacket, SemanticGapRetrievalPassTrace, SourceChunk, SourceRegistry } from '../types';
-import { MASTER_BINGO_FINOPS } from '../knowledge_base';
-import { expandDomainPacket, routingTermsForDomain } from './sourceRegistryService';
-import aliasData from '../knowledge_base/finops_term_aliases.json';
+import { LANDING_ZONE_PACK } from '../domain-packs/loadLandingZonePack';
+import { normalizeRetrievalText, retrievalExpectation } from '../domain-packs/landing-zone/coverage';
+import { exclusivelyOutOfScopeProviders, expandDomainPacket, routingTermsForDomain } from './sourceRegistryService';
 
 const MAX_SELECTIONS_PER_PASS = 8;
 const MAX_TERMS_PER_PASS = 24;
-const FINOPS_ALIASES = aliasData.concepts as Record<string, string[]>;
 const STOP_WORDS = new Set([
   'about','after','again','against','also','and','are','because','been','before','being','but','cannot','could','does','each','evidence','from','have','into','more','most','not','only','other','over','same','scanner','score','source','status','than','that','the','their','them','then','there','these','they','this','those','through','under','using','verifier','very','was','were','what','when','where','which','while','with','without','would',
   'että','joka','kanssa','kun','mutta','myös','ole','ovat','sen','sitä','tai','tämä'
 ]);
 
-const normalize = (value: string): string => value
-  .toLowerCase()
-  .normalize('NFKD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/src-\d+(?:-[a-z]\d+)+/g, ' ')
-  .replace(/[^a-z0-9äöå]+/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
+const normalize = (value: string): string =>
+  normalizeRetrievalText(value.replace(/src-\d+(?:-[a-z]\d+)+/gi, ' '));
 
 const meaningful = (token: string): boolean =>
   token.length >= 4 && !STOP_WORDS.has(token) && !/^\d+$/.test(token);
@@ -44,16 +37,13 @@ const semanticTerms = (items: EvidenceCheckItem[], seenTerms: Set<string>): stri
     }
   };
   for (const item of items) {
-    const criterion = MASTER_BINGO_FINOPS[item.stream].find(candidate => candidate.id === item.id);
-    if (criterion) addContext(`${criterion.title} ${criterion.desc}`, 1);
+    const criterionId = item.stream === 'antipattern' && !item.id.startsWith('AP-') ? `AP-${item.id}` : item.id;
+    const criterion = LANDING_ZONE_PACK.criteria.find(candidate => candidate.id === criterionId);
+    if (criterion) addContext([criterion.title, ...criterion.sub_criteria].join(' '), 1);
     addContext(`${item.rationale} ${item.coverage_reason || ''}`, 4);
-    const context = normalize(`${criterion?.title || ''} ${criterion?.desc || ''} ${item.rationale} ${item.coverage_reason || ''}`);
-    for (const [concept, values] of Object.entries(FINOPS_ALIASES)) {
-      if (!context.includes(concept)) continue;
-      for (const value of values) {
-        const term = normalize(value);
-        if (!seenTerms.has(term)) aliases.set(term, 8);
-      }
+    for (const term of retrievalExpectation(criterionId)?.groups.flat() || []) {
+      const normalized = normalize(term);
+      if (!seenTerms.has(normalized)) aliases.set(normalized, 8);
     }
   }
   const ranked = (terms: Map<string, number>, limit: number) => [...terms.entries()]
@@ -84,6 +74,17 @@ const matchScore = (chunk: SourceChunk, terms: string[]): number => {
   }, 0);
 };
 
+const unselectedEligibleChunks = (registry: SourceRegistry, packet: RoutedSourcePacket): SourceChunk[] => {
+  const selected = new Set(packet.manifest.map(item => item.chunk_id));
+  return registry.chunks.filter(chunk =>
+    !selected.has(chunk.chunk_id)
+    && !exclusivelyOutOfScopeProviders(chunk.providers_detected, chunk.out_of_locked_scope_providers)
+  );
+};
+
+export const hasSemanticRetrievalCandidates = (registry: SourceRegistry, packet: RoutedSourcePacket): boolean =>
+  unselectedEligibleChunks(registry, packet).length > 0;
+
 export const expandWeakEvidencePacket = (input: {
   registry: SourceRegistry;
   packet: RoutedSourcePacket;
@@ -108,9 +109,7 @@ export const expandWeakEvidencePacket = (input: {
     ? [...new Set(generatedTerms)].slice(0, MAX_TERMS_PER_PASS)
     : semanticTerms(weakItems, input.seenTerms);
   proposedTerms.forEach(term => input.seenTerms.add(term));
-  const selected = new Set(input.packet.manifest.map(item => item.chunk_id));
-  const candidates = proposedTerms.length === 0 ? [] : input.registry.chunks
-    .filter(chunk => !selected.has(chunk.chunk_id))
+  const candidates = proposedTerms.length === 0 ? [] : unselectedEligibleChunks(input.registry, input.packet)
     .map(chunk => ({ chunk, score: matchScore(chunk, proposedTerms) }))
     .filter(candidate => candidate.score > 0)
     .sort((a, b) => b.score - a.score || a.chunk.chunk_id.localeCompare(b.chunk.chunk_id));
@@ -119,7 +118,9 @@ export const expandWeakEvidencePacket = (input: {
     input.packet,
     candidates.slice(0, MAX_SELECTIONS_PER_PASS).map(candidate => candidate.chunk.chunk_id)
   );
-  const stopReason = proposedTerms.length === 0
+  const stopReason = !hasSemanticRetrievalCandidates(input.registry, input.packet)
+    ? 'NO_NEW_CANDIDATES' as const
+    : proposedTerms.length === 0
     ? 'NO_NEW_TERMS' as const
     : candidates.length === 0
       ? 'NO_NEW_CANDIDATES' as const

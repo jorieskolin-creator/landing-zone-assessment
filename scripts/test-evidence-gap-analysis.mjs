@@ -8,7 +8,7 @@ const compile = source => ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2020, importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove },
 }).outputText;
 const dir = await mkdtemp(join(tmpdir(), 'finops-evidence-gap-analysis-'));
-await writeFile(join(dir, 'knowledgeBase.mjs'), `export const MASTER_BINGO_FINOPS = {
+await writeFile(join(dir, 'knowledgeBase.mjs'), `export const LANDING_ZONE_CRITERION_INDEX = {
   maturity: [{ id: 'D1', title: 'Architecture efficiency', desc: 'Workload rightsizing and autoscaling controls' }], antipattern: []
 };`);
 await writeFile(join(dir, 'modelRouter.mjs'), `
@@ -27,7 +27,7 @@ await writeFile(join(dir, 'evidenceGapAnalysisService.mjs'), compile(serviceSour
 const { analyzeEvidenceGaps } = await import(`file://${join(dir, 'evidenceGapAnalysisService.mjs')}`);
 
 globalThis.__gapResponse = {
-  schema_version: 'finops_evidence_gap_query_v1', domain_id: 'D',
+  schema_version: 'assessment_evidence_gap_query_v1', domain_id: 'D',
   queries: [{ criterion_id: 'maturity.D1', themes: ['automatic scaling'], terms: ['utilization threshold'] }],
 };
 const weak = { stream: 'maturity', id: 'D1', status: 'weak', rescan_recommended: true, rationale: 'LOW_EVIDENCE_SUMMARY', coverage_reason: 'Threshold details are unclear.' };

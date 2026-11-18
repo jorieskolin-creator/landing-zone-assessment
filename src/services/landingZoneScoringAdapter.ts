@@ -294,8 +294,6 @@ export const concealConfirmedAntipatterns = (
         observed_maturity: overall.observed_maturity,
         assessment_resolution: overall.resolution,
         adjusted_maturity: overall.adjusted_maturity,
-        raw_finops_maturity_score: overall.adjusted_maturity ?? 0,
-        finops_readiness: overall.adjusted_maturity ?? 0,
       },
     },
   };
@@ -413,8 +411,6 @@ const withholdBlendedHeadline = (estate: Phase2Validation): Phase2Validation => 
           adjusted_maturity: null,
           corroborated_maturity: null,
           observed_maturity: null,
-          raw_finops_maturity_score: 0,
-          finops_readiness: 0,
         }
       : estate.metrics,
   };
@@ -462,8 +458,6 @@ export const scoreLandingZoneAssessment = (input: ScoreLandingZoneInput): LzScor
           adjusted_maturity: null,
           corroborated_maturity: null,
           observed_maturity: null,
-          raw_finops_maturity_score: 0,
-          finops_readiness: 0,
         },
       }, 'Insufficient evidence');
     return {

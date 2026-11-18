@@ -11,13 +11,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: finops_test
-          POSTGRES_USER: finops
-          POSTGRES_PASSWORD: finops
+          POSTGRES_DB: landing_zone_test
+          POSTGRES_USER: landing_zone
+          POSTGRES_PASSWORD: landing_zone
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U finops -d finops_test"
+          --health-cmd "pg_isready -U landing_zone -d landing_zone_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -31,7 +31,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://finops:finops@localhost:5432/finops_test
+      DATABASE_URL: postgresql://landing_zone:landing_zone@localhost:5432/landing_zone_test
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4

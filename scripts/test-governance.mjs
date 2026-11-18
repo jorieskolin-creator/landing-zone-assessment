@@ -29,6 +29,10 @@ assert.throws(()=>approveRequest({...request,parts:[{type:'text',text:'data:imag
 assert.throws(()=>approveRequest({...request,parts:[{type:'text',text:'{"type":"input_image","source":{"type":"base64","data":"AAAA"}}'}]}),/IMAGE_PAYLOAD_DISABLED/);
 assert.doesNotThrow(()=>approveRequest({...request,parts:[{type:'text',text:'{"type":"image","ocr_confidence":88,"visual_interpretation_status":"OCR_TEXT_ONLY"}'}]}),'OCR visual-evidence metadata is not an external image part');
 const packet=approveRequest(request,1000);const output=inspectOutput('Email a@b.com 😀 𝄞',packet,2000);assert.equal(output.text,'Email [REDACTED_EMAIL] 😀 𝄞');assert.equal(validateGovernedOutput(output,{source_packet_id:packet.packet_id}),output);
+assert.throws(() => inspectOutput('', packet), error =>
+  error.code === 'OUTPUT_INSPECTION_REJECTED' && error.inspectionCategory === 'INVALID_OUTPUT_TEXT');
+assert.throws(() => inspectOutput('invoice number: INV-99887', packet), error =>
+  error.code === 'OUTPUT_INSPECTION_REJECTED' && error.inspectionCategory === 'RESIDUAL_CLASSIFICATION_REJECTED');
 assert.doesNotThrow(()=>inspectOutput('{"type":"image","ocr_confidence":88}',packet), 'model output may echo OCR type metadata');
 const expectedBinding={packetId:packet.packet_id,packetHash:packet.packet_hash,runId:packet.run_id,provider:packet.provider,model:packet.model,stage:packet.stage};
 assert.equal(evaluatePacketBinding(packet,expectedBinding).code,null);

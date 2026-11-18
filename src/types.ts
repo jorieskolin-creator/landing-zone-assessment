@@ -112,8 +112,6 @@ export interface Metrics {
   antipattern_coverage: number;
   capability_attainment: number;
   antipattern_control: number;
-  raw_finops_maturity_score: number;
-  finops_readiness: number;
   corroborated_maturity: number | null;
   observed_maturity: number | null;
   assessment_resolution: number;
@@ -365,12 +363,6 @@ export const PERSONA_LABELS: Record<PersonaId, string> = {
 
 export const DEFAULT_PERSONA_ID: PersonaId = 'ciso_leadership';
 
-export const LEGACY_PERSONA_ID_MAP: Record<string, PersonaId> = {
-  finops_lead: 'ciso_leadership',
-  cfo: 'ciso_leadership',
-  engineering_lead: 'platform_owner',
-};
-
 export const emptyPersonaSummaries = (): Record<PersonaId, string> =>
   Object.fromEntries(PERSONA_IDS.map((id) => [id, ''])) as Record<PersonaId, string>;
 
@@ -380,10 +372,10 @@ export const filledPersonaSummaries = (text: string): Record<PersonaId, string> 
 export const normalizePersonaId = (value: unknown): PersonaId | undefined => {
   if (typeof value !== 'string') return undefined;
   if ((PERSONA_IDS as string[]).includes(value)) return value as PersonaId;
-  return LEGACY_PERSONA_ID_MAP[value];
+  return undefined;
 };
 
-export const mapLegacyPersonaSummaries = (
+export const normalizePackPersonaSummaries = (
   incoming: unknown,
   fallback = '',
 ): Record<PersonaId, string> => {
@@ -392,8 +384,7 @@ export const mapLegacyPersonaSummaries = (
     for (const [key, value] of Object.entries(incoming as Record<string, unknown>)) {
       const id = normalizePersonaId(key);
       if (!id || typeof value !== 'string' || value.length === 0) continue;
-      const isPackKey = (PERSONA_IDS as string[]).includes(key);
-      if (!result[id] || isPackKey) result[id] = value;
+      result[id] = value;
     }
   }
   const firstAvailable = PERSONA_IDS.find((id) => result[id].length > 0);
@@ -605,8 +596,8 @@ export interface ShadowTelemetryPersistence {
   schema_version: 'shadow_telemetry_v1';
   retrieval_policy_version: 'bounded_retrieval_policy_v1';
   derived_evidence_schema_version: 'derived_analytical_evidence_v1';
-  analyzer_version: 'tagging_allocation_v1@1.3.0';
-  scale_registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2';
+  analyzer_version: 'lz_azure_management_group_membership_v1@1.0.0';
+  scale_registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2' | 'lz_data_signal_registry_v1';
   retrieval_domain_count: number;
   retrieval_triggered_domain_count: number;
   retrieval_pass_1_count: number;
@@ -1156,7 +1147,7 @@ export interface TableInspectionTrace {
 
 export interface DataSignalCoverageReport {
   schema_version: 'data_signal_coverage_v1';
-  registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2';
+  registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2' | 'lz_data_signal_registry_v1';
   mode: 'active';
   total_object_count: number;
   analyzer_available_count: number;
@@ -1203,6 +1194,8 @@ export interface DataSignalRegistryEntry {
 }
 
 export type DerivedAnalyzerId =
+  | 'lz_retrieval_coverage_v1'
+  | 'lz_azure_management_group_membership_v1'
   | 'tagging_allocation_v1'
   | 'crucial_item_coverage_v1'
   | 'trend_v1'
@@ -1215,6 +1208,8 @@ export type DerivedAnalyzerId =
   | 'association_v1';
 
 export type DerivedAnalyzerMethod =
+  | 'lz_retrieval_coverage'
+  | 'lz_management_group_membership'
   | 'tagging_allocation_coverage_analysis'
   | 'crucial_item_coverage_analysis'
   | 'trend_analysis'
@@ -1229,7 +1224,7 @@ export type DerivedAnalyzerMethod =
 export interface EvidenceAnalysisRegistryEntry {
   readonly analyzer_id: DerivedAnalyzerId;
   readonly analyzer_version: string;
-  readonly registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2';
+  readonly registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2' | 'lz_evidence_analysis_registry_v1';
   readonly approval_status: 'SHADOW_ONLY' | 'APPROVED';
   readonly approved_for_model_packet: boolean;
   readonly accepted_source_kinds: readonly string[];
@@ -1261,7 +1256,7 @@ export interface DerivedAnalyticalEvidence {
   derivation: {
     analyzer_id: DerivedAnalyzerId;
     analyzer_version: string;
-    registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2';
+    registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2' | 'lz_evidence_analysis_registry_v1';
     method: DerivedAnalyzerMethod;
     calculation_ids: string[];
   };
@@ -1669,6 +1664,7 @@ export interface RequiredTacticDisposition {
 }
 
 export interface FactCheckResult {
+  skipped_reason?: 'REQUIRED_EVIDENCE_CHECK_FAILED' | 'EVIDENCE_DENSITY_BELOW_FLOOR';
   attempts: number;
   total_claims: number;
   supported_count: number;
