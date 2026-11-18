@@ -183,16 +183,16 @@ export const buildEvidenceLaneStagePackets = (input: {
     const withheldVisualRegionCount = [...withheldVisualRegionsByUnit.values()].reduce((sum, count) => sum + count, 0);
     const domainDerived = input.derived_evidence.filter(item =>
       isDerivedEvidenceApprovedForPacket(item)
-      && !isDerivedEvidenceAcquisitionDiagnostic(item)
+      && evidence.some(chunk => chunk.source_id === item.source_id
+        && chunk.evidence_class === 'platform' && chunk.providers_detected?.includes('azure'))
       && domainForEvidence(item) === domainId
     );
     const acquisitionDiagnostics = input.derived_evidence.filter(item =>
-      isDerivedEvidenceApprovedForPacket(item)
-      && isDerivedEvidenceAcquisitionDiagnostic(item)
+      isDerivedEvidenceAcquisitionDiagnostic(item)
       && domainForEvidence(item) === domainId
     );
     const shadowDerivedCount = input.derived_evidence.filter(item =>
-      !isDerivedEvidenceApprovedForPacket(item) && domainForEvidence(item) === domainId
+      !isDerivedEvidenceApprovedForPacket(item) && !isDerivedEvidenceAcquisitionDiagnostic(item) && domainForEvidence(item) === domainId
     ).length;
     const sourcePacketHash = input.source_packet_hashes[domainId];
     if (!sourcePacketHash) throw new Error(`EVIDENCE_SOURCE_PACKET_HASH_MISSING:${domainId}`);

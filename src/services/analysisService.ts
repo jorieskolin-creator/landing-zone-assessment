@@ -57,7 +57,7 @@ import { deriveAllEvidenceSignals } from "./derivedEvidence";
 import { planGapRetrieval } from "./gapAnalyzerService";
 import { buildEvidenceLaneStagePackets } from "./evidenceStagePacketService";
 import { applyBoundedRetrieval } from "./boundedRetrievalService";
-import { expandWeakEvidencePacket } from "./semanticGapRetrievalService";
+import { expandWeakEvidencePacket, hasSemanticRetrievalCandidates } from "./semanticGapRetrievalService";
 import { analyzeEvidenceGaps } from "./evidenceGapAnalysisService";
 import { sanitizeEvidenceSources } from "./deterministicPrivacyService";
 import { scrubDiagnosticResultForPrivacy } from "./privacyService";
@@ -375,7 +375,8 @@ export const analyzeDocument = async (
     emitProgress({ stage: 'extraction', status: extractionWarnings > 0 ? 'completed_with_warnings' : 'completed' });
     emitProgress({ stage: 'packetization', status: 'in_progress' });
     const sourceRegistry = buildSourceRegistry(acquiredSources);
-    const derivedRun = deriveAllEvidenceSignals(acquiredSources, sourceRegistry);
+    const retrievalScope = { designAreaIds: scopedBatchIds, providers: lockedScope.providers };
+    const derivedRun = deriveAllEvidenceSignals(acquiredSources, sourceRegistry, retrievalScope);
     let derivedAnalyticalEvidence = derivedRun.evidence;
     const tableInspections = acquiredSources.flatMap(source =>
       [...(source.structured_tables || []), ...(source.structured_table ? [source.structured_table] : [])]
@@ -386,9 +387,9 @@ export const analyzeDocument = async (
           inspection: table.deterministic_inspection
         }] : [])
     );
-    const dataSignalCoverage = buildDataSignalCoverageReport();
+    const dataSignalCoverage = buildDataSignalCoverageReport(retrievalScope);
     const text = renderPseudonymousSourceContext(sourceRegistry, 120000);
-    const baselineSourcePackets = buildDomainPackets(sourceRegistry);
+    const baselineSourcePackets = buildDomainPackets(sourceRegistry, [...scopedBatchIds]);
     const gapPlan = planGapRetrieval({
       packets: baselineSourcePackets,
       derived: derivedAnalyticalEvidence,
@@ -402,7 +403,7 @@ export const analyzeDocument = async (
       if (privacyAgain.decision.decision === 'BLOCK') {
         throw new Error(`Deterministic privacy gate blocked the evidence set after gap re-read (${privacyAgain.decision.blocking_codes.join(', ')}). Remove prohibited secrets before running the assessment.`);
       }
-      derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry).evidence;
+      derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry, retrievalScope).evidence;
     }
     let packetWeakDomainIds = Object.entries(sourcePackets)
       .filter(([, packet]) => packet.weak_coverage)
@@ -474,26 +475,27 @@ export const analyzeDocument = async (
     const baselineEvidenceStagePackets = evidenceStagePackets;
     const semanticPackets = { ...sourcePackets };
     const expandWeakEvidence = async (input: Parameters<NonNullable<import('../orchestrator').Phase1SourcePackets['expandWeakEvidence']>>[0]) => {
-      const gapAnalysis = await analyzeEvidenceGaps({
+      const canExpand = hasSemanticRetrievalCandidates(sourceRegistry, semanticPackets[input.batchId]);
+      const gapAnalysis = canExpand ? await analyzeEvidenceGaps({
         domainId: input.batchId,
         items: input.items,
         pass: input.pass,
         seenTerms: input.seenTerms,
         ctx: { runId },
-      });
+      }) : undefined;
       const expanded = expandWeakEvidencePacket({
         registry: sourceRegistry,
         packet: semanticPackets[input.batchId],
         items: input.items,
         pass: input.pass,
         seenTerms: input.seenTerms,
-        proposedTerms: gapAnalysis.failed ? undefined : gapAnalysis.terms,
-        gapAnalysisModel: gapAnalysis.model_used,
-        gapAnalysisFailed: gapAnalysis.failed,
+        proposedTerms: canExpand && !gapAnalysis?.failed ? gapAnalysis?.terms : undefined,
+        gapAnalysisModel: gapAnalysis?.model_used,
+        gapAnalysisFailed: gapAnalysis?.failed,
       });
       semanticPackets[input.batchId] = expanded.packet;
       if (expanded.trace.selected_chunk_ids.length > 0) {
-        derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry).evidence;
+        derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry, retrievalScope).evidence;
       }
       const snapshot = { ...semanticPackets };
       const integrity = validateEvidenceAcquisition(acquiredSources, sourceRegistry, snapshot);

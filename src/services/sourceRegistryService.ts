@@ -65,7 +65,7 @@ const KIND_AREA_PRIORS: Record<string, Array<{ domain: string; score: number }>>
   architecture_operating_model: [{ domain: 'C', score: 3 }, { domain: 'H', score: 3 }, { domain: 'A', score: 2 }],
 };
 
-const exclusivelyOutOfScopeProviders = (
+export const exclusivelyOutOfScopeProviders = (
   detected?: string[],
   outOfScope?: string[],
 ): boolean => {

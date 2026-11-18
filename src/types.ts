@@ -1203,6 +1203,8 @@ export interface DataSignalRegistryEntry {
 }
 
 export type DerivedAnalyzerId =
+  | 'lz_retrieval_coverage_v1'
+  | 'lz_azure_management_group_membership_v1'
   | 'tagging_allocation_v1'
   | 'crucial_item_coverage_v1'
   | 'trend_v1'
@@ -1215,6 +1217,8 @@ export type DerivedAnalyzerId =
   | 'association_v1';
 
 export type DerivedAnalyzerMethod =
+  | 'lz_retrieval_coverage'
+  | 'lz_management_group_membership'
   | 'tagging_allocation_coverage_analysis'
   | 'crucial_item_coverage_analysis'
   | 'trend_analysis'
@@ -1229,7 +1233,7 @@ export type DerivedAnalyzerMethod =
 export interface EvidenceAnalysisRegistryEntry {
   readonly analyzer_id: DerivedAnalyzerId;
   readonly analyzer_version: string;
-  readonly registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2';
+  readonly registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2' | 'lz_evidence_analysis_registry_v1';
   readonly approval_status: 'SHADOW_ONLY' | 'APPROVED';
   readonly approved_for_model_packet: boolean;
   readonly accepted_source_kinds: readonly string[];
@@ -1261,7 +1265,7 @@ export interface DerivedAnalyticalEvidence {
   derivation: {
     analyzer_id: DerivedAnalyzerId;
     analyzer_version: string;
-    registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2';
+    registry_version: 'evidence_analysis_registry_v1' | 'evidence_analysis_registry_v2' | 'lz_evidence_analysis_registry_v1';
     method: DerivedAnalyzerMethod;
     calculation_ids: string[];
   };
