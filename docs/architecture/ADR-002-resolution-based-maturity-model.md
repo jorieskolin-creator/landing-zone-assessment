@@ -1,4 +1,4 @@
-# ADR-002: Resolution-based FinOps maturity model
+# ADR-002: Resolution-based Landing Zone maturity model
 
 Status: Active. The resolution-based model and Assessment Sufficiency gate are
 the authoritative maturity calculation as of 2026-08-25.
@@ -23,7 +23,7 @@ The three target headline views are:
 2. **Observed Maturity and Resolution**: the weighted signal from fully or
    partially resolved pairs, displayed with the percentage of the configured
    framework that is resolved.
-3. **Adjusted FinOps Maturity**: Observed Maturity multiplied by
+3. **Adjusted Landing Zone Maturity**: Observed Maturity multiplied by
    `Resolution^gamma`; it is publishable and classifiable only when Assessment
    Sufficiency passes.
 

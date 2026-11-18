@@ -9,7 +9,7 @@ collapsed into a generic “packet” or “attempt” in persisted contracts:
 
 - **Source artifact**: a user-supplied file before extraction.
 - **Evidence Lane packet**: privacy-approved source chunks selected for one
-  FinOps domain and bound to a manifest hash.
+  Landing Zone design area and bound to a manifest hash.
 - **Knowledge release**: the immutable KB version used as normative context.
 - **Analysis context revision**: an ordered change to the evidence available to
   analysis, initially used for targeted semantic rescans.
