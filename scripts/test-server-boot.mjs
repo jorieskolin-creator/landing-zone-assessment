@@ -52,6 +52,14 @@ assert.deepEqual(readyzResponse({
   accepting: true, infrastructureReady: false, dependencyReady: false, modelRoutingReady: true, expectsInfrastructure: true,
 }), { status: 503, body: { status: 'not_ready', mode: 'full', code: 'INFRASTRUCTURE_UNAVAILABLE' } });
 assert.deepEqual(readyzResponse({
+  accepting: true,
+  infrastructureReady: false,
+  infrastructureErrorCode: 'SCHEMA_INCOMPATIBLE',
+  dependencyReady: false,
+  modelRoutingReady: true,
+  expectsInfrastructure: true,
+}), { status: 503, body: { status: 'not_ready', mode: 'full', code: 'SCHEMA_INCOMPATIBLE' } });
+assert.deepEqual(readyzResponse({
   accepting: true, infrastructureReady: true, dependencyReady: false, modelRoutingReady: true, expectsInfrastructure: true,
 }), { status: 503, body: { status: 'not_ready', mode: 'full', code: 'DEPENDENCY_UNAVAILABLE' } });
 assert.deepEqual(readyzResponse({

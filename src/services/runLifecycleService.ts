@@ -3,7 +3,21 @@ export type RunState = 'active'|'recovery_required'|'ready_for_delivery'|'comple
 export interface AuthoritativeRun { run_id:string; state:RunState; cleanup_status:null|'pending'|'in_progress'|'verified'|'retryable_failure'; absolute_deadline_at?:string; effective_expires_at?:string }
 const states=new Set<RunState>(['active','recovery_required','ready_for_delivery','completed','failed','deletion_requested','deleted','expired']);
 const cleanups=new Set([null,'pending','in_progress','verified','retryable_failure']);
-const errorCodes=new Set(['INVALID_REQUEST','RUN_NOT_FOUND','RUN_INACTIVE','INVALID_RUN_TRANSITION','DEPENDENCY_UNAVAILABLE','VERCEL_GOVERNED_DISPATCH_UNSUPPORTED']);
+const errorCodes=new Set(['INVALID_REQUEST','RUN_NOT_FOUND','RUN_INACTIVE','INVALID_RUN_TRANSITION','DEPENDENCY_UNAVAILABLE','SCHEMA_INCOMPATIBLE','VERCEL_GOVERNED_DISPATCH_UNSUPPORTED']);
+export function assessmentRunErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  switch (message) {
+    case 'SCHEMA_INCOMPATIBLE':
+      return 'The assessment server and PostgreSQL schema are incompatible. Verify that the required database migration was applied, then restart the service.';
+    case 'DEPENDENCY_UNAVAILABLE':
+    case 'RUN_DEPENDENCY_UNAVAILABLE':
+    case 'VERCEL_GOVERNED_DISPATCH_UNSUPPORTED':
+      return 'The assessment backend is unavailable. Check the service readiness before retrying.';
+    default:
+      return message || 'Analysis failed.';
+  }
+}
+
 const definitiveCompletionErrors=new Set(['INVALID_REQUEST','RUN_NOT_FOUND','RUN_INACTIVE','INVALID_RUN_TRANSITION']);
 const valid=(v:any):AuthoritativeRun=>{if(!v||typeof v.run_id!=='string'||!states.has(v.state)||!cleanups.has(v.cleanup_status))throw new Error('RUN_RESPONSE_INVALID');return v;};
 const sleep=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));

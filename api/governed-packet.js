@@ -1,6 +1,6 @@
 import { requireSession } from '../lib/auth.js';
 import { approveRequestArtifact, authorizeConfiguredDestination, GovernanceError, packetRuntimeDiagnostics } from '../lib/governance.js';
-import { getInfrastructure } from '../lib/infrastructure.js';
+import { withGovernedInfrastructure } from '../lib/infrastructure.js';
 import { safeErrorCode,safeErrorStatus } from '../lib/safeErrors.js';
 import { workerOperationalLog } from '../lib/workerOperationalLog.js';
 export function governedPacketHandler(repository){return async function handler(req,res) {
@@ -13,4 +13,4 @@ export function governedPacketHandler(repository){return async function handler(
     return res.status(201).json({schema_version:p.schema_version,policy_version:p.policy_version,packet_id:p.packet_id,packet_hash:p.packet_hash,run_id:p.run_id,stage:p.stage,provider:p.provider,model:p.model,...(p.output_contract?{output_contract:p.output_contract}:{}),classification_method:p.classification_method,approval_basis:p.approval_basis,created_at:p.created_at,expires_at:p.expires_at,part_count:partCount,char_count:charCount}); }
   catch(e) { const code=e instanceof GovernanceError?e.code:safeErrorCode(e); return res.status(e instanceof GovernanceError?e.status:safeErrorStatus(code)).json({error:code}); }
 };}
-export default async function handler(req,res){try{const {repository}=getInfrastructure();return await governedPacketHandler(repository)(req,res);}catch{return res.status(503).json({error:'VERCEL_GOVERNED_DISPATCH_UNSUPPORTED'});}}
+export default withGovernedInfrastructure(governedPacketHandler);

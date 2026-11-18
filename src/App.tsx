@@ -21,7 +21,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { Step0ScopeForm } from './components/Step0ScopeForm';
 import { IntakeHero } from './components/IntakeHero';
 import { checkSession, logout } from './services/authService';
-import { acknowledgeRun, deleteRun, getRun } from './services/runLifecycleService';
+import { acknowledgeRun, assessmentRunErrorMessage, deleteRun, getRun } from './services/runLifecycleService';
 import { recoverCheckpointResult } from './services/checkpointRecoveryService';
 import { buildReportViewModel } from './services/reportViewModel';
 import { persistencePrefix } from './knowledge_base';
@@ -1044,8 +1044,8 @@ const App: React.FC = () => {
           setRecoveryNotice('The report is safely stored in this browser, but backend delivery acknowledgement is pending and will be retried by expiry cleanup.');
         }
       }
-    } catch (e: any) {
-      setError(e.message || "Analysis failed.");
+    } catch (error) {
+      setError(assessmentRunErrorMessage(error));
     } finally {
       setLoading(false);
       PerformanceMonitor.end('FullAnalysis');

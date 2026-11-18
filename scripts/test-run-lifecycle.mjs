@@ -13,5 +13,12 @@ class Repo{constructor(){this.run={run_id:'r',state:'active',cleanup_status:null
 assert.doesNotMatch(JSON.stringify(evidence),/source|prompt|output|payload/i);
 const clientSource=await readFile(new URL('../src/services/runLifecycleService.ts',import.meta.url),'utf8');const clientDir=await mkdtemp(join(tmpdir(),'finops-run-lifecycle-'));const clientPath=join(clientDir,'runLifecycleService.mjs');await writeFile(clientPath,ts.transpileModule(clientSource,{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2020,importsNotUsedAsValues:ts.ImportsNotUsedAsValues.Remove}}).outputText);const client=await import(`file://${clientPath}`);const originalFetch=globalThis.fetch;let fetchCount=0;globalThis.fetch=async()=>{fetchCount++;return{ok:false,json:async()=>({error:'INVALID_RUN_TRANSITION'})};};await assert.rejects(()=>client.completeRun('r',{},{}),/INVALID_RUN_TRANSITION/);assert.equal(fetchCount,1,'definitive snapshot conflicts must not be masked by GET reconciliation');globalThis.fetch=originalFetch;
 {let posts=0,gets=0;globalThis.fetch=async(_url,init={})=>{if(init.method==='GET'){gets++;return{ok:true,json:async()=>({run_id:'r',state:'completed',cleanup_status:'verified'})};}posts++;return{ok:false,json:async()=>({error:'DEPENDENCY_UNAVAILABLE'})};};await assert.rejects(()=>client.completeRun('r',{},{}),/DEPENDENCY_UNAVAILABLE/);assert.equal(posts,5,'a completed status without payload identity must not short-circuit POST retries');assert.equal(gets,5);}
+globalThis.fetch = async () => ({ ok: false, json: async () => ({ error: 'SCHEMA_INCOMPATIBLE' }) });
+await assert.rejects(() => client.createRun(), error => {
+  assert.equal(error.message, 'SCHEMA_INCOMPATIBLE');
+  assert.match(client.assessmentRunErrorMessage(error), /PostgreSQL schema.*database migration/);
+  return true;
+});
+assert.doesNotMatch(client.assessmentRunErrorMessage(new Error('VERCEL_GOVERNED_DISPATCH_UNSUPPORTED')), /Vercel/i);
 globalThis.fetch=originalFetch;
 console.log('run lifecycle tests passed');

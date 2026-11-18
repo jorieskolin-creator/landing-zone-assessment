@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { requireSession } from '../lib/auth.js';
-import { getInfrastructure } from '../lib/infrastructure.js';
+import { withGovernedInfrastructure } from '../lib/infrastructure.js';
 import { inspectOutput,sha256 } from '../lib/governance.js';
 import { LIFETIMES_MS } from '../lib/controlPlanePolicy.js';
 import { safeErrorCode,safeErrorStatus } from '../lib/safeErrors.js';
@@ -42,4 +42,4 @@ export function checkpointHandler(repository,redis){return async(req,res)=>{
     return res.status(200).json({metadata,payload});
   }catch(error){const code=safeErrorCode(error);return res.status(safeErrorStatus(code)).json({error:code});}
 };}
-export default async function handler(req,res){try{const {repository,redis}=getInfrastructure();return await checkpointHandler(repository,redis)(req,res);}catch{return res.status(503).json({error:'VERCEL_GOVERNED_DISPATCH_UNSUPPORTED'});}}
+export default withGovernedInfrastructure(checkpointHandler);

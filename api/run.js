@@ -1,5 +1,5 @@
 import { requireSession } from '../lib/auth.js';
-import { getInfrastructure } from '../lib/infrastructure.js';
+import { withGovernedInfrastructure } from '../lib/infrastructure.js';
 import { safeErrorCode,safeErrorStatus } from '../lib/safeErrors.js';
 import { RunLifecycleService } from '../lib/runLifecycleService.js';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -32,4 +32,4 @@ export function createRunHandler(repository,redis){const lifecycle=redis?new Run
     return res.status(action==='create'?201:200).json(result);
   } catch(error){const code=safeErrorCode(error);return res.status(safeErrorStatus(code)).json({error:code});}
 };}
-export default async function handler(req,res){try{const {repository,redis}=getInfrastructure();return await createRunHandler(repository,redis)(req,res);}catch{return res.status(503).json({error:'VERCEL_GOVERNED_DISPATCH_UNSUPPORTED'});}}
+export default withGovernedInfrastructure(createRunHandler);
