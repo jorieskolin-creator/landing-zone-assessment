@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { deploymentExpectsInfrastructure, inspectServerBoot, readyzResponse } from '../lib/serverBoot.js';
 
 const validEnv = {
@@ -69,8 +70,21 @@ assert.deepEqual(readyzResponse({
   accepting: false, infrastructureReady: true, dependencyReady: true, modelRoutingReady: true, expectsInfrastructure: true,
 }), { status: 503, body: { status: 'not_ready', code: 'SHUTTING_DOWN' } });
 
-const railway = await readFile(new URL('../railway.json', import.meta.url), 'utf8');
-assert.match(railway, /"healthcheckPath": "\/livez"/);
-assert.doesNotMatch(railway, /preDeployCommand/);
+const railway = JSON.parse(await readFile(new URL('../railway.json', import.meta.url), 'utf8'));
+assert.equal(railway.deploy.healthcheckPath, '/readyz');
+assert.deepEqual(railway.deploy.preDeployCommand, ['npm run migrate -- --if-configured']);
 
-console.log('server boot allows UI without model routing; analysis workers stay off');
+const runMigrationWithoutPostgres = (redisUrl, args) => spawnSync(
+  process.execPath,
+  [new URL('../scripts/migrate.mjs', import.meta.url).pathname, ...args],
+  { env: { ...process.env, DATABASE_URL: '', REDIS_URL: redisUrl }, encoding: 'utf8' },
+);
+const optionalMigration = runMigrationWithoutPostgres('', ['--if-configured']);
+assert.equal(optionalMigration.status, 0);
+assert.match(optionalMigration.stdout, /MIGRATION_SKIPPED_UI_ONLY/);
+for (const result of [runMigrationWithoutPostgres('', []), runMigrationWithoutPostgres('redis://localhost', ['--if-configured'])]) {
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MIGRATION_DATABASE_URL_REQUIRED/);
+}
+
+console.log('Server readiness and Railway migration startup checks passed');

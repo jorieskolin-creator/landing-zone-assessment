@@ -19,4 +19,6 @@ npm test
 
 Set `LZ_REDIS_NAMESPACE=landing-zone:v1` for a new execution plane. Existing deployments without this setting keep their stored attempts and checkpoints in the current namespace. To transition an existing deployment, stop admitting runs, drain in-flight attempts, and let retained checkpoints expire before setting the same namespace on every replica. The maximum run and checkpoint lifetime is 24 hours.
 
-Run `npm run migrate` against the target PostgreSQL database before deploying this revision to a governed Railway service. Migration 010 accepts Landing Zone telemetry and preserves historical telemetry rows.
+### Railway database migrations
+
+Railway applies pending PostgreSQL migrations before starting a new deployment and checks `/readyz` before routing traffic. The migration command uses the application's configured `DATABASE_URL` and logs `MIGRATION_COMPLETE` on success. For a manual deployment, run `npm run migrate` with the target database configured.
