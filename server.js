@@ -26,11 +26,13 @@ if (!boot.modelRoutingReady) {
   console.error('[server] MODEL_ROUTING_UNAVAILABLE — serving UI; analysis workers not started');
 }
 let infrastructure = null;
+let infrastructureErrorCode;
 try {
   infrastructure = await initializeInfrastructure();
 } catch (error) {
   const code = safeErrorCode(error);
   const mapped = code === 'INTERNAL_ERROR' ? 'INFRASTRUCTURE_UNAVAILABLE' : code;
+  infrastructureErrorCode = mapped;
   console.error(`[server] INFRASTRUCTURE_UNAVAILABLE code=${mapped} — serving UI; workers not started`);
 }
 const app = express();
@@ -61,6 +63,7 @@ app.get('/readyz',async(_req,res)=>{
   const decision = readyzResponse({
     accepting,
     infrastructureReady: Boolean(infrastructure),
+    infrastructureErrorCode,
     dependencyReady,
     modelRoutingReady: boot.modelRoutingReady,
     expectsInfrastructure,

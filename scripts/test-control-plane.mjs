@@ -4,8 +4,11 @@ import { ControlPlaneRepository } from '../lib/controlPlaneRepository.js';
 import { RedisExecutionPlane } from '../lib/redisExecutionPlane.js';
 import { initializeInfrastructure } from '../lib/infrastructure.js';
 import { CONTROL_PLANE_SCHEMA_VERSION,LIFETIMES_MS,effectiveExpiry } from '../lib/controlPlanePolicy.js';
-import { safeErrorCode } from '../lib/safeErrors.js';
-import { validQualitySnapshot, validShadowTelemetry } from '../api/run.js';
+import { safeErrorCode, safeErrorStatus } from '../lib/safeErrors.js';
+import runHandler, { validQualitySnapshot, validShadowTelemetry } from '../api/run.js';
+import checkpointHandler from '../api/checkpoint.js';
+import governedPacketHandler from '../api/governed-packet.js';
+import modelResultHandler from '../api/model-result.js';
 import { migrationVersion, pendingMigrations } from './migration-plan.mjs';
 const CANARIES=['SOURCE_CANARY_DO_NOT_STORE','PROMPT_CANARY_DO_NOT_STORE','OUTPUT_CANARY_DO_NOT_STORE'];
 const migrationFiles=(await readdir(new URL('../migrations/',import.meta.url))).filter(name=>/^\d+_[a-z0-9_]+\.sql$/.test(name));
@@ -39,6 +42,19 @@ assert.deepEqual(redisCalls[0].fields,{attempt_id:'opaque-attempt'});assert.does
 assert.equal(safeErrorCode(new Error(CANARIES[0])),'INTERNAL_ERROR');
 assert.equal(safeErrorCode({code:'SCHEMA_INCOMPATIBLE'}),'SCHEMA_INCOMPATIBLE');
 assert.equal(safeErrorCode({code:'DATABASE_OPERATION_FAILED'}),'DATABASE_OPERATION_FAILED');
+const assertUnavailableHandlers = async error => {
+  for (const handler of [runHandler, checkpointHandler, governedPacketHandler, modelResultHandler]) {
+    await handler({}, {
+      status(code) {
+        assert.equal(code, 503);
+        return this;
+      },
+      json(body) { assert.deepEqual(body, { error }); },
+    });
+  }
+};
+assert.equal(safeErrorStatus('SCHEMA_INCOMPATIBLE'), 503);
+await assertUnavailableHandlers('DEPENDENCY_UNAVAILABLE');
 await assert.rejects(
   ()=>initializeInfrastructure({}, {
     pool:{async query(sql){if(sql.startsWith('SELECT 1'))return{rows:[{ready:1}]};if(sql.startsWith('SELECT COALESCE'))return{rows:[{version:CONTROL_PLANE_SCHEMA_VERSION-1}]};return{rows:[]};},async end(){}},
@@ -47,6 +63,7 @@ await assert.rejects(
   error=>error?.code==='SCHEMA_INCOMPATIBLE',
   'schema incompatibility must survive infrastructure cleanup for safe startup diagnostics'
 );
+await assertUnavailableHandlers('SCHEMA_INCOMPATIBLE');
 const migration=await readFile(new URL('../migrations/001_control_plane.sql',import.meta.url),'utf8');assert.doesNotMatch(migration,/\b(JSONB|payload|request|response|stack|message|details)\b/i);for(const c of CANARIES)assert.doesNotMatch(migration,new RegExp(c));
 assert.match(migration,/packet_id uuid NOT NULL UNIQUE REFERENCES governed_packet_metadata/,'one packet must reserve at most one durable attempt');
 const qualityMigration=await readFile(new URL('../migrations/002_quality_snapshots.sql',import.meta.url),'utf8');assert.match(qualityMigration,/run_quality_snapshots/);assert.match(qualityMigration,/ON DELETE CASCADE/);assert.doesNotMatch(qualityMigration,/\b(JSONB|source_name|source_document|quote|prompt|output|body|payload|message|details)\b/i);assert.match(qualityMigration,/interval '90 days'/);
