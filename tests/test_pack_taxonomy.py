@@ -11,8 +11,6 @@ sys.path.insert(0, str(ROOT / "src"))
 from domain_packs.loader import LANDING_ZONE_PACK_DIR, load_pack
 from domain_packs.taxonomy import (
     ASSESSMENT_OUTPUT_CONTRACT_IDS,
-    LEGACY_FINOPS_CRITERION_BRACKET_RX,
-    LEGACY_FINOPS_DOMAIN_IDS,
     PackTaxonomy,
 )
 from tests.pack_fixtures import write_finops_shape_pack, write_independent_pack
@@ -26,7 +24,6 @@ class PackTaxonomyTests(unittest.TestCase):
     def test_landing_zone_iteration_comes_from_pack_not_a_to_f(self) -> None:
         taxonomy = PackTaxonomy(load_pack(LANDING_ZONE_PACK_DIR))
         self.assertEqual(taxonomy.domain_ids, list("ABCDEFGH"))
-        self.assertNotEqual(tuple(taxonomy.domain_ids), LEGACY_FINOPS_DOMAIN_IDS)
         self.assertTrue(taxonomy.is_domain_id("G"))
         self.assertTrue(taxonomy.is_domain_id("H"))
         self.assertEqual(taxonomy.batch_titles()["H"], "Platform automation & DevOps")
@@ -76,9 +73,6 @@ class PackTaxonomyTests(unittest.TestCase):
 
     def test_criterion_regex_is_built_from_pack_ids(self) -> None:
         lz = PackTaxonomy(load_pack(LANDING_ZONE_PACK_DIR))
-        self.assertIsNone(LEGACY_FINOPS_CRITERION_BRACKET_RX.search("[H5]"))
-        self.assertIsNone(LEGACY_FINOPS_CRITERION_BRACKET_RX.search("[AP-H1]"))
-        self.assertIsNotNone(LEGACY_FINOPS_CRITERION_BRACKET_RX.search("[A1]"))
         self.assertIsNotNone(lz.criterion_reference_regex().search("[H5]"))
         self.assertIsNotNone(lz.criterion_reference_regex().search("[AP-H1]"))
         self.assertIsNotNone(lz.criterion_reference_regex().search("[A1]"))
@@ -95,13 +89,9 @@ class PackTaxonomyTests(unittest.TestCase):
         self.assertNotIn("antipattern:A1", taxonomy.expected_knowledge_document_keys("A"))
         self.assertEqual(len(taxonomy.expected_knowledge_document_keys()), 80)
 
-    def test_output_contracts_are_assessment_prefixed_with_finops_aliases(self) -> None:
+    def test_output_contracts_are_assessment_prefixed(self) -> None:
         taxonomy = PackTaxonomy(load_pack(LANDING_ZONE_PACK_DIR))
         self.assertEqual(taxonomy.output_contract_ids()["evidenceGapQuery"], "assessment_evidence_gap_query_v1")
-        self.assertEqual(
-            taxonomy.resolve_output_contract_id("finops_evidence_gap_query_v1"),
-            ASSESSMENT_OUTPUT_CONTRACT_IDS["evidenceGapQuery"],
-        )
         self.assertNotIn("A", taxonomy.domain_diagnosis_schema_properties().keys() ^ set("ABCDEFGH"))
 
 

@@ -71,7 +71,7 @@ Every evidence quote MUST be tagged with exactly ONE of these seven categories o
 *   The "category" field is REQUIRED — never omit it, never use null, never use a value outside the seven above.
 
 ### JSON SAFETY PROTOCOL
-*   **NO DOUBLE QUOTES** inside JSON values. Use single quotes or asterisks.
+*   **ESCAPE JSON STRING CONTENT.** Preserve exact source punctuation, including double quotes, using JSON string escaping.
 *   **NO MARKDOWN** formatting outside the JSON block.
 *   **BOUNDED OUTPUT:** Return only the requested criterion results—at most 10 results (30 sub-criterion decisions) for a full batch—and their required fields. Keep "evidence" to at most 180 characters and "reasoning" to at most 240 characters per item. question_results already records each sub-criterion decision, so do not restate definitions, reproduce source passages, add recommendations, or write narrative analysis.
 `;
@@ -109,7 +109,7 @@ Copy each item id from its <item id="..."> attribute. Maturity ids are ${columnI
 4. Sum only the supported entries to get the **Count (0-3)**.
 5. If assessment_status is assessed, extract at least one criterion-relevant quote even when Count is 0. If no relevant quote exists, return not_assessed.
 6. Every quote must include source_id and chunk_id from its enclosing CHUNK marker. Omit evidence_class and page/sheet/row locators; those are filled from the cited chunk.
-7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Be concise; do not reproduce definitions or add recommendations.
+7. Return one to three exact quotes per assessed item. Use separate citations for evidence in different chunks. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Be concise; do not reproduce definitions or add recommendations.
 
 **REQUIRED OUTPUT STRUCTURE (JSON Only):**
 Return exactly 10 items: maturity ${columnId}1 ${columnId}2 ${columnId}3 ${columnId}4 ${columnId}5, then antipattern AP-${columnId}1 AP-${columnId}2 AP-${columnId}3 AP-${columnId}4 AP-${columnId}5.
@@ -189,7 +189,7 @@ Rules:
 4. Source-text quotes must include source_id and chunk_id from the enclosing CHUNK. Do not emit evidence_class or page/sheet/row locators. Derived quotes must instead include evidence_source="derived", source_id, derived_evidence_id, and an exact summary_lines entry from approved <DERIVED_EVIDENCE>. Never cite content outside the referenced evidence unit. Never invent provider checks or control-plane facts.
 5. For anti-pattern Count = 0, distinguish verified absence from unknown absence in the evidence/reasoning text. Verified absence requires Class 1 coverage that would reveal the anti-pattern if present; silence, documents, or workshop material alone are not tested absence.
 6. Do not return criteria that were not listed in <target_criteria>. Copy those ids exactly. Anti-pattern ids keep the AP- prefix.
-7. Return exactly one best quote per assessed item. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Return decisions and references only—no recommendations or repeated definitions.
+7. Return one to three exact quotes per assessed item. Use separate citations for evidence in different chunks. Keep quote text at most 240 characters, evidence at most 180 characters, and reasoning at most 240 characters. Return decisions and references only—no recommendations or repeated definitions.
 
 Required JSON shape:
 {

@@ -294,11 +294,11 @@ export const assertEvidenceLaneStagePacket = (packet: EvidenceLaneStagePacket): 
     || !packet.acquisition_binding.packet_manifest_hash
     || !packet.acquisition_binding.source_packet_hash
     || !packet.acquisition_binding.privacy_decision_hash
-    || packet.derived_evidence.some(item => item.report_eligible !== true || item.mode !== 'authoritative')
-    || packet.derived_evidence.some(isDerivedEvidenceAcquisitionDiagnostic)
+    || packet.derived_evidence.some(item => !isDerivedEvidenceApprovedForPacket(item))
     || packet.acquisition_diagnostics.some(item =>
       item.report_eligible !== true
-      || item.mode !== 'authoritative'
+      || item.mode !== 'shadow'
+      || item.llm_policy?.may_use_as_evidence !== false
       || !isDerivedEvidenceAcquisitionDiagnostic(item))
     || !text.includes(`<CUSTOMER_EVIDENCE>`) || !text.includes(packet.acquisition_binding.source_packet_hash)
     || integrity_hash !== hashString(`${hashable(base)}\n${text}`)) {

@@ -34,8 +34,8 @@ const hashSourcePacket = packet => hashString(JSON.stringify({
 }));
 
 const textualManifest = {
-  chunk_id: 'src-001-c001', source_id: 'src-001', type: 'table_profile',
-  relevance: 'high', routed_domains: ['A']
+  chunk_id: 'src-001-c001', source_id: 'src-001', type: 'table_profile', evidence_class: 'platform', providers_detected: ['azure'],
+  relevance: 'high', routed_domains: ['C']
 };
 const visualManifest = {
   chunk_id: 'src-002-v001-c001', source_id: 'src-002', type: 'image',
@@ -43,11 +43,11 @@ const visualManifest = {
   ocr_confidence: 88, ocr_extraction_method: 'local_ocr', ocr_engine_version: 'tesseract.js@7.0.0',
   ocr_language: 'eng', post_ocr_redaction_status: 'PASSED', visual_interpretation_status: 'OCR_TEXT_ONLY',
   withheld_visual_region_count: 1,
-  relevance: 'medium', routed_domains: ['A']
+  relevance: 'medium', routed_domains: ['C']
 };
 const sourcePacket = {
-  domain_id: 'A', title: 'Cost Visibility & Allocation',
-  text: '<SOURCE_PACKET domain="A"><CHUNK id="src-001-c001">owner allocation evidence</CHUNK><CHUNK id="src-002-v001-c001" type="image">OCR chart label</CHUNK></SOURCE_PACKET>',
+  domain_id: 'C', title: 'Resource organization',
+  text: '<SOURCE_PACKET domain="C"><CHUNK id="src-001-c001">Azure management group inventory</CHUNK><CHUNK id="src-002-v001-c001" type="image">OCR chart label</CHUNK></SOURCE_PACKET>',
   images: [], manifest: [textualManifest, visualManifest], included_chunk_count: 2,
   total_candidate_chunks: 3, weak_coverage: true,
   coverage_notes: ['One relevant chunk was withheld by the bounded context limit.'], char_count: 170
@@ -55,7 +55,7 @@ const sourcePacket = {
 const shadowDerived = {
   schema_version: 'derived_analytical_evidence_v1', mode: 'shadow', evidence_id: 'EVID-DER-12345678',
   evidence_type: 'deterministic_analytical', source_id: 'src-001',
-  targets: [{ stream: 'maturity', criterion_id: 'A1' }, { stream: 'antipattern', criterion_id: 'A1' }],
+  targets: [{ stream: 'maturity', criterion_id: 'C1' }, { stream: 'antipattern', criterion_id: 'C1' }],
   derivation: { analyzer_id: 'tagging_allocation_v1', analyzer_version: '1.2.0', registry_version: 'evidence_analysis_registry_v1', method: 'tagging_allocation_coverage_analysis', calculation_ids: ['field_row_coverage'] },
   result: {
     status: 'OBSERVED', source_row_count: 2, analyzed_row_count: 2, eligible_row_count: 2, excluded_total_row_count: 0, row_scope: 'full_table', row_truncated: false,
@@ -68,27 +68,34 @@ const shadowDerived = {
 const approvedDerived = {
   ...shadowDerived,
   mode: 'authoritative',
-  derivation: { ...shadowDerived.derivation, analyzer_version: '1.3.0' },
+  targets: [{ stream: 'maturity', criterion_id: 'C1' }],
+  derivation: {
+    analyzer_id: 'lz_azure_management_group_membership_v1', analyzer_version: '1.0.0',
+    registry_version: 'lz_evidence_analysis_registry_v1', method: 'lz_management_group_membership',
+    calculation_ids: ['explicit_subscription_parent_membership'],
+  },
   result: {
     ...shadowDerived.result,
+    withheld_source_row_count: 0, withheld_source_column_count: 0,
     cost_basis: { state: 'VALID', column_index: 1, currencies: ['USD'], excluded_row_count: 0 },
     reconciliation: { state: 'PASSED' }
   },
-  summary_lines: ['owner row coverage: 50%; valid=1/2; invalid placeholders=0; state=FIELD_PRESENT_PARTIAL.'],
+  summary_lines: ['The Azure inventory lists a management group parent for every subscription in the export.'],
   eligibility: { state: 'ELIGIBLE', reasons: [] },
   report_eligible: true
 };
 const acquisitionDiagnostic = {
   ...approvedDerived,
+  mode: 'shadow',
   evidence_id: 'EVID-DER-87654321',
   derivation: {
-    analyzer_id: 'crucial_item_coverage_v1', analyzer_version: '1.0.0',
-    registry_version: 'evidence_analysis_registry_v2', method: 'crucial_item_coverage_analysis',
+    analyzer_id: 'lz_retrieval_coverage_v1', analyzer_version: '1.0.0',
+    registry_version: 'lz_evidence_analysis_registry_v1', method: 'lz_retrieval_coverage',
     calculation_ids: ['expected_vs_found']
   },
   result: { ...approvedDerived.result, row_scope: 'acquired_corpus' },
-  summary_lines: ['TAGGING crucial-item coverage: 1/3 found; critical=PARTIAL.'],
-  llm_policy: { may_use_as_evidence: true, may_recalculate: false, may_infer_exact_values: false, causal_authority: 'NONE' },
+  summary_lines: ['Hierarchy retrieval expectations: 1/3 found; critical=PARTIAL.'],
+  llm_policy: { may_use_as_evidence: false, may_recalculate: false, may_infer_exact_values: false, causal_authority: 'NONE' },
   unit_fingerprint: '87654321'
 };
 const privacyDecision = {
@@ -97,7 +104,7 @@ const privacyDecision = {
   findings: [], blocking_codes: []
 };
 const sourcePacketHash = hashSourcePacket(sourcePacket);
-const sourcePacketHashes = { A: sourcePacketHash };
+const sourcePacketHashes = { C: sourcePacketHash };
 const readiness = {
   status: 'READY_WITH_WARNINGS', reasons: ['PACKET_COVERAGE_WARNINGS_PRESENT'], privacy_decision: 'PASS_WITH_REDACTIONS',
   registry_hash: 'registry-hash', packet_manifest_hash: hashString(JSON.stringify(sourcePacketHashes))
@@ -114,10 +121,10 @@ const buildEvidenceLaneStagePackets = input => buildEvidenceLaneStagePacketsRaw(
 });
 
 const packets = buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [shadowDerived], privacy_decision: privacyDecision, acquisition_readiness: readiness
 });
-const packet = packets.A;
+const packet = packets.C;
 assert.equal(packet.schema_version, 'evidence_lane_stage_packet_v2');
 assert.equal(packet.source_role, 'CUSTOMER_EVIDENCE');
 assert.deepEqual(packet.knowledge_context, []);
@@ -147,25 +154,25 @@ assert.match(packet.text, /PACKET_COVERAGE_WARNINGS_PRESENT/);
 assert.match(packet.text, /withheld_sheets="1" withheld_rows="2" withheld_columns="1"/);
 assert.match(packet.text, /Workbook images from 1 source\(s\) remain uninspected and withheld/);
 assert.match(packet.text, /No report-eligible deterministic analytical evidence is approved/);
-assert.match(packet.text, /<CUSTOMER_EVIDENCE>[\s\S]*owner allocation evidence/);
+assert.match(packet.text, /<CUSTOMER_EVIDENCE>[\s\S]*Azure management group inventory/);
 assert.doesNotThrow(() => assertEvidenceLaneStagePacket(packet));
 
 const approvedPacket = buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [approvedDerived], privacy_decision: privacyDecision, acquisition_readiness: readiness
-}).A;
+}).C;
 assert.equal(approvedPacket.derived_evidence.length, 1, 'approved full-population evidence must reach model context');
-assert.match(approvedPacket.text, /owner row coverage: 50%/);
+assert.match(approvedPacket.text, /lists a management group parent/);
 assert.doesNotMatch(approvedPacket.text, /calculated_total|declared_total|difference|\b150\b/, 'model-visible projection must omit absolute monetary values');
 assert.doesNotThrow(() => assertEvidenceLaneStagePacket(approvedPacket));
 
 const diagnosticPacket = buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [acquisitionDiagnostic], privacy_decision: privacyDecision, acquisition_readiness: readiness
-}).A;
+}).C;
 assert.deepEqual(diagnosticPacket.derived_evidence, [], 'coverage diagnostics must not become score-supporting derived evidence');
 assert.equal(diagnosticPacket.acquisition_diagnostics.length, 1, 'coverage diagnostics remain in the governed package for lineage and retrieval');
-assert.doesNotMatch(diagnosticPacket.text, /TAGGING crucial-item coverage/, 'coverage diagnostics must not enter forensic model context');
+assert.doesNotMatch(diagnosticPacket.text, /Hierarchy retrieval expectations/, 'coverage diagnostics must not enter forensic model context');
 assert.match(diagnosticPacket.text, /acquisition_diagnostics\[\].*excluded from this forensic model context/);
 assert.doesNotThrow(() => assertEvidenceLaneStagePacket(diagnosticPacket));
 assert.throws(() => assertEvidenceLaneStagePacket({ ...packet, text: `${packet.text} tampered` }), /INTEGRITY_FAILED/);
@@ -174,62 +181,62 @@ assert.throws(() => assertEvidenceLaneStagePacket({
   withheld_content: { ...packet.withheld_content, withheld_row_count: packet.withheld_content.withheld_row_count + 1 }
 }), /INTEGRITY_FAILED/, 'withheld acquisition metadata is part of the governed packet integrity boundary');
 assert.throws(() => buildEvidenceLaneStagePacketsRaw({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [], privacy_decision: privacyDecision, acquisition_readiness: readiness,
   acquisition_limitations: { ...acquisitionLimitations, unsupported_object_codes: ['invalid code'] }
 }), /ACQUISITION_LIMITATIONS_INVALID/);
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: { ...sourcePacket, manifest: [textualManifest, { ...visualManifest, ocr_engine_version: undefined }] } },
-  source_packet_hashes: { A: hashSourcePacket({ ...sourcePacket, manifest: [textualManifest, { ...visualManifest, ocr_engine_version: undefined }] }) },
+  source_packets: { C: { ...sourcePacket, manifest: [textualManifest, { ...visualManifest, ocr_engine_version: undefined }] } },
+  source_packet_hashes: { C: hashSourcePacket({ ...sourcePacket, manifest: [textualManifest, { ...visualManifest, ocr_engine_version: undefined }] }) },
   derived_evidence: [], privacy_decision: privacyDecision,
   acquisition_readiness: {
     ...readiness,
-    packet_manifest_hash: hashString(JSON.stringify({ A: hashSourcePacket({ ...sourcePacket, manifest: [textualManifest, { ...visualManifest, ocr_engine_version: undefined }] }) }))
+    packet_manifest_hash: hashString(JSON.stringify({ C: hashSourcePacket({ ...sourcePacket, manifest: [textualManifest, { ...visualManifest, ocr_engine_version: undefined }] }) }))
   }
 }), /VISUAL_EVIDENCE_PROVENANCE_INCOMPLETE/, 'visual evidence without complete OCR and redaction provenance must not enter a stage packet');
 
 const unapprovedClaim = { ...shadowDerived, mode: 'authoritative', report_eligible: true };
 const unapprovedPacket = buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [unapprovedClaim], privacy_decision: privacyDecision, acquisition_readiness: readiness
-}).A;
+}).C;
 assert.deepEqual(unapprovedPacket.derived_evidence, [], 'self-declared authority cannot bypass the registry approval state');
 assert.equal(unapprovedPacket.withheld_content.shadow_derived_evidence_count, 1);
 
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes, derived_evidence: [],
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes, derived_evidence: [],
   privacy_decision: { ...privacyDecision, decision: 'BLOCK', blocking_codes: ['PROHIBITED_SECRET_DETECTED'] },
   acquisition_readiness: { ...readiness, status: 'BLOCKED' }
 }), /NOT_APPROVED/);
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: { ...sourcePacket, images: [{ mimeType: 'image/png', data: 'raw' }] } },
+  source_packets: { C: { ...sourcePacket, images: [{ mimeType: 'image/png', data: 'raw' }] } },
   source_packet_hashes: sourcePacketHashes, derived_evidence: [], privacy_decision: privacyDecision, acquisition_readiness: readiness
 }), /RAW_IMAGE_PAYLOAD_NOT_PERMITTED/);
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [{ ...approvedDerived, result: { ...approvedDerived.result, reconciliation: { state: 'FAILED' } } }],
   privacy_decision: privacyDecision, acquisition_readiness: readiness
 }), /DERIVED_EVIDENCE_RECONCILIATION_FAILED/);
 
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: { ...sourcePacket, text: `${sourcePacket.text} changed` } },
+  source_packets: { C: { ...sourcePacket, text: `${sourcePacket.text} changed` } },
   source_packet_hashes: sourcePacketHashes, derived_evidence: [], privacy_decision: privacyDecision, acquisition_readiness: readiness
 }), /SOURCE_PACKET_BINDING_FAILED/, 'source packet mutation after acquisition validation must block stage assembly');
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,
+  source_packets: { C: sourcePacket }, source_packet_hashes: sourcePacketHashes,
   derived_evidence: [], privacy_decision: privacyDecision,
   acquisition_readiness: { ...readiness, packet_manifest_hash: 'tampered-manifest-hash' }
 }), /ACQUISITION_BINDING_FAILED/, 'stage assembly must remain bound to the acquisition packet manifest');
 const withheldSourcePacket = {
   ...sourcePacket,
-  text: '<SOURCE_PACKET domain="A"><NO_ROUTED_CHUNKS>None</NO_ROUTED_CHUNKS></SOURCE_PACKET>',
+  text: '<SOURCE_PACKET domain="C"><NO_ROUTED_CHUNKS>None</NO_ROUTED_CHUNKS></SOURCE_PACKET>',
   manifest: [], included_chunk_count: 0, total_candidate_chunks: 1
 };
 withheldSourcePacket.char_count = withheldSourcePacket.text.length;
 const withheldHash = hashSourcePacket(withheldSourcePacket);
-const withheldHashes = { A: withheldHash };
+const withheldHashes = { C: withheldHash };
 assert.throws(() => buildEvidenceLaneStagePackets({
-  source_packets: { A: withheldSourcePacket }, source_packet_hashes: withheldHashes,
+  source_packets: { C: withheldSourcePacket }, source_packet_hashes: withheldHashes,
   derived_evidence: [], privacy_decision: privacyDecision,
   acquisition_readiness: { ...readiness, packet_manifest_hash: hashString(JSON.stringify(withheldHashes)) }
 }), /ROUTED_CONTENT_WITHHELD/, 'packetization loss must block rather than masquerade as acquired-source silence');
@@ -240,17 +247,17 @@ assert.throws(() => assertEvidenceLaneStagePacket({
 
 const silentSourcePacket = {
   ...sourcePacket,
-  text: '<SOURCE_PACKET domain="A"><NO_ROUTED_CHUNKS>None</NO_ROUTED_CHUNKS></SOURCE_PACKET>',
+  text: '<SOURCE_PACKET domain="C"><NO_ROUTED_CHUNKS>None</NO_ROUTED_CHUNKS></SOURCE_PACKET>',
   manifest: [], included_chunk_count: 0, total_candidate_chunks: 0, char_count: 84
 };
 silentSourcePacket.char_count = silentSourcePacket.text.length;
 const silentHash = hashSourcePacket(silentSourcePacket);
-const silentHashes = { A: silentHash };
+const silentHashes = { C: silentHash };
 const silentPacket = buildEvidenceLaneStagePackets({
-  source_packets: { A: silentSourcePacket }, source_packet_hashes: silentHashes,
+  source_packets: { C: silentSourcePacket }, source_packet_hashes: silentHashes,
   derived_evidence: [], privacy_decision: privacyDecision,
   acquisition_readiness: { ...readiness, packet_manifest_hash: hashString(JSON.stringify(silentHashes)) }
-}).A;
+}).C;
 assert.equal(silentPacket.coverage.signal_state, 'ACQUIRED_SOURCE_SILENCE');
 assert.doesNotThrow(() => assertEvidenceLaneStagePacket(silentPacket), 'genuine acquired-source silence remains analyzable');
 

@@ -24,11 +24,11 @@ const {
 } = await import(`file://${modulePath}`);
 
 const payload = {
-  meta: { engine_version: 'test', timestamp: '2026-05-22', model_config: {} },
+  meta: { engine_version: 'test', timestamp: '2026-05-22', model_config: {}, assessment_scope: { pack_id: 'landing-zone', schema_version: 'lz_step0_scope_v1' } },
   phase_1_audit_logs: { maturity: {}, antipattern: {} },
   evidence_check: { batch_id: 'all', items: [], adjustments: [] },
   phase_2_validation: {
-    metrics: { assessment_resolution: 100 },
+    metrics: { assessment_resolution: 100, adjusted_maturity: 80, raw_finops_maturity_score: 99, finops_readiness: 99 },
     resolution_maturity: { mode: 'ACTIVE' },
     assessment_sufficiency: { scoring_authority: true, decision: 'PASS' },
     crawl_walk_run: 'Run',
@@ -40,37 +40,25 @@ const payload = {
 const serialized = serializeDiagnosticResultForHtml(payload);
 assert.equal(serialized.includes('</script>'), false, 'embedded report JSON must not close its own script tag');
 
-const html = `<!doctype html><script id="finops-data" type="application/json">${serialized}</script>`;
+const html = `<!doctype html><script id="lz-assessment-data" type="application/json">${serialized}</script>`;
 const imported = extractDiagnosticResultFromHtmlReport(html);
 assert.equal(imported.kind, 'report');
 assert.equal(imported.result.phase_3_strategy.executive_summary, 'safe </script> text');
 assert.equal(imported.result.phase_3_strategy.active_persona, 'ciso_leadership');
-assert.equal(imported.result.phase_3_strategy.executive_summaries.ciso_leadership, 'safe </script> text');
-
-const lzHtml = `<!doctype html><script id="lz-assessment-data" type="application/json">${serialized}</script>`;
-const lzImported = extractDiagnosticResultFromHtmlReport(lzHtml);
-assert.equal(lzImported.kind, 'report');
-
-const legacyPersonaPayload = {
-  ...payload,
-  phase_3_strategy: {
-    executive_summary: 'legacy lead',
-    executive_summaries: { finops_lead: 'legacy lead', engineering_lead: 'legacy platform' },
-    active_persona: 'engineering_lead',
-    remediation_roadmap: [],
-  },
-};
-const remapped = parseDiagnosticResultJson(JSON.stringify(legacyPersonaPayload));
-assert.equal(remapped.kind, 'report');
-assert.equal(remapped.result.phase_3_strategy.active_persona, 'platform_owner');
-assert.equal(remapped.result.phase_3_strategy.executive_summaries.ciso_leadership, 'legacy lead');
-assert.equal(remapped.result.phase_3_strategy.executive_summaries.platform_owner, 'legacy platform');
-assert.equal(remapped.result.phase_3_strategy.executive_summaries.security_owners, 'legacy lead');
+assert.equal(imported.result.phase_2_validation.metrics.adjusted_maturity, 80);
+assert.equal('finops_readiness' in imported.result.phase_2_validation.metrics, false);
+assert.equal(extractDiagnosticResultFromHtmlReport(html.replace('lz-assessment-data', 'finops-data')).kind, 'invalid_report');
+const foreignPayload = structuredClone(payload);
+foreignPayload.meta.assessment_scope.pack_id = 'finops';
+assert.equal(parseDiagnosticResultJson(JSON.stringify(foreignPayload)).kind, 'invalid_report');
+const unknownPayload = structuredClone(payload);
+delete unknownPayload.meta.assessment_scope;
+assert.equal(parseDiagnosticResultJson(JSON.stringify(unknownPayload)).kind, 'invalid_report');
 
 const ordinaryHtml = '<!doctype html><main><h1>Source material</h1></main>';
 assert.deepEqual(extractDiagnosticResultFromHtmlReport(ordinaryHtml), { kind: 'not_report' });
 
-const brokenHtml = '<script id="finops-data" type="application/json">{not json</script>';
+const brokenHtml = '<script id="lz-assessment-data" type="application/json">{not json</script>';
 const broken = extractDiagnosticResultFromHtmlReport(brokenHtml);
 assert.equal(broken.kind, 'invalid_report');
 

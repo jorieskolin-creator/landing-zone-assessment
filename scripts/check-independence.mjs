@@ -8,7 +8,6 @@ const ROOT = dirname(fileURLToPath(new URL(".", import.meta.url)));
 const UPSTREAM = "github.com/jorieskolin-creator/finops-engine-2026";
 const ALLOWED_UPSTREAM_MENTIONS = new Set([
   "src/knowledge_base/KERNEL_BASELINE.md",
-  "docs/copied-baseline/FINOPS_ENGINE_README.md",
   "Landing_Zone_Assessment_Implementation_Plan.md",
   "scripts/check-independence.mjs",
   "scripts/test-landing-zone-pack.mjs",
@@ -44,6 +43,15 @@ async function walk(dir, files = []) {
 }
 
 const files = await walk(ROOT);
+assert.deepEqual(files.map(file => relative(ROOT, file)).filter(path =>
+  /(^|\/)(finops_|FINOPS_ENGINE_README|characterizationFixtures|tier1-|scenario-)/.test(path)
+), [], 'Copied assessment assets must stay out of the repository');
+for (const file of files.filter(file => /\.(?:ts|tsx|js|mjs)$/.test(file))) {
+  const path = relative(ROOT, file);
+  if (!/^(?:src|lib|api)\//.test(path)) continue;
+  assert.doesNotMatch(await readFile(file, 'utf8'), /(?:from\s+|import\s*\()['"][^'"]*(?:finops_|characterizationFixtures)/i,
+    `A copied assessment import remains in ${path}`);
+}
 const packageJson = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
 const allDeps = {
   ...(packageJson.dependencies || {}),

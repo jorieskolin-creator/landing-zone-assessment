@@ -25,22 +25,6 @@ ASSESSMENT_OUTPUT_CONTRACT_IDS = {
     "roadmapFactCheck": "assessment_roadmap_fact_check_v2",
 }
 
-# Versioned aliases so existing FinOps runs keep resolving after the rename.
-FINOPS_OUTPUT_CONTRACT_ALIASES = {
-    "finops_evidence_gap_query_v1": ASSESSMENT_OUTPUT_CONTRACT_IDS["evidenceGapQuery"],
-    "finops_evidence_synthesis_v1": ASSESSMENT_OUTPUT_CONTRACT_IDS["evidenceSynthesis"],
-    "finops_roadmap_synthesis_v1": ASSESSMENT_OUTPUT_CONTRACT_IDS["roadmapSynthesis"],
-    "finops_findings_synthesis_v1": ASSESSMENT_OUTPUT_CONTRACT_IDS["findingsSynthesis"],
-    "finops_summary_fact_check_v1": ASSESSMENT_OUTPUT_CONTRACT_IDS["summaryFactCheck"],
-    "finops_roadmap_fact_check_v2": ASSESSMENT_OUTPUT_CONTRACT_IDS["roadmapFactCheck"],
-}
-
-LEGACY_FINOPS_CRITERION_BRACKET_RX = re.compile(
-    r"\[(?:AP-)?[A-F][1-5](?:\s*-\s*(?:[A-F])?[1-5])?\]"
-)
-LEGACY_FINOPS_DOMAIN_IDS = ("A", "B", "C", "D", "E", "F")
-
-
 def _engine_stream(stream: StreamName | EngineStreamName) -> EngineStreamName:
     return "maturity" if stream in {"capability", "maturity"} else "antipattern"
 
@@ -134,11 +118,6 @@ class PackTaxonomy:
 
     def output_contract_ids(self) -> dict[str, str]:
         return dict(ASSESSMENT_OUTPUT_CONTRACT_IDS)
-
-    def resolve_output_contract_id(self, contract_id: str) -> str:
-        if contract_id in ASSESSMENT_OUTPUT_CONTRACT_IDS.values():
-            return contract_id
-        return FINOPS_OUTPUT_CONTRACT_ALIASES.get(contract_id, contract_id)
 
     def criterion_reference_regex(self) -> Pattern[str]:
         ids = _sorted_ids(self.all_criterion_ids())

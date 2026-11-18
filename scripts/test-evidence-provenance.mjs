@@ -128,8 +128,8 @@ assert.equal(reconciled.result.phase_1_audit_logs.maturity.C1.count, 0, 'unsuppo
 assert.deepEqual(reconciled.result.phase_1_audit_logs.maturity.C1.evidence_quotes, []);
 assert.equal(reconciled.result.evidence_check.items.find(item => item.stream === 'maturity' && item.id === 'C1').status, 'unsupported');
 assert.equal(reconciled.result.evidence_check.adjustments.find(item => item.stream === 'maturity' && item.id === 'C1').verified_count, 0);
-assert.equal(reconciled.result.phase_1_audit_logs.maturity.C2.count, 1, 'a finding with remaining valid evidence must survive');
-assert.deepEqual(reconciled.result.phase_1_audit_logs.maturity.C2.evidence_quotes, [validQuote]);
+assert.equal(reconciled.result.phase_1_audit_logs.maturity.C2.count, 0, 'an unbound citation prevents accepting the aggregate sub-criterion score');
+assert.deepEqual(reconciled.result.phase_1_audit_logs.maturity.C2.evidence_quotes, []);
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C3.count, 0, 'a positive finding without any quote must be downgraded');
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C4.count, 1, 'an exact derived citation for its declared target must survive');
 assert.equal(reconciled.result.phase_1_audit_logs.maturity.C5.count, 0, 'a derived citation used for an undeclared target must be rejected');

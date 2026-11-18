@@ -17,28 +17,6 @@ const clampScore = (value: unknown): number => {
   return Math.min(Math.max(Math.round(value), 0), 3);
 };
 
-export const hasAntiPatternPresenceSignal = (value: unknown): boolean => {
-  if (typeof value !== 'string') return false;
-  const text = value.toLowerCase();
-  if (!text.trim()) return false;
-  const phraseMatch = [
-    'partial finding',
-    'partially present',
-    'partial presence',
-    'partial anti-pattern',
-    'weak anti-pattern',
-    'weak harmful pattern',
-    'harmful pattern is evidenced',
-    'harmful pattern signal',
-    'supports partial',
-    'suggests partial',
-    'indicates partial',
-    'some evidence of',
-    'some related evidence'
-  ].some(phrase => text.includes(phrase));
-  return phraseMatch || /\b(partial|weak)\b.{0,80}\b(anti-pattern|harmful|signal|finding|presence|present|evidence|cost-blind|tunnel vision|monolith|server-hugging|it['’]?s problem)\b/.test(text);
-};
-
 export const resolveAntiPatternAbsenceStatus = (input: {
   verifiedCount: number;
   originalCount?: number;
@@ -56,6 +34,7 @@ export const resolveAntiPatternAbsenceStatus = (input: {
   if (verified >= 3) return 'confirmed_present';
   if (verified > 0) return 'partially_present';
   if (original === 0 && explicit === 'tested_absent' && status === 'supported') return 'tested_absent';
+  if (original > 0 && explicit === 'partially_present' && status === 'weak') return 'partially_present';
   return 'unknown_absent';
 };
 
@@ -68,6 +47,7 @@ export const inferAntiPatternAbsenceStatus = (item: Partial<AuditItem> | undefin
   const count = clampScore(item.count);
   if (count >= 3) return 'confirmed_present';
   if (count > 0) return 'partially_present';
+  if (explicit === 'partially_present' && item.evidence_check_status === 'weak' && item.evidence_quotes?.length) return explicit;
   if (explicit === 'tested_absent' && item.evidence_check_status === 'supported'
     && item.coverage_reason?.trim()) return explicit;
   return 'unknown_absent';

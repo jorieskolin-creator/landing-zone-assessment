@@ -7,8 +7,8 @@ assert.match(types, /export type PersonaId =\s*\n\s*\| 'ciso_leadership'/);
 assert.match(types, /'platform_owner'/);
 assert.match(types, /'security_owners'/);
 assert.match(types, /'application_delivery'/);
-assert.match(types, /finops_lead: 'ciso_leadership'/);
-assert.match(types, /engineering_lead: 'platform_owner'/);
+assert.doesNotMatch(types, /finops_lead: 'ciso_leadership'/);
+assert.doesNotMatch(types, /engineering_lead: 'platform_owner'/);
 assert.doesNotMatch(types, /export type PersonaId = 'finops_lead'/);
 
 const constants = await readFile(new URL('../src/constants.ts', import.meta.url), 'utf8');

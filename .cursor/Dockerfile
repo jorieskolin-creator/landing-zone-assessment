@@ -1,4 +1,4 @@
-# Base image for the FinOps Engine Cloud Agent environment.
+# Base image for the Landing Zone Assessment Cloud Agent environment.
 # Provides the stable system dependencies the dev stack needs:
 #   - PostgreSQL 16 (content-free authoritative control plane)
 #   - Redis (deadline-bounded execution plane)

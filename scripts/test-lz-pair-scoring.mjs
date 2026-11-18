@@ -37,14 +37,14 @@ const emptyRegistry = {
   pairs: [],
 };
 const maturityModelSource = (await readFile(new URL("../src/services/maturityModelService.ts", import.meta.url), "utf8"))
-  .replace("import { FINOPS_MATURITY_PAIR_REGISTRY } from '../knowledge_base';", `const FINOPS_MATURITY_PAIR_REGISTRY = ${JSON.stringify(emptyRegistry)};`)
+  .replace("import { LZ_MATURITY_PAIR_REGISTRY } from '../knowledge_base';", `const LZ_MATURITY_PAIR_REGISTRY = ${JSON.stringify(emptyRegistry)};`)
   .replace("./antiPatternSemantics", "./antiPatternSemantics.mjs");
 await writeFile(join(dir, "maturityModelService.mjs"), compile(maturityModelSource), "utf8");
 
 const metricsSource = (await readFile(new URL("../src/services/metricsService.ts", import.meta.url), "utf8"))
   .replace(
-    "import { BATCH_TITLES, FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';",
-    "const BATCH_TITLES = { A: '' }; const FINOPS_ANTIPATTERNS = Array(1); const FINOPS_CRITERIA = Array(1);",
+    "import { BATCH_TITLES, LZ_ANTIPATTERNS, LZ_CRITERIA } from '../knowledge_base';",
+    "const BATCH_TITLES = { A: '' }; const LZ_ANTIPATTERNS = Array(1); const LZ_CRITERIA = Array(1);",
   )
   .replace("./antiPatternSemantics", "./antiPatternSemantics.mjs")
   .replace("./maturityModelService", "./maturityModelService.mjs");

@@ -112,8 +112,6 @@ export interface Metrics {
   antipattern_coverage: number;
   capability_attainment: number;
   antipattern_control: number;
-  raw_finops_maturity_score: number;
-  finops_readiness: number;
   corroborated_maturity: number | null;
   observed_maturity: number | null;
   assessment_resolution: number;
@@ -365,12 +363,6 @@ export const PERSONA_LABELS: Record<PersonaId, string> = {
 
 export const DEFAULT_PERSONA_ID: PersonaId = 'ciso_leadership';
 
-export const LEGACY_PERSONA_ID_MAP: Record<string, PersonaId> = {
-  finops_lead: 'ciso_leadership',
-  cfo: 'ciso_leadership',
-  engineering_lead: 'platform_owner',
-};
-
 export const emptyPersonaSummaries = (): Record<PersonaId, string> =>
   Object.fromEntries(PERSONA_IDS.map((id) => [id, ''])) as Record<PersonaId, string>;
 
@@ -380,10 +372,10 @@ export const filledPersonaSummaries = (text: string): Record<PersonaId, string> 
 export const normalizePersonaId = (value: unknown): PersonaId | undefined => {
   if (typeof value !== 'string') return undefined;
   if ((PERSONA_IDS as string[]).includes(value)) return value as PersonaId;
-  return LEGACY_PERSONA_ID_MAP[value];
+  return undefined;
 };
 
-export const mapLegacyPersonaSummaries = (
+export const normalizePackPersonaSummaries = (
   incoming: unknown,
   fallback = '',
 ): Record<PersonaId, string> => {
@@ -392,8 +384,7 @@ export const mapLegacyPersonaSummaries = (
     for (const [key, value] of Object.entries(incoming as Record<string, unknown>)) {
       const id = normalizePersonaId(key);
       if (!id || typeof value !== 'string' || value.length === 0) continue;
-      const isPackKey = (PERSONA_IDS as string[]).includes(key);
-      if (!result[id] || isPackKey) result[id] = value;
+      result[id] = value;
     }
   }
   const firstAvailable = PERSONA_IDS.find((id) => result[id].length > 0);
@@ -605,8 +596,8 @@ export interface ShadowTelemetryPersistence {
   schema_version: 'shadow_telemetry_v1';
   retrieval_policy_version: 'bounded_retrieval_policy_v1';
   derived_evidence_schema_version: 'derived_analytical_evidence_v1';
-  analyzer_version: 'tagging_allocation_v1@1.3.0';
-  scale_registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2';
+  analyzer_version: 'lz_azure_management_group_membership_v1@1.0.0';
+  scale_registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2' | 'lz_data_signal_registry_v1';
   retrieval_domain_count: number;
   retrieval_triggered_domain_count: number;
   retrieval_pass_1_count: number;
@@ -1156,7 +1147,7 @@ export interface TableInspectionTrace {
 
 export interface DataSignalCoverageReport {
   schema_version: 'data_signal_coverage_v1';
-  registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2';
+  registry_version: 'data_signal_registry_v1' | 'data_signal_registry_v2' | 'lz_data_signal_registry_v1';
   mode: 'active';
   total_object_count: number;
   analyzer_available_count: number;

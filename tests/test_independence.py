@@ -8,7 +8,6 @@ ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM = "github.com/jorieskolin-creator/finops-engine-2026"
 ALLOWED = {
     "src/knowledge_base/KERNEL_BASELINE.md",
-    "docs/copied-baseline/FINOPS_ENGINE_README.md",
     "Landing_Zone_Assessment_Implementation_Plan.md",
     "scripts/check-independence.mjs",
     "scripts/test-landing-zone-pack.mjs",

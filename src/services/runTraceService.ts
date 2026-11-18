@@ -29,13 +29,13 @@ import {
 } from '../types';
 import {
   CRITERION_TOKEN_RX,
-  FINOPS_TACTIC_PLAYBOOK_URL,
-  FINOPS_TACTIC_PLAYBOOK_VERSION,
-  FINOPS_TACTIC_ACTIVITY_PLAYBOOK,
-  FINOPS_ANTIPATTERNS,
-  FINOPS_CRITERIA,
-  FINOPS_TACTICS_LOCAL,
-  FINOPS_TAXONOMY_REGISTRY
+  LZ_TACTIC_PLAYBOOK_URL,
+  LZ_TACTIC_PLAYBOOK_VERSION,
+  LZ_TACTIC_ACTIVITY_PLAYBOOK,
+  LZ_ANTIPATTERNS,
+  LZ_CRITERIA,
+  LZ_TACTICS_LOCAL,
+  LZ_TAXONOMY_REGISTRY
 } from '../knowledge_base';
 import { tacticIdCaptureRx } from '../kernel/tacticIds';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
@@ -211,9 +211,9 @@ const scorePathsFor = (
 
 const TACTIC_RX = tacticIdCaptureRx;
 
-const playbookById = new Map(FINOPS_TACTIC_ACTIVITY_PLAYBOOK.map(entry => [entry.tactic_id, entry]));
-const maturityDefinitionById = new Map(FINOPS_CRITERIA.map(criterion => [criterion.id, criterion]));
-const antipatternDefinitionById = new Map(FINOPS_ANTIPATTERNS.map(criterion => [criterion.id, criterion]));
+const playbookById = new Map(LZ_TACTIC_ACTIVITY_PLAYBOOK.map(entry => [entry.tactic_id, entry]));
+const maturityDefinitionById = new Map(LZ_CRITERIA.map(criterion => [criterion.id, criterion]));
+const antipatternDefinitionById = new Map(LZ_ANTIPATTERNS.map(criterion => [criterion.id, criterion]));
 const TRACE_STOP_WORDS = new Set([
   'about', 'acceptance', 'action', 'against', 'approved', 'based', 'control', 'define', 'evidence', 'finops',
   'current', 'defined', 'existing', 'from', 'implementation', 'implement', 'into', 'material', 'owner', 'phase',
@@ -359,7 +359,7 @@ const tacticPathsFor = (
               : 'Supplemental evidence-collection action explicitly references assessment gaps but has no approved tactic ID; it is not evidence of a customer control deficiency.'
             : 'Supplemental action has no deterministic action-specific finding match or approved tactic ID; semantic support remains subject to roadmap fact-check.']
           : [
-            ...tacticIds.map(id => `Playbook reference: ${FINOPS_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}`),
+            ...tacticIds.map(id => `Playbook reference: ${LZ_TACTIC_PLAYBOOK_URL}#${id.toLowerCase()}`),
             ...(linkedFindings.length === 0 ? ['No action-specific actionable customer finding was resolved for this tactic reference.'] : []),
             ...(linkedFindings.length > 0 && !links.evidenceGrounded
               ? ['The action explicitly references an assessment gap, not an evidence-grounded customer control deficiency.']
@@ -491,8 +491,8 @@ export const buildRunTrace = (input: BuildRunTraceInput): RunTrace => {
   return {
     run_id: input.runId,
     engine_version: input.engineVersion,
-    taxonomy_version: FINOPS_TAXONOMY_REGISTRY.version,
-    taxonomy_hash: hashString(JSON.stringify(FINOPS_TAXONOMY_REGISTRY)),
+    taxonomy_version: LZ_TAXONOMY_REGISTRY.version,
+    taxonomy_hash: hashString(JSON.stringify(LZ_TAXONOMY_REGISTRY)),
     kb_index_hash: hashString(JSON.stringify(kbDocs.map(doc => ({
       pathname: doc.pathname,
       pdf_sha256: doc.pdf_sha256,
@@ -504,9 +504,9 @@ export const buildRunTrace = (input: BuildRunTraceInput): RunTrace => {
     kb_content_status: input.referenceKbIndex.status?.kb_content_status,
     kb_source: input.referenceKbIndex.status?.source,
     tactic_db_version: 'local-tactics-v1',
-    tactic_db_hash: hashString(JSON.stringify(FINOPS_TACTICS_LOCAL)),
-    playbook_version: FINOPS_TACTIC_PLAYBOOK_VERSION,
-    playbook_hash: hashString(JSON.stringify(FINOPS_TACTIC_ACTIVITY_PLAYBOOK)),
+    tactic_db_hash: hashString(JSON.stringify(LZ_TACTICS_LOCAL)),
+    playbook_version: LZ_TACTIC_PLAYBOOK_VERSION,
+    playbook_hash: hashString(JSON.stringify(LZ_TACTIC_ACTIVITY_PLAYBOOK)),
     created_at: new Date().toISOString(),
     input_manifest: sourceManifest(input.sourceRegistry),
     context_packets: contextPackets,

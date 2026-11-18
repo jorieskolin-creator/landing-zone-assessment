@@ -20,7 +20,8 @@ const recoveredStrategy = (phase2: any): any => {
     : `${Math.round(Number(metrics.adjusted_maturity))}/100`;
   const sufficiency = phase2?.assessment_sufficiency?.decision || 'BLOCK';
   const silent = Array.isArray(phase2?.silent_areas) ? phase2.silent_areas : [];
-  const gaps = Array.isArray(phase2?.maturity_gaps) ? phase2.maturity_gaps : [];
+  const gaps = Array.isArray(phase2?.maturity_gaps)
+    ? phase2.maturity_gaps.filter((gap: unknown) => typeof gap === 'string' && /^\[[^\]]+\] Confirmed gap:/.test(gap)) : [];
   const antipatterns = Array.isArray(phase2?.antipattern_findings) ? phase2.antipattern_findings : [];
   const summary = `The accepted analysis was recovered from temporary storage after pipeline interruption. Evidence density was ${density}%, adjusted maturity was ${adjusted}, and Assessment Sufficiency was ${sufficiency}. A full summary and roadmap cannot be safely reconstructed without a validated synthesis, so roadmap actionability is BLOCK / NO_GO.`;
   return {
@@ -91,6 +92,7 @@ export async function recoverCheckpointResult(runId: string): Promise<{ result: 
       document_analyzed: 'Recovered temporary assessment',
       timestamp: new Date().toISOString(),
       engine_version: '2.0.0',
+      assessment_scope: phase1Payload.assessment_scope,
       source_parse_warnings: ['The pipeline was interrupted. This report was reconstructed from hash-verified temporary checkpoints.'],
     },
     phase_1_audit_logs: phase1Payload.phase_1_audit_logs,

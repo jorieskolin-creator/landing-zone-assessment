@@ -4,7 +4,7 @@ import { normalizeRetrievalText } from '../domain-packs/landing-zone/coverage';
 import { LZ_EVIDENCE_REGISTRY_VERSION, LZ_RETRIEVAL_COVERAGE_ANALYZER_ID, type CoverageScope } from './derivedEvidence/coverageAnalyzer';
 import { hashString } from './runTraceService';
 
-export const DATA_SIGNAL_REGISTRY_VERSION = 'data_signal_registry_v2' as const;
+export const DATA_SIGNAL_REGISTRY_VERSION = 'lz_data_signal_registry_v1' as const;
 export const MANAGEMENT_GROUP_ANALYZER_ID = 'lz_azure_management_group_membership_v1' as const;
 const VERSION = '1.0.0';
 const TARGET = { stream: 'maturity', criterion_id: 'C1' } as const;

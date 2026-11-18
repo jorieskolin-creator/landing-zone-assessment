@@ -10,8 +10,8 @@ import {
 import { bracketFromValidation, explainBracket } from "./confidenceBracket";
 import { runPhase1Audit } from "../orchestrator";
 import { tacticIdCaptureRx } from "../kernel/tacticIds";
-import { knowledgeBaseService, BATCH_DEFINITIONS, FINOPS_TACTICS_LOCAL, FINOPS_TACTIC_ACTIVITY_PLAYBOOK, FINOPS_TAXONOMY_REGISTRY, FINOPS_MATURITY_PAIR_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
-import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, DEFAULT_PERSONA_ID, filledPersonaSummaries, mapLegacyPersonaSummaries, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
+import { knowledgeBaseService, BATCH_DEFINITIONS, LZ_TACTICS_LOCAL, LZ_TACTIC_ACTIVITY_PLAYBOOK, LZ_TAXONOMY_REGISTRY, LZ_MATURITY_PAIR_REGISTRY, buildTacticIdTable, expectedPhase1IdsForStream, validTacticIdSet } from "../knowledge_base";
+import { DiagnosticResult, Phase1AuditLogs, Phase2Validation, AuditItem, EvidenceQuote, EvidenceCategory, EVIDENCE_CATEGORIES, PersonaId, PERSONA_IDS, DEFAULT_PERSONA_ID, filledPersonaSummaries, normalizePackPersonaSummaries, PipelineProgressStage, PipelineProgressUpdate, SourceRecord, DomainId } from "../types";
 import { validatePhase1Output, validatePhase3Grounding } from "./validatorService";
 import { EVIDENCE_DENSITY_BLOCK, runQualityGate, runQualityGateExplanation } from "./qualityGateService";
 import { scoreLandingZoneAssessment } from "./landingZoneScoringAdapter";
@@ -137,7 +137,7 @@ const normalizePersonaSummaries = (rawStrategy: any): {
   active_persona: PersonaId;
 } => {
   const legacy = typeof rawStrategy?.executive_summary === 'string' ? rawStrategy.executive_summary : '';
-  const result = mapLegacyPersonaSummaries(rawStrategy?.executive_summaries, legacy);
+  const result = normalizePackPersonaSummaries(rawStrategy?.executive_summaries, legacy);
   return {
     executive_summaries: result,
     executive_summary: result[DEFAULT_PERSONA] || legacy,
@@ -611,7 +611,8 @@ export const analyzeDocument = async (
     activePacketCoverageWarnings = packetCoverageWarnings(sourcePackets);
     sourceParseWarnings.push(...activePacketCoverageWarnings);
     validateEvidenceContinuity(evidenceIntegrity, sourceRegistry, sourcePackets);
-    const provenanceReconciliation = reconcileEvidenceProvenance(aggregatedRawData, sourceRegistry, sourcePackets, derivedAnalyticalEvidence);
+    const approvedDerivedEvidence = Object.values(evidenceStagePackets).flatMap(packet => packet.derived_evidence);
+    const provenanceReconciliation = reconcileEvidenceProvenance(aggregatedRawData, sourceRegistry, sourcePackets, approvedDerivedEvidence);
     aggregatedRawData = provenanceReconciliation.result;
     if (provenanceReconciliation.adjustedCriteria.length > 0) {
       serverLog(runId, 'warn', 'finding_provenance_adjusted', {
@@ -635,7 +636,7 @@ export const analyzeDocument = async (
       sourcePackets,
       referenceKbIndex,
       aggregatedRawData,
-      derivedAnalyticalEvidence,
+      approvedDerivedEvidence,
     );
     serverLog(runId, 'info', 'pipeline_integrity_passed', {
       gate: 'pre_synthesis',
@@ -661,6 +662,10 @@ export const analyzeDocument = async (
       phase_1_audit_logs: auditLogs,
       evidence_check: aggregatedRawData.evidence_check,
       validation: phase1Validation,
+      effective_source_registry_status: sourceRegistryStatus,
+      effective_evidence_integrity: evidenceIntegrity,
+      semantic_gap_retrieval: aggregatedRawData.semantic_gap_retrieval,
+      assessment_scope: lockedScope,
     });
     serverLog(runId, 'info', 'stage_complete', {
       stage: 'forensic_audit',
@@ -675,8 +680,8 @@ export const analyzeDocument = async (
     emitProgress({ stage: 'calculation', status: 'in_progress' });
     await new Promise(r => setTimeout(r, 600));
     const scopedPairRegistry = {
-      ...FINOPS_MATURITY_PAIR_REGISTRY,
-      pairs: FINOPS_MATURITY_PAIR_REGISTRY.pairs.filter((pair) =>
+      ...LZ_MATURITY_PAIR_REGISTRY,
+      pairs: LZ_MATURITY_PAIR_REGISTRY.pairs.filter((pair) =>
         scoringSurface.design_area_ids.includes(pair.domain_id),
       ),
     };
@@ -709,7 +714,7 @@ export const analyzeDocument = async (
     });
     emitProgress({ stage: 'calculation', status: 'completed' });
 
-      console.log(`[Landing Zone] Phase 2 Complete. Readiness: ${Math.round(validationData.metrics.finops_readiness)}%, Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}`);
+      console.log(`[Landing Zone] Phase 2 Complete. Readiness: ${Math.round((validationData.metrics.adjusted_maturity ?? 0))}%, Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}`);
 
     // Confidence bracket: drives which synthesis prompt runs.
     // LOW   → findings (no roadmap, no case studies)
@@ -741,7 +746,7 @@ export const analyzeDocument = async (
     // enough that a deeper roadmap is worth the cost premium.
     const autoEscalate =
       (validationData.crawl_walk_run === 'Crawl' && validationData.antipattern_findings.length >= 5)
-      || validationData.metrics.finops_readiness < 30
+      || (validationData.metrics.adjusted_maturity ?? 0) < 30
       || validationData.maturity_gaps.length >= 15
       || validationData.metrics.antipattern_burden > 70;
     const useEscalation = options.deepMode || autoEscalate;
@@ -749,13 +754,13 @@ export const analyzeDocument = async (
     const escalationReason = options.deepMode
       ? 'user_deep_mode'
       : autoEscalate
-        ? `auto:readiness=${Math.round(validationData.metrics.finops_readiness)},burden=${Math.round(validationData.metrics.antipattern_burden)},antipatterns=${validationData.antipattern_findings.length},gaps=${validationData.maturity_gaps.length},class=${validationData.crawl_walk_run}`
+        ? `auto:readiness=${Math.round((validationData.metrics.adjusted_maturity ?? 0))},burden=${Math.round(validationData.metrics.antipattern_burden)},antipatterns=${validationData.antipattern_findings.length},gaps=${validationData.maturity_gaps.length},class=${validationData.crawl_walk_run}`
         : 'none';
     console.log(`[Landing Zone] [${runId}] Synthesis stage: ${synthesisStage} (${escalationReason})`);
     serverLog(runId, 'info', 'synthesis_routing', {
       stage: synthesisStage,
       reason_code: options.deepMode ? 'USER_DEEP_MODE' : autoEscalate ? 'AUTO_ESCALATION' : 'STANDARD',
-      readiness: Math.round(validationData.metrics.finops_readiness),
+      readiness: Math.round((validationData.metrics.adjusted_maturity ?? 0)),
       burden: Math.round(validationData.metrics.antipattern_burden),
       antipatterns: validationData.antipattern_findings.length,
       gaps: validationData.maturity_gaps.length,
@@ -777,7 +782,7 @@ export const analyzeDocument = async (
     });
 
     const definitionsContext = JSON.stringify(BATCH_DEFINITIONS, null, 2);
-    const taxonomyContext = JSON.stringify(FINOPS_TAXONOMY_REGISTRY, null, 2);
+    const taxonomyContext = JSON.stringify(LZ_TAXONOMY_REGISTRY, null, 2);
     // Hard ID lookup at the TOP — prevents the model from confusing which
     // company goes with which tactic ID. See knowledge_base/index.ts for
     // the rationale. The prose case studies still follow below.
@@ -1093,8 +1098,8 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
             phase1: auditLogs,
             phase2: validationData,
             imageCount: images.length,
-            tactics: FINOPS_TACTICS_LOCAL,
-            tacticActivityPlaybook: FINOPS_TACTIC_ACTIVITY_PLAYBOOK,
+            tactics: LZ_TACTICS_LOCAL,
+            tacticActivityPlaybook: LZ_TACTIC_ACTIVITY_PLAYBOOK,
           });
           const roadmapStarted = Date.now();
           const roadmapResp = await runStage(stage, {
@@ -1138,6 +1143,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       }
     };
 
+    const confirmedGaps = validationData.maturity_gaps.filter(gap => /^\[[^\]]+\] Confirmed gap:/.test(gap));
     const buildFallbackEvidenceSummary = () => ({
       headline: overallScoreAvailable
         ? `${validationData.lz_maturity_label || validationData.crawl_walk_run} landing-zone maturity with a ${Math.round(validationData.metrics.adjusted_maturity!)}/100 resolution-adjusted score`
@@ -1161,19 +1167,20 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       confirmed_strengths: Object.entries(validationData.category_scores)
         .filter(([cat, score]) => !unresolvedDomainIds.has(cat) && !silentDomainIds.includes(cat as DomainId) && score >= 10)
         .map(([cat, score]) => `Domain ${cat} shows relatively strong maturity signal (${score}/15).`),
-      confirmed_gaps: validationData.maturity_gaps.slice(0, 8),
+      confirmed_gaps: confirmedGaps.slice(0, 8),
       confirmed_antipatterns: validationData.antipattern_findings.slice(0, 8),
       silent_or_missing_evidence: [
         ...validationData.verification_unresolved,
         ...validationData.silent_areas,
+        ...validationData.score_evidence_gaps,
         ...validationData.unknown_antipattern_absences
       ].slice(0, 8)
     });
 
     const buildFallbackDiagnosis = () => ({
-      primary_bottleneck: validationData.maturity_gaps[0] || validationData.antipattern_findings[0] || 'No single bottleneck dominated the validated audit output.',
+      primary_bottleneck: confirmedGaps[0] || validationData.antipattern_findings[0] || 'No single bottleneck dominated the validated audit output.',
       root_causes: [
-        ...validationData.maturity_gaps.slice(0, 3),
+        ...confirmedGaps.slice(0, 3),
         ...validationData.antipattern_findings.slice(0, 3)
       ].slice(0, 5),
       domain_diagnosis: Object.fromEntries(
@@ -1202,7 +1209,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
 
     const buildFallbackFindingsMode = () => ({
       evidence_backed_findings: [
-        ...validationData.maturity_gaps.slice(0, 4),
+        ...confirmedGaps.slice(0, 4),
         ...validationData.antipattern_findings.slice(0, 2),
         ...validationData.verified_antipattern_absences.slice(0, 2)
       ].slice(0, 8),
@@ -1211,6 +1218,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         : validationData.maturity_gaps.slice(0, 6),
       missing_evidence: [
         ...validationData.silent_areas,
+        ...validationData.score_evidence_gaps,
         ...validationData.unknown_antipattern_absences
       ].slice(0, 8),
       validation_plan: [
@@ -1731,7 +1739,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
           : `Adjusted Landing Zone Maturity: ${validationData.metrics.adjusted_maturity === null ? 'N/A' : `${Math.round(validationData.metrics.adjusted_maturity)}/100 (diagnostic only)`}`,
         `Assessment resolution: ${Math.round(validationData.metrics.assessment_resolution)}%`,
         `Assessment sufficiency: ${validationData.assessment_sufficiency.decision}`,
-        ...((summary.key_metrics || []).filter((metric: string) => !/maturity score|adjusted landing zone maturity|adjusted finops maturity|assessment resolution|assessment sufficiency|readiness|capability attainment|anti-pattern control/i.test(metric))),
+        ...((summary.key_metrics || []).filter((metric: string) => !/maturity score|adjusted landing zone maturity|assessment resolution|assessment sufficiency|readiness|capability attainment|anti-pattern control/i.test(metric))),
       ];
     }
     if (effectiveBracket !== confidenceBracket) {

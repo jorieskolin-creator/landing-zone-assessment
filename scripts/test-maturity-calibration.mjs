@@ -13,7 +13,8 @@ const transpile = source => ts.transpileModule(source, {
 }).outputText;
 
 const dir = await mkdtemp(join(tmpdir(), 'finops-maturity-calibration-'));
-const registry = JSON.parse(await readFile(new URL('../src/knowledge_base/finops_maturity_pair_registry.json', import.meta.url), 'utf8'));
+const registry = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/pair-registry.json', import.meta.url), 'utf8'));
+registry.pairs = registry.pairs.filter(pair => pair.design_area_id <= 'F').map(pair => ({ ...pair, antipattern_id: pair.antipattern_id.replace(/^AP-/, ''), domain_id: pair.design_area_id }));
 await writeFile(
   join(dir, 'antiPatternSemantics.mjs'),
   transpile(await readFile(new URL('../src/services/antiPatternSemantics.ts', import.meta.url), 'utf8')),
@@ -21,8 +22,8 @@ await writeFile(
 );
 const serviceSource = (await readFile(new URL('../src/services/maturityModelService.ts', import.meta.url), 'utf8'))
   .replace(
-    "import { FINOPS_MATURITY_PAIR_REGISTRY } from '../knowledge_base';",
-    `const FINOPS_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`
+    "import { LZ_MATURITY_PAIR_REGISTRY } from '../knowledge_base';",
+    `const LZ_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`
   )
   .replace('./antiPatternSemantics', './antiPatternSemantics.mjs');
 await writeFile(join(dir, 'maturityModelService.mjs'), transpile(serviceSource), 'utf8');
@@ -101,7 +102,7 @@ const baselines = [
       () => capability(3),
       (_id, index) => antipattern(index < 15 ? 0 : 3),
     ),
-    expected: { corroborated_maturity: 51.7, observed_maturity: 51.7, resolution: 100, adjusted_maturity: 51.7 },
+    expected: { corroborated_maturity: 50, observed_maturity: 50, resolution: 100, adjusted_maturity: 50 },
   },
 ];
 

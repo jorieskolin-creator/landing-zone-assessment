@@ -157,7 +157,7 @@ export const svgScatter = (maturityDepth: number, burden: number, insufficientEv
     <rect x="${padding}" y="${padding + quadH}" width="${quadW}" height="${quadH}" fill="#f1f5f9" />
     <rect x="${padding + quadW}" y="${padding + quadH}" width="${quadW}" height="${quadH}" fill="#ecfdf5" />
     <text x="${padding + quadW / 2}" y="${padding + 16}" text-anchor="middle" font-size="10" font-weight="700" fill="#be123c" font-family="system-ui">COST BLINDNESS</text>
-    <text x="${padding + 1.5 * quadW}" y="${padding + 16}" text-anchor="middle" font-size="10" font-weight="700" fill="#b45309" font-family="system-ui">FINOPS THEATER</text>
+    <text x="${padding + 1.5 * quadW}" y="${padding + 16}" text-anchor="middle" font-size="10" font-weight="700" fill="#b45309" font-family="system-ui">LOW MATURITY / LOW BURDEN</text>
     <text x="${padding + quadW / 2}" y="${padding + plotH - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="#475569" font-family="system-ui">LOW / UNPROVEN SIGNAL</text>
     <text x="${padding + 1.5 * quadW}" y="${padding + plotH - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="#059669" font-family="system-ui">VALIDATED STRENGTH</text>
     <line x1="${padding + quadW}" y1="${padding}" x2="${padding + quadW}" y2="${padding + plotH}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3" />

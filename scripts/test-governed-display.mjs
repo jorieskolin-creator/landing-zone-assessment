@@ -352,9 +352,5 @@ const comparison = [
   'The run log does not name the four resolved ids. This fixture places them on C1, F1, AP-C1, and AP-F2 so the card arithmetic matches the published aggregates: domain density 20% only in C and F, category scores 1/15 in C and F, one fully resolved pair, and two partial pairs. AP-C1 is the only published anti-pattern cell whose label already requires tested-absence checks. If the real resolved cells inside C and F are a different pair, those two domains keep one maturity status and one anti-pattern status, and the other six domains still collapse to Not assessed.',
 ].join('\n');
 
-const artifactDir = '/opt/cursor/artifacts';
-await mkdir(artifactDir, { recursive: true });
-await writeFile(join(artifactDir, 'summary-shape-comparison.txt'), `${comparison}\n`, 'utf8');
-
 console.log('governed display matches summary 7691 resolution shape');
 console.log(comparison);

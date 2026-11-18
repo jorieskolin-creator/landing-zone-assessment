@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Per-boot reconciliation for the FinOps Engine Cloud Agent environment.
+# Per-boot reconciliation for the Landing Zone Assessment Cloud Agent environment.
 # Brings up PostgreSQL + Redis, ensures the dev role/database exist, and applies
 # migrations. Safe to run repeatedly: every step is guarded and idempotent.
 set -euo pipefail
@@ -33,9 +33,9 @@ redis-cli ping >/dev/null
 
 echo "[start] ensuring dev role and database"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -q -c \
-  "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='finops') THEN CREATE ROLE finops LOGIN PASSWORD 'finops'; END IF; END \$\$;"
-sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='finops_dev'" | grep -q 1 \
-  || sudo -u postgres createdb -O finops finops_dev
+  "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='landing_zone') THEN CREATE ROLE landing_zone LOGIN PASSWORD 'landing_zone'; END IF; END \$\$;"
+sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='landing_zone_dev'" | grep -q 1 \
+  || sudo -u postgres createdb -O landing_zone landing_zone_dev
 
 echo "[start] applying database migrations"
 npm run migrate

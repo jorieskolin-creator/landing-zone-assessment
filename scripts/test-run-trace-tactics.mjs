@@ -14,9 +14,9 @@ const compile = source => ts.transpileModule(source, {
 
 const dir = await mkdtemp(join(tmpdir(), 'finops-run-trace-tactics-'));
 await writeFile(join(dir, 'knowledgeBase.mjs'), `
-export const FINOPS_TACTIC_PLAYBOOK_URL = 'https://example.test/';
-export const FINOPS_TACTIC_PLAYBOOK_VERSION = '1.0.0';
-export const FINOPS_TACTIC_ACTIVITY_PLAYBOOK = [{
+export const LZ_TACTIC_PLAYBOOK_URL = 'https://example.test/';
+export const LZ_TACTIC_PLAYBOOK_VERSION = '1.0.0';
+export const LZ_TACTIC_ACTIVITY_PLAYBOOK = [{
   tactic_id: 'TAC-VIS-001',
   maturity_bindings: [{ criterion_id: 'A1', relationship: 'PRIMARY' }],
   antipattern_bindings: [{ criterion_id: 'AP-A1', relationship: 'PRIMARY' }],
@@ -25,7 +25,7 @@ export const FINOPS_TACTIC_ACTIVITY_PLAYBOOK = [{
   maturity_bindings: [{ criterion_id: 'B1', relationship: 'PRIMARY' }, { criterion_id: 'C4', relationship: 'SUPPORTING' }],
   antipattern_bindings: [],
 }];
-export const FINOPS_CRITERIA = [
+export const LZ_CRITERIA = [
   { id: 'A1', title: 'Cost allocation tagging', description: 'Enforced tags identify untagged resources and allocate spend.' },
   { id: 'B1', title: 'Commitment management', description: 'Commitment coverage and utilization govern reserved purchases.' },
   { id: 'B5', title: 'Storage lifecycle policies', description: 'Retention and lifecycle tiering govern storage.' },
@@ -37,9 +37,9 @@ export const FINOPS_CRITERIA = [
   { id: 'F4', title: 'AI budget controls', description: 'Token quotas and model tier controls.' },
   { id: 'F5', title: 'AI value', description: 'AI value and use-case outcomes.' },
 ];
-export const FINOPS_ANTIPATTERNS = [{ id: 'A1', title: 'Missing tags', description: 'Resources are untagged.' }];
-export const FINOPS_TACTICS_LOCAL = [{ id: 'TAC-VIS-001' }, { id: 'TAC-OPT-001' }];
-export const FINOPS_TAXONOMY_REGISTRY = { version: 'test' };
+export const LZ_ANTIPATTERNS = [{ id: 'A1', title: 'Missing tags', description: 'Resources are untagged.' }];
+export const LZ_TACTICS_LOCAL = [{ id: 'TAC-VIS-001' }, { id: 'TAC-OPT-001' }];
+export const LZ_TAXONOMY_REGISTRY = { version: 'test' };
 export const CRITERION_TOKEN_RX = /\\b(?:AP-)?[A-Z]+[0-9]+\\b/g;
 `, 'utf8');
 await writeFile(join(dir, 'helpers.mjs'), `

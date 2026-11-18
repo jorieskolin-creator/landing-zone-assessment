@@ -650,6 +650,10 @@ export const applyEvidenceCheckToBatch = (
         adjustment_reason: reason,
         rescan_attempted: false,
         verification_unresolved: true,
+        ...(item.stream === 'antipattern' ? {
+          antipattern_absence_status: 'unknown_absent',
+          coverage_reason: item.coverage_reason,
+        } : {}),
         reasoning: `Evidence verification was unavailable. The scanner candidate score (${item.original_count}) is retained for traceability but excluded from validated scoring.`,
       };
       adjustments.push({
@@ -837,13 +841,13 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
         adjustedCriteria.add(id);
         logs[stream][id] = { ...existing, evidence_quotes: validQuotes };
         if (existing.verification_unresolved) continue;
-        if (validQuotes.length > 0) continue;
-
+        // Quotes are not mapped to individual sub-criteria. A missing citation
+        // invalidates the aggregate verdict when its supported questions cannot be isolated.
         if (count === 0) {
           logs[stream][id] = {
             ...logs[stream][id],
             evidence_check_status: 'unsupported',
-            evidence: 'No citation could be matched to the source.',
+            evidence: 'The evidence set had a citation that could not be matched to the source.',
             reasoning: 'The evidence verification result could not be bound to its cited source.',
             verified_count: 0,
             assessment_status: 'not_assessed',
@@ -861,7 +865,7 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
               status: 'unsupported',
               assessment_status: 'not_assessed',
               verified_count: 0,
-              rationale: 'Deterministic provenance validation removed the assessment because no source-bound criterion evidence remained.',
+              rationale: 'Deterministic provenance validation removed the assessment because the full citation set could not be verified.',
               quote_supported: false,
               rescan_recommended: false,
               ...(stream === 'antipattern' ? {
@@ -876,7 +880,7 @@ export const reconcileEvidenceProvenance = <T extends ProvenancePhase1Result>(
         const key = `${stream}.${id}`;
         const verdict = evidenceItemsByKey.get(key);
         const originalCount = Math.max(count, verdict?.original_count || 0, existing.original_count || 0);
-        const reason = 'Deterministic provenance validation removed the score because no quote was bound to its cited source chunk.';
+        const reason = 'Deterministic provenance validation removed the score because one or more required citations could not be bound to their source chunks.';
         logs[stream][id] = {
           ...logs[stream][id],
           count: 0,

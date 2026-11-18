@@ -8,7 +8,6 @@ import {
   LZ_KNOWLEDGE_BLOB_PREFIX,
   mergeKnowledgeIndexFailures,
 } from './landingZoneKnowledgeIndex';
-import { CHARACTERIZATION_FINOPS_EVIDENCE_TAXONOMY } from './characterizationFixtures';
 import {
   DOMAIN_ROUTING_TERMS,
   expectedBatchOutputIdsFor,
@@ -42,17 +41,6 @@ export {
 
 export { LANDING_ZONE_PACK } from '../domain-packs/loadLandingZonePack';
 export {
-  CHARACTERIZATION_FINOPS_ANTIPATTERNS,
-  CHARACTERIZATION_FINOPS_CRITERIA,
-  CHARACTERIZATION_FINOPS_KEYWORDS,
-  CHARACTERIZATION_FINOPS_MATURITY_PAIR_REGISTRY,
-  CHARACTERIZATION_FINOPS_PERSONAS,
-  CHARACTERIZATION_FINOPS_TACTIC_ACTIVITY_PLAYBOOK,
-  CHARACTERIZATION_FINOPS_TACTICS,
-  CHARACTERIZATION_FINOPS_TAXONOMY_REGISTRY,
-  CHARACTERIZATION_FINOPS_VALIDATION_RULES,
-} from './characterizationFixtures';
-export {
   DOMAIN_ROUTING_TERMS,
   expectedBatchOutputIdsFor,
   expectedKnowledgeKeysFor,
@@ -65,20 +53,19 @@ export {
   mustNotFallbackToFinopsContent,
 };
 
-/** Empty on purpose: production must not call the FinOps tactic playbook. */
-export const FINOPS_TACTIC_PLAYBOOK_URL = '';
-export const FINOPS_TACTIC_PLAYBOOK_VERSION = landingZoneTacticsStatus();
+/** Tactic details are available in the in-app playbook. */
+export const LZ_TACTIC_PLAYBOOK_URL = '';
+export const LZ_TACTIC_PLAYBOOK_VERSION = landingZoneTacticsStatus();
 
-export const FINOPS_CRITERIA = landingZoneCapabilities();
-export const FINOPS_ANTIPATTERNS = landingZoneAntipatterns();
-export const FINOPS_KEYWORDS = landingZonePreflightKeywords();
-export const FINOPS_EVIDENCE_TAXONOMY = CHARACTERIZATION_FINOPS_EVIDENCE_TAXONOMY;
-export const FINOPS_PERSONAS = LANDING_ZONE_PACK.personas;
-export const FINOPS_TACTICS_LOCAL = landingZoneTactics();
-export const FINOPS_TACTIC_ACTIVITY_PLAYBOOK = landingZoneTacticActivityPlaybook();
-export const FINOPS_VALIDATION_RULES = landingZoneValidationRules();
-export const FINOPS_TAXONOMY_REGISTRY = landingZoneTaxonomyRegistry();
-export const FINOPS_MATURITY_PAIR_REGISTRY = landingZonePairRegistry();
+export const LZ_CRITERIA = landingZoneCapabilities();
+export const LZ_ANTIPATTERNS = landingZoneAntipatterns();
+export const LZ_KEYWORDS = landingZonePreflightKeywords();
+export const LZ_PERSONAS = LANDING_ZONE_PACK.personas;
+export const LZ_TACTICS_LOCAL = landingZoneTactics();
+export const LZ_TACTIC_ACTIVITY_PLAYBOOK = landingZoneTacticActivityPlaybook();
+export const LZ_VALIDATION_RULES = landingZoneValidationRules();
+export const LZ_TAXONOMY_REGISTRY = landingZoneTaxonomyRegistry();
+export const LZ_MATURITY_PAIR_REGISTRY = landingZonePairRegistry();
 export const CRITERION_REFERENCE_RX = landingZoneCriterionReferenceRegex();
 export const CRITERION_TOKEN_RX = landingZoneCriterionTokenRegex();
 export const persistencePrefix = landingZonePersistencePrefix;
@@ -97,20 +84,20 @@ export function extractTacticCompany(t: StrategicTactic): string {
 // which company is paired with which tactic ID. Without this, the model leans
 // on training-data associations (e.g. Spotify ↔ tagging) and emits IDs that
 // don't match the DB's actual pairings.
-export function buildTacticIdTable(tactics: StrategicTactic[] = FINOPS_TACTICS_LOCAL): string {
+export function buildTacticIdTable(tactics: StrategicTactic[] = LZ_TACTICS_LOCAL): string {
   return tactics
     .map(t => `${t.id} — ${t.canonical_name ?? '(unnamed)'} — ${extractTacticCompany(t)}`)
     .join('\n');
 }
 
 // Set of valid tactic IDs for the post-synthesis ID scanner.
-export function validTacticIdSet(tactics: StrategicTactic[] = FINOPS_TACTICS_LOCAL): Set<string> {
+export function validTacticIdSet(tactics: StrategicTactic[] = LZ_TACTICS_LOCAL): Set<string> {
   return new Set(tactics.map(t => t.id));
 }
 
 export function buildTacticActivityContext(
-  tactics: StrategicTactic[] = FINOPS_TACTICS_LOCAL,
-  entries: TacticActivityPlaybookEntry[] = FINOPS_TACTIC_ACTIVITY_PLAYBOOK
+  tactics: StrategicTactic[] = LZ_TACTICS_LOCAL,
+  entries: TacticActivityPlaybookEntry[] = LZ_TACTIC_ACTIVITY_PLAYBOOK
 ): string {
   const tacticIds = new Set(tactics.map(t => t.id));
   const byId = new Map(tactics.map(t => [t.id, t]));
@@ -139,14 +126,14 @@ export function buildTacticActivityContext(
     .join('\n\n---\n\n');
 }
 
-const MASTER_BINGO_FINOPS = {
-  maturity: FINOPS_CRITERIA.map(c => ({
+const LANDING_ZONE_CRITERION_INDEX = {
+  maturity: LZ_CRITERIA.map(c => ({
     id: c.id,
     batch: c.batch,
     title: c.title,
     desc: c.description
   })),
-  antipattern: FINOPS_ANTIPATTERNS.map(c => ({
+  antipattern: LZ_ANTIPATTERNS.map(c => ({
     id: c.id,
     batch: c.batch,
     title: c.title,
@@ -154,9 +141,9 @@ const MASTER_BINGO_FINOPS = {
   }))
 };
 
-export { MASTER_BINGO_FINOPS };
+export { LANDING_ZONE_CRITERION_INDEX };
 
-const buildBatchXml = (items: typeof FINOPS_CRITERIA, batchId: string): string => {
+const buildBatchXml = (items: typeof LZ_CRITERIA, batchId: string): string => {
   return items
     .filter(c => c.batch === batchId)
     .map(c => `
@@ -178,8 +165,8 @@ interface BatchDefinition {
 
 export const BATCH_TITLES: Record<string, string> = landingZoneBatchTitles();
 
-export const TAXONOMY_DOCUMENT_NAMING = FINOPS_TAXONOMY_REGISTRY.kb_document_naming;
-export const TAXONOMY_USAGE_BOUNDARIES = FINOPS_TAXONOMY_REGISTRY.usage_boundaries;
+export const TAXONOMY_DOCUMENT_NAMING = LZ_TAXONOMY_REGISTRY.kb_document_naming;
+export const TAXONOMY_USAGE_BOUNDARIES = LZ_TAXONOMY_REGISTRY.usage_boundaries;
 
 export const BATCH_IDS = Object.keys(BATCH_TITLES);
 
@@ -187,8 +174,8 @@ export const BATCH_DEFINITIONS: Record<string, BatchDefinition> = {};
 for (const batchId of BATCH_IDS) {
   BATCH_DEFINITIONS[batchId] = {
     title: BATCH_TITLES[batchId],
-    maturity: buildBatchXml(FINOPS_CRITERIA, batchId),
-    antipattern: buildBatchXml(FINOPS_ANTIPATTERNS, batchId)
+    maturity: buildBatchXml(LZ_CRITERIA, batchId),
+    antipattern: buildBatchXml(LZ_ANTIPATTERNS, batchId)
   };
 }
 
@@ -555,13 +542,13 @@ export const knowledgeBaseService = {
           console.info(`[Landing Zone KnowledgeBase] Remote PDF KB loaded: ${annotated.status.document_count} documents.`);
           return annotated;
         }
-        console.info('[Landing Zone KnowledgeBase] Landing Zone Knowledge Base content is pending; not substituting FinOps content (error_code=REMOTE_KB_UNAVAILABLE).');
+        console.info('[Landing Zone KnowledgeBase] Landing Zone Knowledge Base content is pending (error_code=REMOTE_KB_UNAVAILABLE).');
         return mergeKnowledgeIndexFailures(
           buildLandingZoneKnowledgeIndex(LANDING_ZONE_PACK),
           index.failures || [],
         );
       } catch (error: any) {
-        console.warn('[Landing Zone KnowledgeBase] Remote PDF KB unavailable; not substituting FinOps content (error_code=REMOTE_KB_UNAVAILABLE).');
+        console.warn('[Landing Zone KnowledgeBase] Remote Landing Zone KB unavailable (error_code=REMOTE_KB_UNAVAILABLE).');
         return emptyRemoteKbIndex(error?.message || String(error));
       }
     })();
@@ -604,7 +591,7 @@ export const knowledgeBaseService = {
       || (index.status.source === 'remote_blob' && index.status.failure_count > 0)) {
       return `<REFERENCE_KNOWLEDGE_BASE status="unavailable" kb_pack_version="${index.status.kb_pack_version || LANDING_ZONE_PACK.knowledgeBase.version}" kb_content_status="${index.status.kb_content_status || LANDING_ZONE_PACK.knowledgeBase.status}">
 ${landingZoneContentPendingMessage('knowledge_base')}
-Use only the Landing Zone criterion definitions in this packet. Do not use FinOps Engine knowledge.
+Use the Landing Zone criterion definitions in this packet.
 </REFERENCE_KNOWLEDGE_BASE>`;
     }
     return formatRemoteKbContext(index, options);
@@ -617,7 +604,7 @@ Use only the Landing Zone criterion definitions in this packet. Do not use FinOp
       console.warn(`[Landing Zone KnowledgeBase] ${message}`);
       return `<VERIFIED_TACTICS_DATABASE status="unavailable">
 ${message}
-Do not invent tactic IDs. Do not use FinOps Engine tactics or copied FinOps fixtures.
+Withhold tactics when the approved Landing Zone catalogue is unavailable.
 </VERIFIED_TACTICS_DATABASE>
 
 <TACTIC_ACTIVITY_PLAYBOOK status="unavailable" usage="roadmap_activity_guidance_only_not_customer_evidence">

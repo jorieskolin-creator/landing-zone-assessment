@@ -1,5 +1,5 @@
 import type { AuditItem, EvidenceCategory, MaturityPairRegistry, Phase1AuditLogs, Phase2Validation } from '../types';
-import { BATCH_TITLES, FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';
+import { BATCH_TITLES, LZ_ANTIPATTERNS, LZ_CRITERIA } from '../knowledge_base';
 import { inferAntiPatternAbsenceStatus } from './antiPatternSemantics';
 import { calculateResolutionBasedMaturity, evaluateAssessmentSufficiency } from './maturityModelService';
 
@@ -36,8 +36,8 @@ export const calculateMetrics = (
     designAreaIds?: string[];
   } = {},
 ): Phase2Validation => {
-  const maturityCriterionTotal = Math.max(options.maturityCriterionTotal ?? FINOPS_CRITERIA.length, 1);
-  const antipatternCriterionTotal = Math.max(options.antipatternCriterionTotal ?? FINOPS_ANTIPATTERNS.length, 1);
+  const maturityCriterionTotal = Math.max(options.maturityCriterionTotal ?? LZ_CRITERIA.length, 1);
+  const antipatternCriterionTotal = Math.max(options.antipatternCriterionTotal ?? LZ_ANTIPATTERNS.length, 1);
   const totalCriterionCount = maturityCriterionTotal + antipatternCriterionTotal;
   let maturityCount = 0; let maturitySum = 0; const maturityGaps: string[] = [];
   let antipatternCount = 0; let antipatternSum = 0; const antipatternFindings: string[] = [];
@@ -205,15 +205,14 @@ export const calculateMetrics = (
   const observed_maturity = resolution_maturity.overall.observed_maturity;
   const assessment_resolution = resolution_maturity.overall.resolution;
   const adjusted_maturity = resolution_maturity.overall.adjusted_maturity;
-  const raw_finops_maturity_score = adjusted_maturity ?? 0;
-  const finops_readiness = raw_finops_maturity_score;
+  const readiness = adjusted_maturity ?? 0;
 
   let crawl_walk_run: Phase2Validation['crawl_walk_run'];
   if (assessment_sufficiency.decision === 'BLOCK' || adjusted_maturity === null) {
     crawl_walk_run = 'Insufficient evidence';
-  } else if (finops_readiness < 33) {
+  } else if (readiness < 33) {
     crawl_walk_run = 'Crawl';
-  } else if (finops_readiness < 66) {
+  } else if (readiness < 66) {
     crawl_walk_run = 'Walk';
   } else {
     crawl_walk_run = 'Run';
@@ -231,13 +230,11 @@ export const calculateMetrics = (
       antipattern_coverage,
       capability_attainment,
       antipattern_control,
-      raw_finops_maturity_score,
-      finops_readiness,
       corroborated_maturity,
       observed_maturity,
       assessment_resolution,
       adjusted_maturity,
-      uncapped_readiness: raw_finops_maturity_score,
+      uncapped_readiness: readiness,
       score_gap_breakdown: {
         maturity_full: maturityFull,
         maturity_partial: maturityPartial,

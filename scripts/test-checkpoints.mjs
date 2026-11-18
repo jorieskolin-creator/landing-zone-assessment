@@ -21,6 +21,18 @@ assert.equal(res.statusCode,201);assert.equal(committed.payloadHash,sha256(value
 res=await invoke(handler,{method:'GET',query:{run_id:RUN}});assert.equal(res.statusCode,200);assert.deepEqual(res.body,{checkpoints:[metadata]});assert.doesNotMatch(JSON.stringify(res.body),/summary|REDACTED_EMAIL/);
 res=await invoke(handler,{method:'GET',query:{run_id:RUN,checkpoint_id:CHECKPOINT}});assert.equal(res.statusCode,200);assert.equal(res.body.payload.phase_1_audit_logs.summary,'CHECKPOINT_CANARY_DO_NOT_STORE [REDACTED_EMAIL]');
 value='{"tampered":true}';res=await invoke(handler,{method:'GET',query:{run_id:RUN,checkpoint_id:CHECKPOINT}});assert.equal(res.statusCode,503,'hash mismatch must fail closed');
+const scopedPhase1 = {
+  ...validPhase1Payload,
+  assessment_scope: { pack_id: 'landing-zone', schema_version: 'lz_step0_scope_v1' },
+  effective_source_registry_status: { chunk_count: 1 },
+  effective_evidence_integrity: { registry_hash: 'test' },
+  semantic_gap_retrieval: { passes: [] },
+};
+res = await invoke(handler, { method: 'POST', body: { run_id: RUN, kind: 'phase1', scope: 'accepted', payload: scopedPhase1 } });
+assert.equal(res.statusCode, 201);
+res = await invoke(handler, { method: 'GET', query: { run_id: RUN, checkpoint_id: CHECKPOINT } });
+assert.equal(res.body.payload.assessment_scope.pack_id, 'landing-zone');
+assert.deepEqual(res.body.payload.semantic_gap_retrieval, { passes: [] });
 const validPhase2Payload={phase_2_validation:{metrics:{adjusted_maturity:50},resolution_maturity:{schema_version:'resolution_based_maturity_model_v1',mode:'ACTIVE'},assessment_sufficiency:{decision:'PASS'}}};
 res=await invoke(handler,{method:'POST',body:{run_id:RUN,kind:'phase2',scope:'accepted',payload:validPhase2Payload}});assert.equal(res.statusCode,201,'the governed Phase 2 checkpoint must accept the active maturity model nested in authoritative validation');
 for(const body of [{run_id:RUN,kind:'phase1',scope:'cost',payload:validPhase1Payload,extra:true},{run_id:RUN,kind:'unknown',scope:'cost',payload:{}},{run_id:RUN,kind:'phase1',scope:'bad scope',payload:validPhase1Payload},{run_id:RUN,kind:'phase1',scope:'cost',payload:[]},{run_id:RUN,kind:'phase1',scope:'cost',payload:{raw_source:'must not persist'}}]){res=await invoke(handler,{method:'POST',body});assert.equal(res.statusCode,400);}

@@ -42,7 +42,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -115,7 +115,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -183,7 +183,7 @@
         "A4",
         "G4"
       ],
-      "primary_owner": "Cloud Commercial / FinOps Owner",
+      "primary_owner": "Cloud Commercial / Cloud Finance Owner",
       "supporting_roles": [
         "Cloud Platform",
         "Finance",
@@ -256,7 +256,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -327,7 +327,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -400,7 +400,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -472,7 +472,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -541,7 +541,7 @@
         "A4",
         "G4"
       ],
-      "primary_owner": "Cloud Commercial / FinOps Owner",
+      "primary_owner": "Cloud Commercial / Cloud Finance Owner",
       "supporting_roles": [
         "Cloud Platform",
         "Finance",
@@ -615,7 +615,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -686,7 +686,7 @@
       "primary_owner": "Cloud Platform Owner",
       "supporting_roles": [
         "Identity",
-        "Finance/FinOps",
+        "Cloud Finance",
         "Security",
         "Enterprise Architecture"
       ],
@@ -1472,7 +1472,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1543,7 +1543,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1613,7 +1613,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1683,7 +1683,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1754,7 +1754,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1824,7 +1824,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1894,7 +1894,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -1964,7 +1964,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -2034,7 +2034,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -2104,7 +2104,7 @@
       "primary_owner": "Cloud Platform Engineering Owner",
       "supporting_roles": [
         "Cloud Governance",
-        "FinOps",
+        "Cloud Finance",
         "Application Platform Teams"
       ],
       "approved_source_ids": [
@@ -4301,7 +4301,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4373,7 +4373,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4448,7 +4448,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4516,7 +4516,7 @@
         "C3",
         "H2"
       ],
-      "primary_owner": "Cloud Governance / FinOps Owner",
+      "primary_owner": "Cloud Governance / Cloud Finance Owner",
       "supporting_roles": [
         "Cloud Platform",
         "Finance",
@@ -4531,7 +4531,7 @@
       ],
       "source_grounding": "Approved source IDs and exact criterion mappings establish the operative basis. Locator enrichment may be added through controlled updates as KB objects are finalized; current use is authorized.",
       "activation_trigger": "Activate when a locked finding shows that G4 is below the agreed target state, one or more sub-criteria are not satisfied, or the paired AP-G4 finding requires the capability as the replacement control.",
-      "purpose": "The landing zone enforces the commercial minimum: required tags, allowed regions, maybe budgets. FinOps is a consumer of this; it is not a substitute for it. This tactic provides the controlled remediation mechanism for the locked G4 finding without changing the diagnostic rule or treating playbook content as customer evidence.",
+      "purpose": "The landing zone enforces the commercial minimum: required tags, allowed regions, maybe budgets. The platform owns enforcement. This tactic provides the controlled remediation mechanism for the locked G4 finding without changing the diagnostic rule or treating playbook content as customer evidence.",
       "implementation_activities": [
         "Confirm in-scope roots, providers, owners and target state for G4 using live control-plane inventory.",
         "Design the mechanism: Enforce Cost, Tag and Region Guardrails; record dependencies, decision rights and exception boundaries.",
@@ -4591,7 +4591,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4664,7 +4664,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4737,7 +4737,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4809,7 +4809,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],
@@ -4877,7 +4877,7 @@
         "C3",
         "H2"
       ],
-      "primary_owner": "Cloud Governance / FinOps Owner",
+      "primary_owner": "Cloud Governance / Cloud Finance Owner",
       "supporting_roles": [
         "Cloud Platform",
         "Finance",
@@ -4952,7 +4952,7 @@
       "supporting_roles": [
         "Cloud Platform",
         "Security",
-        "FinOps",
+        "Cloud Finance",
         "Risk",
         "Compliance"
       ],

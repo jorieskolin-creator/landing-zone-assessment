@@ -13,13 +13,14 @@ const transpile = source => ts.transpileModule(source, {
 }).outputText;
 
 const dir = await mkdtemp(join(tmpdir(), 'finops-maturity-model-'));
-const registry = JSON.parse(await readFile(new URL('../src/knowledge_base/finops_maturity_pair_registry.json', import.meta.url), 'utf8'));
+const registry = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/pair-registry.json', import.meta.url), 'utf8'));
+registry.pairs = registry.pairs.filter(pair => pair.design_area_id <= 'F').map(pair => ({ ...pair, antipattern_id: pair.antipattern_id.replace(/^AP-/, ''), domain_id: pair.design_area_id }));
 const semanticsSource = await readFile(new URL('../src/services/antiPatternSemantics.ts', import.meta.url), 'utf8');
 await writeFile(join(dir, 'antiPatternSemantics.mjs'), transpile(semanticsSource), 'utf8');
 const serviceSource = (await readFile(new URL('../src/services/maturityModelService.ts', import.meta.url), 'utf8'))
   .replace(
-    "import { FINOPS_MATURITY_PAIR_REGISTRY } from '../knowledge_base';",
-    `const FINOPS_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`
+    "import { LZ_MATURITY_PAIR_REGISTRY } from '../knowledge_base';",
+    `const LZ_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`
   )
   .replace('./antiPatternSemantics', './antiPatternSemantics.mjs');
 await writeFile(join(dir, 'maturityModelService.mjs'), transpile(serviceSource), 'utf8');
@@ -75,9 +76,9 @@ const logs = (capabilityFactory, antipatternFactory) => ({
     .filter(record => record.stream === 'antipattern')
     .reduce((sum, record) => sum + record.normalized_value, 0) / 30;
   assert.equal(antipatternHealth, 0.5, '15 tested absences and 15 confirmed findings must produce 50% anti-pattern health');
-  assert.equal(result.overall.corroborated_maturity, 51.7, 'reviewed non-inverse relationships retain their registered arithmetic component');
-  assert.equal(result.overall.observed_maturity, 51.7);
-  assert.equal(result.overall.adjusted_maturity, 51.7);
+  assert.equal(result.overall.corroborated_maturity, 50, 'inverse pairs resolve against both sides');
+  assert.equal(result.overall.observed_maturity, 50);
+  assert.equal(result.overall.adjusted_maturity, 50);
   assert.equal(result.overall.fully_resolved_pair_count, 30);
   assert.equal(result.overall.contradiction_count, 15);
 }

@@ -15,15 +15,16 @@ const compile = (source) => ts.transpileModule(source, {
 const dir = await mkdtemp(join(tmpdir(), 'finops-metrics-'));
 const semanticsSource = await readFile(new URL('../src/services/antiPatternSemantics.ts', import.meta.url), 'utf8');
 await writeFile(join(dir, 'antiPatternSemantics.mjs'), compile(semanticsSource), 'utf8');
-const registry = JSON.parse(await readFile(new URL('../src/knowledge_base/finops_maturity_pair_registry.json', import.meta.url), 'utf8'));
+const registry = JSON.parse(await readFile(new URL('../src/domain-packs/landing-zone/pair-registry.json', import.meta.url), 'utf8'));
+registry.pairs = registry.pairs.filter(pair => pair.design_area_id <= 'F').map(pair => ({ ...pair, antipattern_id: pair.antipattern_id.replace(/^AP-/, ''), domain_id: pair.design_area_id }));
 const maturityModelSource = (await readFile(new URL('../src/services/maturityModelService.ts', import.meta.url), 'utf8'))
-  .replace("import { FINOPS_MATURITY_PAIR_REGISTRY } from '../knowledge_base';", `const FINOPS_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`)
+  .replace("import { LZ_MATURITY_PAIR_REGISTRY } from '../knowledge_base';", `const LZ_MATURITY_PAIR_REGISTRY = ${JSON.stringify(registry)};`)
   .replace('./antiPatternSemantics', './antiPatternSemantics.mjs');
 await writeFile(join(dir, 'maturityModelService.mjs'), compile(maturityModelSource), 'utf8');
 const sourcePath = new URL('../src/services/metricsService.ts', import.meta.url);
 const source = (await readFile(sourcePath, 'utf8')).replace(
-  "import { BATCH_TITLES, FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';",
-  "const BATCH_TITLES = { A: '', B: '', C: '', D: '', E: '', F: '' }; const FINOPS_ANTIPATTERNS = Array(30); const FINOPS_CRITERIA = Array(30);"
+  "import { BATCH_TITLES, LZ_ANTIPATTERNS, LZ_CRITERIA } from '../knowledge_base';",
+  "const BATCH_TITLES = { A: '', B: '', C: '', D: '', E: '', F: '' }; const LZ_ANTIPATTERNS = Array(30); const LZ_CRITERIA = Array(30);"
 );
 const modulePath = join(dir, 'metricsService.mjs');
 await writeFile(modulePath, compile(source)
@@ -34,8 +35,8 @@ const { calculateMetrics } = await import(`file://${modulePath}`);
 
 const reportViewSource = (await readFile(new URL('../src/services/reportViewModel.ts', import.meta.url), 'utf8'))
   .replace(
-    "import { FINOPS_ANTIPATTERNS, FINOPS_CRITERIA } from '../knowledge_base';",
-    "const FINOPS_CRITERIA = Array.from({ length: 30 }, (_, index) => ({ id: `M${index + 1}` })); const FINOPS_ANTIPATTERNS = Array.from({ length: 30 }, (_, index) => ({ id: `A${index + 1}` }));"
+    "import { LZ_ANTIPATTERNS, LZ_CRITERIA } from '../knowledge_base';",
+    "const LZ_CRITERIA = Array.from({ length: 30 }, (_, index) => ({ id: `M${index + 1}` })); const LZ_ANTIPATTERNS = Array.from({ length: 30 }, (_, index) => ({ id: `A${index + 1}` }));"
   )
   .replace('./antiPatternSemantics', './antiPatternSemantics.mjs');
 await writeFile(join(dir, 'reportViewModel.mjs'), compile(reportViewSource), 'utf8');
@@ -84,7 +85,7 @@ const logs = (maturityFactory, antiFactory) => ({
     () => anti(0, false)
   ));
   assert.equal(result.crawl_walk_run, 'Insufficient evidence');
-  assert.ok(result.metrics.finops_readiness < 30, `expected capped low readiness, got ${result.metrics.finops_readiness}`);
+  assert.ok(result.metrics.adjusted_maturity < 30, `expected capped low readiness, got ${result.metrics.adjusted_maturity}`);
   assert.equal(result.metrics.antipattern_burden_confidence, 'unknown');
   assert.equal(result.metrics.antipattern_clearance, 0);
   assert.equal(result.metrics.antipattern_coverage, 0);
@@ -97,7 +98,7 @@ const logs = (maturityFactory, antiFactory) => ({
     () => anti(0, false, 'tested_absent')
   ));
   assert.equal(result.crawl_walk_run, 'Run');
-  assert.ok(result.metrics.finops_readiness >= 90, `expected high readiness, got ${result.metrics.finops_readiness}`);
+  assert.ok(result.metrics.adjusted_maturity >= 90, `expected high readiness, got ${result.metrics.adjusted_maturity}`);
   assert.equal(result.metrics.antipattern_burden_confidence, 'confirmed');
   assert.equal(result.metrics.antipattern_clearance, 100);
   assert.equal(result.metrics.antipattern_coverage, 100);
@@ -109,7 +110,7 @@ const logs = (maturityFactory, antiFactory) => ({
     () => item(3, true),
     () => anti(2, true)
   ));
-  assert.ok(result.metrics.finops_readiness < result.metrics.maturity_depth, 'confirmed burden should reduce readiness');
+  assert.ok(result.metrics.adjusted_maturity < result.metrics.maturity_depth, 'confirmed burden should reduce readiness');
   assert.ok(result.metrics.antipattern_burden > 50, 'fixture should contain high burden');
   assert.equal(result.metrics.antipattern_coverage, 100);
 }
@@ -200,7 +201,7 @@ const logs = (maturityFactory, antiFactory) => ({
   assert.equal(result.metrics.antipattern_score_eligible_count, 13, 'unknown and not-assessed signals must not enter the control denominator');
   assert.equal(Math.round(result.metrics.antipattern_burden * 10) / 10, 38.5);
   assert.equal(result.metrics.antipattern_control, 0, 'partial findings without tested absence must not raise control');
-  assert.equal(result.metrics.finops_readiness, 3, 'active paired model retains observed partial anti-pattern health');
+  assert.equal(result.metrics.adjusted_maturity, 0, 'zero fully resolved capabilities remain zero under the reviewed inverse pairs');
   assert.equal(result.crawl_walk_run, 'Crawl', 'resolution at or above 30% permits adjusted-maturity classification');
 }
 
@@ -242,7 +243,7 @@ const logs = (maturityFactory, antiFactory) => ({
   ));
   assert.equal(Math.round(result.metrics.capability_attainment * 10) / 10, 65.6);
   assert.equal(Math.round(result.metrics.antipattern_control * 10) / 10, 73.3, '22 tested absences earn 66 of 90 control points; findings and unknowns earn none');
-  assert.equal(Math.round(result.metrics.finops_readiness * 10) / 10, 75.2, 'the active pair model preserves partial anti-pattern health and applies resolution adjustment');
+  assert.equal(Math.round(result.metrics.adjusted_maturity * 10) / 10, 75.1, 'the active pair model preserves partial anti-pattern health and applies resolution adjustment');
   assert.equal(result.metrics.score_gap_breakdown.maturity_not_demonstrated, 0);
   assert.equal(result.metrics.score_gap_breakdown.antipattern_not_assessed, 5);
   assert.equal(result.score_evidence_gaps.length, 5, 'unknown anti-pattern absence should remain an evidence discussion');
@@ -257,7 +258,7 @@ const logs = (maturityFactory, antiFactory) => ({
   ));
   assert.equal(result.metrics.antipattern_clearance, 50);
   assert.equal(result.metrics.antipattern_control, 50, 'unknown anti-patterns must not raise control above tested-absence credit');
-  assert.equal(Math.round(result.metrics.finops_readiness * 10) / 10, 86.6, 'unknown anti-pattern pairs contribute only resolved capability with half resolution credit');
+  assert.equal(Math.round(result.metrics.adjusted_maturity * 10) / 10, 86.6, 'unknown anti-pattern pairs contribute only resolved capability with half resolution credit');
 }
 
 {
@@ -269,7 +270,7 @@ const logs = (maturityFactory, antiFactory) => ({
   ));
   assert.equal(Math.round(result.metrics.capability_attainment * 10) / 10, 1.1);
   assert.equal(result.metrics.antipattern_control, 0, 'partial presence without tested absence cannot create Walk-level control');
-  assert.equal(Math.round(result.metrics.finops_readiness * 10) / 10, 4.8);
+  assert.equal(Math.round(result.metrics.adjusted_maturity * 10) / 10, 1.8);
   assert.equal(result.crawl_walk_run, 'Crawl');
 }
 
@@ -280,7 +281,7 @@ const logs = (maturityFactory, antiFactory) => ({
   ));
   assert.equal(Math.round(result.metrics.capability_attainment * 10) / 10, 3.3, 'one demonstrated capability and 29 unknowns must not report 100% capability');
   assert.equal(result.metrics.antipattern_control, 0);
-  assert.equal(Math.round(result.metrics.finops_readiness * 10) / 10, 12.9, 'a sparse perfect observation remains visible but cannot pass sufficiency');
+  assert.equal(Math.round(result.metrics.adjusted_maturity * 10) / 10, 12.9, 'a sparse perfect observation remains visible but cannot pass sufficiency');
   assert.equal(result.crawl_walk_run, 'Insufficient evidence');
 }
 
@@ -294,7 +295,7 @@ const logs = (maturityFactory, antiFactory) => ({
   assert.equal(result.metrics.antipattern_control, 50, '15 tested absences and 15 confirmed findings must yield 50% demonstrated control');
   assert.equal(result.metrics.antipattern_clearance, 50);
   assert.equal(result.metrics.antipattern_burden, 50);
-  assert.equal(result.metrics.finops_readiness, 51.7, 'paired interaction model reflects the contradiction between high capabilities and confirmed anti-patterns');
+  assert.equal(result.metrics.adjusted_maturity, 50, 'paired interaction model reflects the contradiction between high capabilities and confirmed anti-patterns');
   assert.equal(result.crawl_walk_run, 'Walk');
 }
 

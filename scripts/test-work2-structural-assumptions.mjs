@@ -74,7 +74,7 @@ const kbIndex = await readFile(join(ROOT, "src/knowledge_base/index.ts"), "utf8"
 assert.match(kbIndex, /expectedKnowledgeKeysFor\(options\.batchId\)/);
 
 const structured = await readFile(join(ROOT, "src/services/structuredDataAnalysisService.ts"), "utf8");
-assert.match(structured, /expectedPhase1Ids\(LANDING_ZONE_PACK/);
+assert.match(structured, /LANDING_ZONE_PACK\.criteria\.filter/);
 assert.doesNotMatch(structured, /\['A','B','C','D','E','F'\]/);
 
 assert.ok(scanned.length > 10, "must scan production kernel files");

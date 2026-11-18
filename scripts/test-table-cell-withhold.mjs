@@ -80,7 +80,8 @@ assert.match(withAnalyzer.text, /Owner: Alice \| Spend: 150/);
 assert.doesNotMatch(withAnalyzer.text, /WITHHELD_CELL_VALUES/);
 assert.doesNotMatch(withAnalyzer.text, /table_row cell chunk\(s\) withheld/);
 assert.match(withAnalyzer.text, /Headers: Owner \| Spend/);
-assert.match(withAnalyzer.text, /owner row coverage: 50%/);
+assert.doesNotMatch(withAnalyzer.text, /owner row coverage: 50%/);
+assert.equal(withAnalyzer.derived_evidence.length, 0, 'inherited cost analysis cannot become Landing Zone evidence');
 
 const withoutAnalyzer = buildEvidenceLaneStagePacketsRaw({
   source_packets: { A: sourcePacket }, source_packet_hashes: sourcePacketHashes,

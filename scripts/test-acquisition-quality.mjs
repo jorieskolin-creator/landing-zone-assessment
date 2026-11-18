@@ -177,7 +177,7 @@ const shadow = shadowTelemetryPersistence({
   { result: { status: 'INSUFFICIENT_SIGNAL', row_scope: 'bounded_prefix' } }
 ], { registry_version: 'data_signal_registry_v1', total_object_count: 60, analyzer_available_count: 2, unsupported_count: 58 });
 assert.equal(shadow.retrieval_domain_count, 2);assert.equal(shadow.retrieval_triggered_domain_count, 1);assert.equal(shadow.retrieval_selected_candidate_count, 2);assert.equal(shadow.retrieval_average_gain_points, 10);assert.equal(shadow.retrieval_max_gain_points, 20);assert.equal(shadow.derived_observed_count, 1);assert.equal(shadow.derived_insufficient_signal_count, 1);assert.equal(shadow.derived_full_table_count, 1);assert.equal(shadow.derived_bounded_prefix_count, 1);assert.equal(shadow.scale_unsupported_count, 58);
-assert.equal(shadow.analyzer_version, 'tagging_allocation_v1@1.3.0');
+assert.equal(shadow.analyzer_version, 'lz_azure_management_group_membership_v1@1.0.0');
 assert.equal(shadow.derived_observed_count + shadow.derived_insufficient_signal_count, shadow.derived_evidence_count);
 assert.equal(shadow.derived_full_table_count + shadow.derived_bounded_prefix_count, shadow.derived_evidence_count);
 assert.equal(shadow.scale_analyzer_available_count + shadow.scale_unsupported_count, shadow.scale_total_object_count);
@@ -205,14 +205,14 @@ const mixedShadow = shadowTelemetryPersistence({
   { result: { status: 'NO_MATERIAL_SIGNAL', row_scope: 'full_table' } },
   { result: { status: 'INSUFFICIENT_SIGNAL', row_scope: 'bounded_prefix' } }
 ], { registry_version: 'data_signal_registry_v1', total_object_count: 60, analyzer_available_count: 2, unsupported_count: 58 });
-assert.equal(mixedShadow.derived_evidence_count, 5);
-assert.equal(mixedShadow.derived_observed_count, 2);
+assert.equal(mixedShadow.derived_evidence_count, 4);
+assert.equal(mixedShadow.derived_observed_count, 1);
 assert.equal(mixedShadow.derived_insufficient_signal_count, 3);
-assert.equal(mixedShadow.derived_full_table_count, 4);
+assert.equal(mixedShadow.derived_full_table_count, 3);
 assert.equal(mixedShadow.derived_bounded_prefix_count, 1);
 assert.equal(mixedShadow.derived_observed_count + mixedShadow.derived_insufficient_signal_count, mixedShadow.derived_evidence_count);
 assert.equal(mixedShadow.derived_full_table_count + mixedShadow.derived_bounded_prefix_count, mixedShadow.derived_evidence_count);
-assert.equal(mixedShadow.analyzer_version, 'tagging_allocation_v1@1.3.0');
+assert.equal(mixedShadow.analyzer_version, 'lz_azure_management_group_membership_v1@1.0.0');
 assert.equal(mixedShadow.scale_analyzer_available_count, 2);
 assert.equal(mixedShadow.scale_analyzer_available_count + mixedShadow.scale_unsupported_count, mixedShadow.scale_total_object_count);
 assert.deepEqual(Object.keys(mixedShadow).sort(), Object.keys(shadow).sort());

@@ -13,3 +13,10 @@ npm ci
 cp .env.example .env.local
 npm test
 ```
+
+
+### Existing Redis namespace
+
+Set `LZ_REDIS_NAMESPACE=landing-zone:v1` for a new execution plane. Existing deployments without this setting keep their stored attempts and checkpoints in the current namespace. To transition an existing deployment, stop admitting runs, drain in-flight attempts, and let retained checkpoints expire before setting the same namespace on every replica. The maximum run and checkpoint lifetime is 24 hours.
+
+Railway runs the registered PostgreSQL migrations before starting the app. Migration 010 accepts Landing Zone telemetry and preserves historical telemetry rows.

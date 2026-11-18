@@ -6,18 +6,13 @@ export type ReportImportResult =
   | { kind: 'invalid_report'; error: string };
 
 const PACK_PERSONA_IDS = ['ciso_leadership', 'platform_owner', 'security_owners', 'application_delivery'] as const;
-const LEGACY_PERSONA_ID_MAP: Record<string, (typeof PACK_PERSONA_IDS)[number]> = {
-  finops_lead: 'ciso_leadership',
-  cfo: 'ciso_leadership',
-  engineering_lead: 'platform_owner',
-};
-
 export const isDiagnosticResultPayload = (payload: unknown): payload is DiagnosticResult => {
   if (!payload || typeof payload !== 'object') return false;
   const value = payload as Partial<DiagnosticResult>;
   const phase2 = value.phase_2_validation;
   return Boolean(
-    value.meta &&
+    value.meta?.assessment_scope?.pack_id === 'landing-zone' &&
+    value.meta.assessment_scope.schema_version === 'lz_step0_scope_v1' &&
     value.phase_1_audit_logs &&
     phase2?.resolution_maturity?.mode === 'ACTIVE' &&
     phase2?.assessment_sufficiency?.scoring_authority === true &&
@@ -27,13 +22,13 @@ export const isDiagnosticResultPayload = (payload: unknown): payload is Diagnost
   );
 };
 
-const REPORT_DATA_SCRIPT_RE = /<script\b(?=[^>]*\bid\s*=\s*["'](?:lz-assessment-data|finops-data)["'])[^>]*>([\s\S]*?)<\/script>/i;
+const REPORT_DATA_SCRIPT_RE = /<script\b(?=[^>]*\bid\s*=\s*["']lz-assessment-data["'])[^>]*>([\s\S]*?)<\/script>/i;
 
 const extractReportPayloadScript = (html: string): string | null => {
   if (typeof DOMParser !== 'undefined') {
     try {
       const doc = new DOMParser().parseFromString(html, 'text/html');
-      const script = doc.querySelector('script#lz-assessment-data, script#finops-data');
+      const script = doc.querySelector('script#lz-assessment-data');
       const text = script?.textContent?.trim();
       if (text) return text;
     } catch {
@@ -53,7 +48,7 @@ const looksLikeDiagnosticAttempt = (payload: unknown): boolean => {
     || 'quality_gate' in value;
 };
 
-const remapImportedPersonas = (result: DiagnosticResult): DiagnosticResult => {
+const normalizeImportedReport = (result: DiagnosticResult): DiagnosticResult => {
   const strategy = result.phase_3_strategy as DiagnosticResult['phase_3_strategy'] & {
     executive_summaries?: Record<string, unknown>;
     executive_summary?: string;
@@ -64,11 +59,8 @@ const remapImportedPersonas = (result: DiagnosticResult): DiagnosticResult => {
   const fallback = typeof strategy.executive_summary === 'string' ? strategy.executive_summary : '';
   const summaries = Object.fromEntries(PACK_PERSONA_IDS.map((id) => [id, ''])) as Record<(typeof PACK_PERSONA_IDS)[number], string>;
   if (incoming && typeof incoming === 'object') {
-    for (const [key, value] of Object.entries(incoming)) {
-      const packKey = (PACK_PERSONA_IDS as readonly string[]).includes(key);
-      const id = packKey ? key as (typeof PACK_PERSONA_IDS)[number] : LEGACY_PERSONA_ID_MAP[key];
-      if (!id || typeof value !== 'string' || value.length === 0) continue;
-      if (!summaries[id] || packKey) summaries[id] = value;
+    for (const id of PACK_PERSONA_IDS) {
+      if (typeof incoming[id] === 'string') summaries[id] = incoming[id];
     }
   }
   const first = PACK_PERSONA_IDS.find((id) => summaries[id].length > 0);
@@ -79,9 +71,14 @@ const remapImportedPersonas = (result: DiagnosticResult): DiagnosticResult => {
   const active = strategy.active_persona;
   const mappedActive = (PACK_PERSONA_IDS as readonly string[]).includes(active || '')
     ? active as PersonaId
-    : (active ? LEGACY_PERSONA_ID_MAP[active] : undefined) || 'ciso_leadership';
+    : 'ciso_leadership';
+  // Earlier Landing Zone exports include redundant score mirrors. Preserve the governed score.
+  const metrics = { ...result.phase_2_validation.metrics } as typeof result.phase_2_validation.metrics & Record<string, unknown>;
+  delete metrics.raw_finops_maturity_score;
+  delete metrics.finops_readiness;
   return {
     ...result,
+    phase_2_validation: { ...result.phase_2_validation, metrics },
     phase_3_strategy: {
       ...strategy,
       executive_summaries: summaries,
@@ -95,10 +92,10 @@ export const parseDiagnosticResultJson = (jsonText: string): ReportImportResult 
   try {
     const parsed = JSON.parse(jsonText);
     if (isDiagnosticResultPayload(parsed)) {
-      return { kind: 'report', result: remapImportedPersonas(parsed) };
+      return { kind: 'report', result: normalizeImportedReport(parsed) };
     }
     if (looksLikeDiagnosticAttempt(parsed)) {
-      return { kind: 'invalid_report', error: 'The embedded Landing Zone report payload is incomplete or uses an inactive historical maturity contract.' };
+      return { kind: 'invalid_report', error: 'The embedded Landing Zone report payload is incomplete or uses an unrecognized assessment pack or maturity contract.' };
     }
     return { kind: 'not_report' };
   } catch {
@@ -108,7 +105,11 @@ export const parseDiagnosticResultJson = (jsonText: string): ReportImportResult 
 
 export const extractDiagnosticResultFromHtmlReport = (html: string): ReportImportResult => {
   const payload = extractReportPayloadScript(html);
-  if (!payload) return { kind: 'not_report' };
+  if (!payload) {
+    return /<script\b[^>]*\bid\s*=\s*["']finops-data["']/i.test(html)
+      ? { kind: 'invalid_report', error: 'This HTML report belongs to a different assessment pack.' }
+      : { kind: 'not_report' };
+  }
   return parseDiagnosticResultJson(payload);
 };
 

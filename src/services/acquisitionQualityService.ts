@@ -252,6 +252,7 @@ export const shadowTelemetryPersistence = (
   evidence: DerivedAnalyticalEvidence[],
   coverage: DataSignalCoverageReport
 ): ShadowTelemetryPersistence => {
+  const tableEvidence = evidence.filter(item => item.result.row_scope !== 'acquired_corpus');
   const passes = retrieval.domains.flatMap(domain => domain.passes);
   const gains = retrieval.domains.map(domain => domain.final_coverage - domain.baseline_coverage);
   const stopCount = (reason: RetrievalStopReason): number => retrieval.domains.filter(domain => domain.stop_reason === reason).length;
@@ -259,7 +260,7 @@ export const shadowTelemetryPersistence = (
     schema_version: 'shadow_telemetry_v1',
     retrieval_policy_version: retrieval.policy_version,
     derived_evidence_schema_version: 'derived_analytical_evidence_v1',
-    analyzer_version: 'tagging_allocation_v1@1.3.0',
+    analyzer_version: 'lz_azure_management_group_membership_v1@1.0.0',
     scale_registry_version: coverage.registry_version,
     retrieval_domain_count: retrieval.domains.length,
     retrieval_triggered_domain_count: retrieval.domains.filter(domain => domain.passes.length > 0).length,
@@ -272,11 +273,11 @@ export const shadowTelemetryPersistence = (
     stop_minimum_gain_not_met_count: stopCount('MINIMUM_GAIN_NOT_MET'),
     stop_no_new_candidates_count: stopCount('NO_NEW_CANDIDATES'),
     stop_max_passes_reached_count: stopCount('MAX_PASSES_REACHED'),
-    derived_evidence_count: evidence.length,
-    derived_observed_count: evidence.filter(item => item.result.status === 'OBSERVED').length,
-    derived_insufficient_signal_count: evidence.filter(item => item.result.status !== 'OBSERVED').length,
-    derived_full_table_count: evidence.filter(item => item.result.row_scope !== 'bounded_prefix').length,
-    derived_bounded_prefix_count: evidence.filter(item => item.result.row_scope === 'bounded_prefix').length,
+    derived_evidence_count: tableEvidence.length,
+    derived_observed_count: tableEvidence.filter(item => item.result.status === 'OBSERVED').length,
+    derived_insufficient_signal_count: tableEvidence.filter(item => item.result.status !== 'OBSERVED').length,
+    derived_full_table_count: tableEvidence.filter(item => item.result.row_scope !== 'bounded_prefix').length,
+    derived_bounded_prefix_count: tableEvidence.filter(item => item.result.row_scope === 'bounded_prefix').length,
     scale_total_object_count: coverage.total_object_count,
     scale_analyzer_available_count: coverage.analyzer_available_count,
     scale_unsupported_count: coverage.unsupported_count

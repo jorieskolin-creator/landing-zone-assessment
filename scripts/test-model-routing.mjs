@@ -305,7 +305,7 @@ assert.match(orchestrator, /<EVIDENCE_CONTEXT source_role="CUSTOMER_EVIDENCE">/)
 assert.match(orchestrator, /assertEvidenceLaneStagePacket\(packet\)/);
 assert.doesNotMatch(modelContracts, /\| 'preflight'/);
 assert.match(analysis, /model_mode: modelRoutingMode/);
-assert.match(analysis, /evidence_density < EVIDENCE_DENSITY_BLOCK[\s\S]*?reason_code: 'EVIDENCE_DENSITY_BELOW_FLOOR'/);
+assert.match(analysis, /evidence_density < EVIDENCE_DENSITY_BLOCK[\s\S]*?'EVIDENCE_DENSITY_BELOW_FLOOR'[\s\S]*?reason_code: deterministicBlockReason/);
 assert.match(server, /inspectServerBoot\(process\.env\)/);
 assert.doesNotMatch(server, /STARTUP_FAILED code=MODEL_ROUTING_CONFIGURATION_INVALID/);
 
