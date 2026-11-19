@@ -494,11 +494,15 @@ export const analyzeDocument = async (
         gapAnalysisModel: gapAnalysis?.model_used,
         gapAnalysisFailed: gapAnalysis?.failed,
       });
-      semanticPackets[input.batchId] = expanded.packet;
-      if (expanded.trace.selected_chunk_ids.length > 0) {
-        derivedAnalyticalEvidence = deriveAllEvidenceSignals(acquiredSources, sourceRegistry, retrievalScope).evidence;
+      if (expanded.trace.selected_chunk_ids.length === 0) {
+        return {
+          packet: input.packet,
+          trace: { ...expanded.trace, packet_hash_before: input.packet.integrity_hash, packet_hash_after: input.packet.integrity_hash },
+        };
       }
-      const snapshot = { ...semanticPackets };
+      const privacyAgain = sanitizeEvidenceSources(acquiredSources);
+      if (privacyAgain.decision.decision === 'BLOCK') throw new Error('SEMANTIC_RETRIEVAL_PRIVACY_BLOCKED');
+      const snapshot = { ...semanticPackets, [input.batchId]: expanded.packet };
       const integrity = validateEvidenceAcquisition(acquiredSources, sourceRegistry, snapshot);
       const status = sourceRegistryRuntimeStatus(sourceRegistry, snapshot, 0, dlpScan, privacy.decision, integrity);
       const rebuilt = buildEvidenceLaneStagePackets({
@@ -509,6 +513,7 @@ export const analyzeDocument = async (
         privacy_decision: privacy.decision,
         acquisition_readiness: status.acquisition_readiness
       })[input.batchId];
+      semanticPackets[input.batchId] = expanded.packet;
       return {
         packet: rebuilt,
         trace: {
@@ -622,6 +627,10 @@ export const analyzeDocument = async (
       });
     }
     aggregatedRawData = applyLzForensicEvaluation(aggregatedRawData, sourceRegistry);
+    const dispositions = new Map(aggregatedRawData.evidence_check.items.map(item => [`${item.stream}.${item.id}`, item.status]));
+    for (const recovery of aggregatedRawData.semantic_gap_retrieval.citation_recovery || []) {
+      recovery.final_disposition = dispositions.get(`${recovery.stream}.${recovery.criterion_id}`);
+    }
     const forensicSummary = aggregatedRawData.meta?.lz_forensic_evaluation;
     if (forensicSummary && (forensicSummary.authority_caps?.length > 0 || forensicSummary.contradictions?.length > 0)) {
       serverLog(runId, 'info', 'lz_forensic_evaluation', {

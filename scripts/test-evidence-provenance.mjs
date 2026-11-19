@@ -36,7 +36,7 @@ const expectedBatchOutputIdsFor = (batchId) => ({
 } from './antiPatternSemantics';`, "const antiPatternStatusDescription = () => ''; const normalizeAntiPatternAbsenceStatus = value => value; const resolveAntiPatternAbsenceStatus = input => input.explicitStatus || 'unknown_absent';");
 await writeFile(join(dir, 'evidenceCheckService.mjs'), transpile(checkSource), 'utf8');
 
-const { stampQuoteLocators, isEvidenceQuoteBoundToChunk } = await import(`file://${join(dir, 'evidenceSupport.mjs')}`);
+const { stampQuoteLocators, isEvidenceQuoteBoundToChunk, packetCitationInspector } = await import(`file://${join(dir, 'evidenceSupport.mjs')}`);
 const { applyEvidenceCheckToBatch, buildUnavailableEvidenceCheck, reconcileEvidenceProvenance } = await import(`file://${join(dir, 'evidenceCheckService.mjs')}`);
 const maturityIds = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(domain => [1, 2, 3, 4, 5].map(index => `${domain}${index}`));
 const antipatternIds = maturityIds.map(id => `AP-${id}`);
@@ -193,5 +193,29 @@ assert.deepEqual(located.result.phase_1_audit_logs.maturity.C2.evidence_quotes, 
   row_number: 12,
   evidence_class: 'document',
 }]);
+
+const repeat = { ...semanticGapChunk, chunk_id: 'src-001-c003' };
+const otherSource = { ...semanticGapChunk, chunk_id: 'src-002-c001', source_id: 'src-002' };
+const packetFor = chunks => ({
+  evidence: chunks.map(({ text, ...entry }) => ({ ...entry, page_number: entry.chunk_id === semanticGapChunk.chunk_id ? 2 : undefined })),
+  sanitized_visual_evidence: [], derived_evidence: [derivedEvidence],
+  text: [...chunks, { ...semanticGapChunk, chunk_id: 'withheld-c001' }].map(c => `<CHUNK id="${c.chunk_id}" source_id="${c.source_id}">${c.text}</CHUNK>`).join('\n'),
+});
+const misplaced = { ...validQuote, quote: 'Kubernetes autoscaling thresholds', page_number: 99, row_number: 99 };
+const inspect = packetCitationInspector(packetFor([chunk, semanticGapChunk, otherSource]));
+const moved = inspect(misplaced, 'maturity', 'C1');
+assert.equal(moved.repaired, true);
+assert.equal(moved.quote.chunk_id, semanticGapChunk.chunk_id);
+assert.equal(moved.quote.source_id, chunk.source_id);
+assert.equal(moved.quote.page_number, 2);
+assert.equal(moved.quote.row_number, undefined);
+assert.equal(inspect({ ...misplaced, chunk_id: 'withheld-c001' }, 'maturity', 'C1').reason, 'CHUNK_NOT_IN_PACKET');
+assert.equal(inspect({ ...misplaced, chunk_id: otherSource.chunk_id }, 'maturity', 'C1').reason, 'SOURCE_MISMATCH');
+assert.equal(inspect({ ...misplaced, quote: 'autoscaling threshold policy' }, 'maturity', 'C1').reason, 'QUOTE_NOT_BOUND');
+assert.equal(inspect({ ...misplaced, quote: misplaced.quote.toUpperCase() }, 'maturity', 'C1').reason, 'QUOTE_NOT_BOUND');
+assert.equal(packetCitationInspector(packetFor([chunk, otherSource]))(misplaced, 'maturity', 'C1').reason, 'QUOTE_NOT_BOUND');
+assert.equal(packetCitationInspector(packetFor([chunk, semanticGapChunk, repeat]))(misplaced, 'maturity', 'C1').reason, 'AMBIGUOUS_QUOTE');
+assert.equal(inspect(derivedQuote, 'maturity', 'C1').reason, 'UNAPPROVED_DERIVED_CITATION');
+assert.equal(inspect(derivedQuote, 'maturity', 'C4').quote, derivedQuote);
 
 console.log('evidence provenance reconciliation tests passed');

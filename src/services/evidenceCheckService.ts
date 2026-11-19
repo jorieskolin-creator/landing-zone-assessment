@@ -11,11 +11,14 @@ import {
   SourceRegistry,
   DerivedAnalyticalEvidence,
   CriterionQuestionResult,
+  CitationRecoveryTrace,
+  EvidenceLaneStagePacket,
+  EvidenceQuote,
 } from '../types';
 import { runStage, RunContext, serverLog } from './modelRouter';
 // @ts-expect-error Pure JS contracts are also consumed by the server-side worker.
 import { OUTPUT_CONTRACT_IDS } from '../../lib/outputContracts.js';
-import { isEvidenceQuoteBoundToChunk, isEvidenceQuoteBoundToDerivedEvidence, isValidEvidenceVerifierItem, stampQuoteLocators, verifyTextEvidenceSupport } from './evidenceSupport';
+import { isEvidenceQuoteBoundToChunk, isEvidenceQuoteBoundToDerivedEvidence, isValidEvidenceVerifierItem, packetCitationInspector, stampQuoteLocators, verifyTextEvidenceSupport } from './evidenceSupport';
 import {
   antiPatternStatusDescription,
   normalizeAntiPatternAbsenceStatus,
@@ -448,7 +451,8 @@ export const runEvidenceCheck = async (
   batch: BatchAuditResult,
   text: string,
   images: ImageInput[],
-  ctx: RunContext
+  ctx: RunContext,
+  adjudicationKeys?: ReadonlySet<string>,
 ): Promise<EvidenceCheckResult> => {
   const definitions = BATCH_DEFINITIONS[batchId];
   const expectedIds = expectedIdsByStream(batchId);
@@ -552,9 +556,13 @@ export const runEvidenceCheck = async (
       }
     }
 
-    const adjudicated = await applyAntiPatternAdjudication(batchId, batch, text, images, ctx, items);
+    // The governed verifier schema requires all ten domain items. When rechecking
+    // a patch, adjudicate only its targets; the caller locks all other verdicts.
+    const adjudicated = await applyAntiPatternAdjudication(batchId, batch, text, images, ctx,
+      adjudicationKeys ? items.filter(item => adjudicationKeys.has(`${item.stream}.${item.id}`)) : items);
+    const adjudicatedByKey = new Map(adjudicated.items.map(item => [`${item.stream}.${item.id}`, item]));
     return {
-      ...summarizeEvidenceCheck(batchId, adjudicated.items, []),
+      ...summarizeEvidenceCheck(batchId, items.map(item => adjudicatedByKey.get(`${item.stream}.${item.id}`) || item), []),
       model_used: resp.modelUsed.id,
       adjudication_model_used: adjudicated.model_used,
       failed: adjudicated.failed,
@@ -582,6 +590,36 @@ export const runEvidenceCheck = async (
     expected_items: lastError?.expectedItems,
   });
   return buildUnavailableEvidenceCheck(batchId, batch, failureCode);
+};
+
+export const inspectBatchCitations = (batch: BatchAuditResult, packet: EvidenceLaneStagePacket) => {
+  const inspect = packetCitationInspector(packet);
+  const corrected: BatchAuditResult = { maturity: { ...batch.maturity }, antipattern: { ...batch.antipattern } };
+  const repairs: CitationRecoveryTrace[] = [];
+  const rejected = new Map<string, CitationRecoveryTrace>();
+  const expected = expectedIdsByStream(packet.domain_id);
+  for (const stream of STREAMS) {
+    for (const id of expected[stream]) {
+      const entry = corrected[stream]?.[id];
+      if (!entry) continue;
+      const trace = { domain_id: packet.domain_id, stream, criterion_id: id, packet_hash: packet.integrity_hash };
+      const key = `${stream}.${id}`;
+      const quotes: EvidenceQuote[] = Array.isArray(entry.evidence_quotes) ? entry.evidence_quotes : [];
+      if (!quotes.length && (entry.assessment_status === 'assessed' || entry.count > 0)) {
+        rejected.set(key, { ...trace, reason: 'MISSING_CITATION', outcome: 'not_recovered' });
+      }
+      const next = quotes.map(quote => {
+        const result = inspect(quote, stream, id);
+        if (result.reason && !rejected.has(key)) {
+          rejected.set(key, { ...trace, reason: result.reason, outcome: 'not_recovered' });
+        }
+        if (result.repaired) repairs.push({ ...trace, reason: 'QUOTE_NOT_BOUND', outcome: 'locator_repaired' });
+        return result.quote || quote;
+      });
+      corrected[stream]![id] = { ...entry, evidence_quotes: next };
+    }
+  }
+  return { batch: corrected, repairs, rejected };
 };
 
 export const evidenceItemsNeedingRescan = (result: EvidenceCheckResult): EvidenceCheckItem[] => {

@@ -11,6 +11,7 @@ import {
   applyEvidenceCheckToBatch,
   BatchAuditResult,
   evidenceItemsNeedingRescan,
+  inspectBatchCitations,
   mergeEvidenceCheckResults,
   runEvidenceCheck,
   summarizeEvidenceCheck
@@ -107,6 +108,7 @@ const packetForBatch = (
     throw new Error(`Governed source packet is missing for batch ${batchId}.`);
   }
   assertEvidenceLaneStagePacket(packet);
+  if (packet.domain_id !== batchId) throw new Error('EVIDENCE_STAGE_PACKET_SCOPE_MISMATCH');
   return { text: packet.text, images: packet.images, packet };
 };
 
@@ -224,7 +226,8 @@ export const runPhase1Audit = async (
       mode: 'active',
       scoring_authority: false,
       max_passes: 2,
-      passes: []
+      passes: [],
+      citation_recovery: [],
     },
   };
 
@@ -261,7 +264,14 @@ export const runPhase1Audit = async (
         }
         if (batchResult.model_used) modelsSeen.add(batchResult.model_used);
 
-        let evidenceCheck = await runEvidenceCheck(batchId, batchResult, packetInput.text, packetInput.images, ctx);
+        const citationCheck = inspectBatchCitations(batchResult, packetInput.packet);
+        batchResult = { ...citationCheck.batch, model_used: batchResult.model_used };
+        const { rejected, repairs } = citationCheck;
+        const unresolved = new Set(rejected.keys());
+        const keyFor = (item: EvidenceCheckItem) => `${item.stream}.${item.id}`;
+        const initialAdjudicationKeys = new Set(Object.entries(expectedBatchOutputIdsFor(batchId))
+          .flatMap(([stream, ids]) => ids.map(id => `${stream}.${id}`)).filter(key => !unresolved.has(key)));
+        let evidenceCheck = await runEvidenceCheck(batchId, batchResult, packetInput.text, packetInput.images, ctx, initialAdjudicationKeys);
         if (evidenceCheck.model_used) evidenceModelsSeen.add(evidenceCheck.model_used);
         if (evidenceCheck.adjudication_model_used) evidenceAdjudicationModelsSeen.add(evidenceCheck.adjudication_model_used);
         const rescannedKeys = new Set<string>();
@@ -269,20 +279,38 @@ export const runPhase1Audit = async (
         const seenTerms = new Set<string>();
         let currentPacket = packetInput.packet;
         for (let pass = 1 as 1 | 2; pass <= 2; pass = (pass + 1) as 1 | 2) {
-          const needsRescan = evidenceItemsNeedingRescan(evidenceCheck);
-          if (evidenceCheck.failed || needsRescan.length === 0 || !sourcePackets?.expandWeakEvidence) break;
-          const expansion = await sourcePackets.expandWeakEvidence({ batchId, items: needsRescan, pass, seenTerms, packet: currentPacket });
+          const weak = new Set(evidenceItemsNeedingRescan(evidenceCheck).map(keyFor));
+          const candidates = evidenceCheck.items.filter(item => weak.has(keyFor(item)) || unresolved.has(keyFor(item)));
+          if (evidenceCheck.failed || candidates.length === 0 || !sourcePackets?.expandWeakEvidence) break;
+          const expansion = await sourcePackets.expandWeakEvidence({ batchId, items: candidates, pass, seenTerms, packet: currentPacket });
           const trace = expansion.trace;
           if (trace.gap_analysis_model) evidenceGapAnalysisModelsSeen.add(trace.gap_analysis_model);
-          if (trace.selected_chunk_ids.length === 0) {
-            aggregated.semantic_gap_retrieval.passes.push({
-              ...trace,
-              evidence_status_after: { ...trace.evidence_status_before },
-              verdict_change: 'unchanged'
-            });
+          const expanded = trace.selected_chunk_ids.length > 0;
+          // Re-read an unchanged packet only for deterministically rejected citations,
+          // never for general silence. This still consumes a regular rescan pass.
+          const needsRescan = expanded ? candidates : candidates.filter(item => unresolved.has(keyFor(item)));
+          const recordPass = (after: Record<string, EvidenceCheckItem['status']>, change: SemanticGapRetrievalPassTrace['verdict_change']) => {
+            aggregated.semantic_gap_retrieval.passes.push({ ...trace, evidence_status_after: after, verdict_change: change });
+          };
+          if (needsRescan.length === 0) {
+            recordPass({ ...trace.evidence_status_before }, 'unchanged');
             break;
           }
-          currentPacket = expansion.packet;
+          if (expanded) {
+            assertEvidenceLaneStagePacket(expansion.packet);
+            if (expansion.packet.domain_id !== batchId) throw new Error('EVIDENCE_STAGE_PACKET_SCOPE_MISMATCH');
+            currentPacket = expansion.packet;
+          }
+          const targetKeys = new Set(needsRescan.map(keyFor));
+          for (const item of needsRescan) {
+            const key = keyFor(item);
+            rescannedKeys.add(key);
+            if (!preRescanCounts.has(key)) preRescanCounts.set(key, item.original_count);
+            if (unresolved.has(key)) Object.assign(rejected.get(key)!, {
+              rescan_packet_hash: currentPacket.integrity_hash,
+              outcome: 'rescan_unavailable',
+            });
+          }
           serverLog(ctx.runId, 'warn', 'evidence_check_targeted_rescan', {
             batch: batchId,
             criteria_count: needsRescan.length,
@@ -290,7 +318,8 @@ export const runPhase1Audit = async (
             new_chunks: trace.selected_chunk_ids.length,
           });
           try {
-            const rescanResult = await runTargetedRescan(batchId, currentPacket.text, currentPacket.images, ctx, needsRescan);
+            const rescanResult = await runTargetedRescan(batchId, currentPacket.text, currentPacket.images, ctx, needsRescan.map(item =>
+              unresolved.has(keyFor(item)) ? { ...item, rationale: `Citation rejected (${rejected.get(keyFor(item))!.reason}). Recheck the criterion in the approved packet and cite exact chunks.` } : item));
             if (rescanResult.model_used) {
               targetedRescanModelsSeen.add(rescanResult.model_used);
               serverLog(ctx.runId, 'info', 'targeted_rescan_model_used', {
@@ -300,51 +329,55 @@ export const runPhase1Audit = async (
                 semantic_pass: pass,
               });
             }
-            const rescannedBatchResult = mergeBatchResult(batchResult, rescanResult) as BatchAuditResult & { model_used?: string };
-            const rescannedEvidenceCheck = await runEvidenceCheck(batchId, rescannedBatchResult, currentPacket.text, currentPacket.images, ctx);
+            const checkedPatch = inspectBatchCitations(rescanResult, currentPacket);
+            const rescannedBatchResult = mergeBatchResult(batchResult, checkedPatch.batch);
+            const rescannedEvidenceCheck = await runEvidenceCheck(batchId, rescannedBatchResult, currentPacket.text, currentPacket.images, ctx,
+              new Set([...targetKeys].filter(key => !checkedPatch.rejected.has(key))));
+            if (rescannedEvidenceCheck.model_used) evidenceModelsSeen.add(rescannedEvidenceCheck.model_used);
+            if (rescannedEvidenceCheck.adjudication_model_used) evidenceAdjudicationModelsSeen.add(rescannedEvidenceCheck.adjudication_model_used);
             if (rescannedEvidenceCheck.failed) {
-              aggregated.semantic_gap_retrieval.passes.push({
-                ...trace,
-                evidence_status_after: { ...trace.evidence_status_before },
-                verdict_change: 'verification_unavailable'
-              });
+              recordPass({ ...trace.evidence_status_before }, 'verification_unavailable');
               serverLog(ctx.runId, 'warn', 'targeted_rescan_verification_unavailable', {
                 batch: batchId,
                 criteria_count: needsRescan.length,
                 semantic_pass: pass,
-                error_code: rescannedEvidenceCheck.failure_reason || 'EVIDENCE_CHECK_FAILED',
+                error_code: 'EVIDENCE_CHECK_FAILED',
                 fallback: 'previous_verified_result',
               });
               break;
             }
-            batchResult = rescannedBatchResult;
-            evidenceCheck = rescannedEvidenceCheck;
-            needsRescan.forEach(i => {
-              const key = `${i.stream}.${i.id}`;
-              rescannedKeys.add(key);
-              if (!preRescanCounts.has(key)) preRescanCounts.set(key, i.original_count);
+            const nextItems = new Map(rescannedEvidenceCheck.items.map(item => [keyFor(item), item]));
+            evidenceCheck.items = evidenceCheck.items.map(item => {
+              const key = keyFor(item);
+              if (!targetKeys.has(key)) return item;
+              const next = nextItems.get(key)!;
+              const issue = unresolved.has(key) ? rejected.get(key)! : undefined;
+              const candidateIssue = checkedPatch.rejected.get(key);
+              const reverified = next.assessment_status === 'assessed' && next.quote_supported
+                && (next.status === 'supported' || next.status === 'weak');
+              if (candidateIssue || (issue && !reverified)) {
+                if (issue) issue.outcome = 'rescan_rejected';
+                else if (candidateIssue) repairs.push({ ...candidateIssue, outcome: 'rescan_rejected' });
+                return item;
+              }
+              if (issue) {
+                issue.outcome = 'rescan_reverified';
+                unresolved.delete(key);
+              }
+              batchResult[item.stream]![item.id] = checkedPatch.batch[item.stream]![item.id];
+              return next;
             });
-            const evidenceStatusAfter = Object.fromEntries(needsRescan.map(item => {
-              const key = `${item.stream}.${item.id}`;
-              return [key, evidenceCheck.items.find(candidate => `${candidate.stream}.${candidate.id}` === key)?.status || item.status];
-            }));
+            repairs.push(...checkedPatch.repairs);
+            const after = new Map(evidenceCheck.items.map(item => [keyFor(item), unresolved.has(keyFor(item)) ? 'unsupported' as const : item.status]));
+            const evidenceStatusAfter = Object.fromEntries(Object.entries(trace.evidence_status_before).map(([key, before]) => [key, after.get(key) || before]));
             const statusRank = { missing: 0, unsupported: 1, weak: 2, supported: 3 } as const;
             const statusDeltas = Object.entries(trace.evidence_status_before).map(([key, before]) =>
               statusRank[evidenceStatusAfter[key]] - statusRank[before]);
-            aggregated.semantic_gap_retrieval.passes.push({
-              ...trace,
-              evidence_status_after: evidenceStatusAfter,
-              verdict_change: statusDeltas.some(delta => delta > 0) ? 'improved'
-                : statusDeltas.some(delta => delta < 0) ? 'regressed' : 'unchanged'
-            });
-            if (evidenceCheck.model_used) evidenceModelsSeen.add(evidenceCheck.model_used);
-            if (evidenceCheck.adjudication_model_used) evidenceAdjudicationModelsSeen.add(evidenceCheck.adjudication_model_used);
+            recordPass(evidenceStatusAfter, statusDeltas.some(delta => delta > 0) ? 'improved'
+              : statusDeltas.some(delta => delta < 0) ? 'regressed' : 'unchanged');
+            if (!expanded) break;
           } catch (error) {
-            aggregated.semantic_gap_retrieval.passes.push({
-              ...trace,
-              evidence_status_after: { ...trace.evidence_status_before },
-              verdict_change: 'verification_unavailable'
-            });
+            recordPass({ ...trace.evidence_status_before }, 'verification_unavailable');
             serverLog(ctx.runId, 'warn', 'targeted_rescan_unavailable', {
               batch: batchId,
               criteria_count: needsRescan.length,
@@ -355,6 +388,19 @@ export const runPhase1Audit = async (
             break;
           }
         }
+        // Do not let an expanded final manifest retroactively validate an old verdict.
+        // Without question-level citations, any remaining unbound quote defeats the aggregate.
+        evidenceCheck.items = evidenceCheck.items.map(item => {
+          if (!unresolved.has(keyFor(item))) return item;
+          const entry = batchResult[item.stream]![item.id];
+          const reason = 'Verification gap: one or more citations could not be bound to the approved evidence packet. Supply source-bound evidence for the affected questions.';
+          batchResult[item.stream]![item.id] = { ...entry, evidence: reason, evidence_quotes: [] };
+          if (item.verification_unresolved) return item;
+          return { ...item, status: 'unsupported', assessment_status: 'not_assessed', verified_count: 0, rationale: reason,
+            quote_supported: false, rescan_recommended: false,
+            ...(item.stream === 'antipattern' ? { antipattern_absence_status: 'unknown_absent', coverage_reason: reason } : {}) };
+        });
+        aggregated.semantic_gap_retrieval.citation_recovery!.push(...repairs, ...rejected.values());
 
         if (evidenceCheck.items.length > 0) {
           const evidenceFailure = evidenceCheck.failed;
@@ -420,6 +466,8 @@ export const runPhase1Audit = async (
   aggregated.semantic_gap_retrieval.passes.sort((a, b) =>
     a.domain_id.localeCompare(b.domain_id) || a.pass - b.pass
   );
+  aggregated.semantic_gap_retrieval.citation_recovery?.sort((a, b) =>
+    a.domain_id.localeCompare(b.domain_id) || a.criterion_id.localeCompare(b.criterion_id));
   aggregated.evidence_check = mergeEvidenceCheckResults(evidenceResults.sort((a, b) => (a.batch_id || '').localeCompare(b.batch_id || '')));
   return aggregated;
 };

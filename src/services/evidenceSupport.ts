@@ -6,6 +6,7 @@ import type {
   SourceChunk,
   SourcePacketManifestItem,
   DerivedAnalyticalEvidence,
+  EvidenceLaneStagePacket,
 } from '../types';
 
 const EVIDENCE_CHECK_STATUSES: EvidenceCheckStatus[] = ['supported', 'weak', 'unsupported', 'missing'];
@@ -126,16 +127,54 @@ const packetDerivedQuoteMatches = (quote: EvidenceQuote, sourceText: string): bo
   }
 };
 
+const renderedChunks = (sourceText: string) => Array.from(
+  sourceText.matchAll(/<CHUNK id="([^"]+)" source_id="([^"]+)"[^>]*>([\s\S]*?)<\/CHUNK>/g),
+  ([, chunkId, sourceId, text]) => ({ chunk_id: decodePacketXml(chunkId), source_id: decodePacketXml(sourceId), text: decodePacketXml(text) }),
+);
+
+export const packetCitationInspector = (packet: EvidenceLaneStagePacket) => {
+  const manifest = new Map([...packet.evidence, ...packet.sanitized_visual_evidence].map(item => [item.chunk_id, item]));
+  const chunks = new Map(renderedChunks(packet.text).filter(chunk => manifest.get(chunk.chunk_id)?.source_id === chunk.source_id)
+    .map(chunk => [chunk.chunk_id, chunk]));
+  const derived = new Map(packet.derived_evidence.map(item => [item.evidence_id, item]));
+  return (quote: EvidenceQuote, stream: 'maturity' | 'antipattern', id: string) => {
+    if (quote?.evidence_source === 'derived') {
+      return isEvidenceQuoteBoundToDerivedEvidence(quote, derived.get(quote.derived_evidence_id || ''), stream, id)
+        ? { quote } : { reason: 'UNAPPROVED_DERIVED_CITATION' as const };
+    }
+    const cited = chunks.get(quote?.chunk_id || '');
+    if (!cited) return { reason: 'CHUNK_NOT_IN_PACKET' as const };
+    if (cited.source_id !== quote.source_id) return { reason: 'SOURCE_MISMATCH' as const };
+    if (typeof quote.quote !== 'string') return { reason: 'QUOTE_NOT_BOUND' as const };
+    const citedLocator = manifest.get(cited.chunk_id)!;
+    const wrongLocator = (['page_id', 'page_number', 'sheet_name', 'row_number'] as const)
+      .some(field => quote[field] !== undefined && quote[field] !== citedLocator[field]);
+    if (!wrongLocator && containsEvidenceSpan(cited.text, quote.quote)) return { quote };
+
+    // Never change the source or cross the packet boundary. A normalized/approximate
+    // match is not sufficient to move a citation to another chunk.
+    const spans = [quote.quote, decodePacketXml(quote.quote)].filter(span => span.trim().length >= 4);
+    const matches = [...chunks.values()].filter(chunk => chunk.source_id === cited.source_id
+      && spans.some(span => chunk.text.includes(span)));
+    if (matches.length !== 1) {
+      return { reason: matches.length > 1 ? 'AMBIGUOUS_QUOTE' as const : 'QUOTE_NOT_BOUND' as const };
+    }
+    const locator = manifest.get(matches[0].chunk_id)!;
+    return {
+      repaired: true,
+      quote: { ...quote, chunk_id: locator.chunk_id, page_id: locator.page_id, page_number: locator.page_number,
+        sheet_name: locator.sheet_name, row_number: locator.row_number, evidence_class: locator.evidence_class },
+    };
+  };
+};
+
 export const verifyTextEvidenceSupport = (item: Partial<AuditItem> | undefined, sourceText: string): EvidenceCheckStatus => {
   if (item?.assessment_status === 'not_assessed') return 'weak';
   const quotes = Array.isArray(item?.evidence_quotes) ? item.evidence_quotes : [];
   const textQuotes = quotes.filter(q => q && q.evidence_source !== 'image' && typeof q.quote === 'string' && q.quote.trim().length > 0);
   if (!textQuotes.length) return quotes.some(q => q?.evidence_source === 'image') ? 'supported' : 'missing';
 
-  const chunkText = new Map<string, string>();
-  for (const match of sourceText.matchAll(/<CHUNK id="([^"]+)" source_id="([^"]+)"[^>]*>([\s\S]*?)<\/CHUNK>/g)) {
-    chunkText.set(`${decodePacketXml(match[1])}|${decodePacketXml(match[2])}`, decodePacketXml(match[3]));
-  }
+  const chunkText = new Map(renderedChunks(sourceText).map(chunk => [`${chunk.chunk_id}|${chunk.source_id}`, chunk.text]));
   const isPacket = chunkText.size > 0 || sourceText.includes('<EVIDENCE_LANE_STAGE_PACKET');
   let weakMatch = false;
   for (const quote of textQuotes) {
