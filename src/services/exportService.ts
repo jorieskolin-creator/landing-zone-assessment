@@ -545,9 +545,10 @@ const renderScoreEvidenceGaps = (result: DiagnosticResult, limit?: number): stri
 const renderEvidenceBackedFindings = (result: DiagnosticResult): string => {
   const evidence = result.phase_3_strategy.evidence_summary;
   if (!evidence) return '';
-  const m = result.phase_2_validation.metrics;
+  const { metrics: m, lz_maturity_label, crawl_walk_run } = result.phase_2_validation;
+  const classification = lz_maturity_label || crawl_walk_run;
   const useSourceObservationTitle = isInsufficientEvidenceReport(
-    evidence.maturity_classification,
+    classification,
     m.evidence_density,
     result.quality_gate.decision
   );
@@ -565,7 +566,7 @@ const renderEvidenceBackedFindings = (result: DiagnosticResult): string => {
   }
   return `
     <section class="evidence-findings">
-      <p class="persona-heading">Fact-only current state · ${escapeHtml(evidence.maturity_classification)}</p>
+      <p class="persona-heading">Fact-only current state · ${escapeHtml(classification)}</p>
       <h3>${escapeHtml(evidence.headline)}</h3>
       <div class="summary-grid">
         ${list(strengthsSectionTitle(useSourceObservationTitle), evidence.confirmed_strengths)}

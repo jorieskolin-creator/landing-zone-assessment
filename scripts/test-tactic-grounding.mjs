@@ -102,6 +102,7 @@ const {
   classifyFinalRequiredTactics,
   findMissingRequiredTacticIds,
   findRoadmapActionsMissingCriterionReferences,
+  hasUnboundRoadmapTactic,
   sanitizeRoadmapTacticGrounding,
 } = await import(`file://${modulePath}`);
 
@@ -140,7 +141,7 @@ const auditLogs = {
 
 const plan = buildTacticSelectionPlan(auditLogs, ['F']);
 assert.deepEqual(plan.required.map(candidate => candidate.tactic_id).sort(), ['TAC-GOV-002', 'TAC-GOV-003']);
-assert.ok(plan.optional.some(item => item.tactic_id === 'TAC-GOV-001'), 'same-category tactic should be evaluated optionally');
+assert.ok(!plan.optional.some(item => item.tactic_id === 'TAC-GOV-001'), 'same-category similarity must not activate a tactic');
 assert.ok(plan.optional.some(item => item.tactic_id === 'TAC-GOV-004'), 'maturity-bound tactic should be evaluated optionally');
 assert.ok(plan.optional.some(item => item.tactic_id === 'TAC-OPT-005'), 'verified capability gap should produce an optional tactic candidate');
 assert.ok(!plan.required.some(item => item.tactic_id === 'TAC-AI-001'), 'weak/not-demonstrated domain must not activate remediation');
@@ -170,7 +171,7 @@ const strategyData = {
       phase: '1. Crawl',
       actions: [
         'Migrate verified unmanaged accounts through a staged owner-approved path [TAC-GOV-002] [AP-C1]',
-        'Introduce owner-approved budget controls with staged enforcement [TAC-GOV-003] [C2]',
+        'Introduce owner-approved budget controls with staged enforcement [TAC-GOV-003] [AP-C2]',
         'Track the verified governance outcomes against accepted measures [TAC-GOV-004] [C3]',
         'Pilot owner-approved retention controls with restore validation [TAC-OPT-005] [B5]',
         'Define an additional customer-specific handoff artifact with an owner and acceptance check [B5]',
@@ -181,6 +182,12 @@ const strategyData = {
 
 assert.deepEqual(findMissingRequiredTacticIds(strategyData, plan), []);
 assert.deepEqual(findRoadmapActionsMissingCriterionReferences(strategyData), []);
+assert.equal(hasUnboundRoadmapTactic(strategyData, plan), false);
+for (const action of ['Apply [TAC-GOV-001] for [AP-C1]', 'Apply [TAC-GOV-003] for [C3]']) {
+  const wrongBinding = structuredClone(strategyData);
+  wrongBinding.phase_3_strategy.remediation_roadmap[0].actions.push(action);
+  assert.equal(hasUnboundRoadmapTactic(wrongBinding, plan), true, 'An unactivated or mismatched tactic must fail roadmap validation');
+}
 assert.deepEqual(findRoadmapActionsMissingCriterionReferences({ phase_3_strategy: { remediation_roadmap: [{
   actions: ['Grounded action without an explicit criterion reference'],
 }] } }), ['Grounded action without an explicit criterion reference']);

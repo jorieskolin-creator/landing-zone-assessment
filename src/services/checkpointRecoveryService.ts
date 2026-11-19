@@ -35,7 +35,7 @@ const recoveredStrategy = (phase2: any): any => {
     active_persona: 'ciso_leadership',
     evidence_summary: {
       headline: 'Recovered analysis — insufficient validated synthesis',
-      maturity_classification: phase2?.crawl_walk_run || 'Insufficient Evidence',
+      maturity_classification: phase2?.lz_maturity_label || phase2?.crawl_walk_run || 'Insufficient evidence',
       key_metrics: [`Adjusted Landing Zone Maturity: ${adjusted}`, `Assessment Sufficiency: ${sufficiency}`, `Evidence density: ${density}%`],
       confirmed_strengths: [],
       confirmed_gaps: gaps.slice(0, 8),
@@ -78,6 +78,9 @@ export async function recoverCheckpointResult(runId: string): Promise<{ result: 
   const strategy = synthesisPayload?.phase_3_strategy
     ? JSON.parse(JSON.stringify(synthesisPayload.phase_3_strategy))
     : recoveredStrategy(phase2);
+  if (strategy.evidence_summary) {
+    strategy.evidence_summary.maturity_classification = phase2.lz_maturity_label || phase2.crawl_walk_run || 'Insufficient evidence';
+  }
   strategy.remediation_roadmap = [];
   strategy.effective_bracket = 'LOW';
   strategy.planning_decision = {

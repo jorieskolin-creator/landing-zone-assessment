@@ -80,9 +80,11 @@ const compactEvidence = (phase1: Phase1AuditLogs): string => {
   for (const stream of ['maturity', 'antipattern'] as const) {
     for (const [id, item] of Object.entries(phase1[stream])) {
       const a = item as AuditItem;
-      if (a.evidence_quotes.length === 0) continue;
       const quotes = a.evidence_quotes.map(q => `"${q.quote.replace(/"/g, "'").substring(0, 200)}"`).join(' | ');
-      lines.push(`${stream}.${id} (count=${a.count}): ${quotes}`);
+      if (!quotes && !a.verification_unresolved && a.evidence_check_status !== 'unsupported') continue;
+      const disposition = a.verification_unresolved ? 'verification_unresolved' : a.evidence_check_status || 'not_reported';
+      const questions = a.question_results?.join(',') || 'not_reported';
+      lines.push(`${stream}.${id} (count=${a.count}; ${disposition}; questions=${questions}): ${quotes || 'no verified citation'}`);
     }
   }
   return lines.join('\n');
@@ -149,7 +151,8 @@ const compactMetrics = (phase2: Phase2Validation): string => {
     `antipattern_ratio=${Math.round(m.antipattern_ratio)}%`,
     `delivery_integrity=${m.delivery_integrity}%`,
     `evidence_density=${m.evidence_density}%`,
-    `classification=${phase2.crawl_walk_run}`,
+    `classification=${phase2.lz_maturity_label || phase2.crawl_walk_run}`,
+    `internal_maturity_band=${phase2.crawl_walk_run}`,
     `silent_areas_count=${phase2.silent_areas.length}`,
     `score_evidence_gaps_count=${phase2.score_evidence_gaps.length}`,
     `maturity_gaps_count=${phase2.maturity_gaps.length}`,
@@ -448,6 +451,8 @@ Your job: verify ONLY the evidence summaries and diagnosis. The tactics database
 - If the source appears to be a best-practices or case-study document rather than evidence about the audited organization, flag claims that treat document coverage as proven operational adoption.
 - If the underlying source fact is real but the output assigns the wrong category/domain/anti-pattern label, classify unsupported with severity "WARN_MISCLASSIFIED_BUT_REAL" rather than a blocking fact.
 - If Phase 1/2 marks a criterion unsupported, verification_unresolved, or not_assessed, flag wording that calls the criterion a confirmed weak, partial, missing, or immature control. It is an evidence/verification gap unless separate assessed evidence establishes the deficiency.
+- Use the computed Landing Zone classification. An internal maturity band (e.g. Run) is not the published classification (e.g. Operate).
+- Preserve the exact scope of a verified AP-G3 exemption. A subscription-scoped waiver is not evidence of a hierarchy-wide exclusion. Flag any broader assertion without separately verified scope as BLOCKING_UNSUPPORTED_FACT.
 - Maximum 15 claims per pass — focus on consequential claims.
 - For every unsupported claim, emit failure_type, severity, and missing_material.
 - For supported claims, emit severity "SUPPORTED", failure_type "not_applicable", and an empty missing_material string.
@@ -511,6 +516,8 @@ ROADMAP GROUNDING:
 - Activity-playbook details support roadmap HOW language only. They do not support new claims about what the audited organization currently has or does.
 - If the action is grounded but the output uses a wrong label/category for the finding, classify unsupported with severity "WARN_MISCLASSIFIED_BUT_REAL".
 - If a criterion is unsupported, verification_unresolved, or not_assessed, the roadmap may collect evidence for it but may not describe it as a confirmed weak/partial control or prescribe deficiency remediation without another assessed locked finding.
+- If the roadmap proposes expiry, removal, or an expiry pilot solely because Azure accounts designated emergency-only are standing, flag it as BLOCKING_UNSAFE_ROADMAP. Request a human review of the B1/B2 expiry and B5 emergency-access requirements; don't change the locked scores or assume routine privileged roles are exempt.
+- For AP-G3, a waiver evidenced at subscription scope does not authorize changes at a management group or across the hierarchy. Flag actions that expand the scope without another verified finding as BLOCKING_UNSAFE_ROADMAP.
 - Evaluate each required tactic's supplied use and do-not-use conditions. If locked findings establish a do-not-use condition, classify the tactic action as unsupported with severity "WARN_TACTIC_HYGIENE" so it can be recorded as contraindicated rather than forced into the final roadmap.
 - Every claim MUST set "tactic_disposition". For an unsupported roadmap claim with severity "WARN_TACTIC_HYGIENE" that contains a tactic ID, use "contraindicated" only when a supplied Playbook do-not-use condition is established by locked findings; otherwise use "citation_rejected" for a misplaced, mismatched, or unsupported tactic reference. For every other claim use "not_applicable".
 - WHY and WHAT may summarize context and intended change, but they may not invent new current-state claims, unsupported financial impacts, or claim that a gap is fully closed unless LOCKED_FINDINGS provide acceptance criteria proving closure.

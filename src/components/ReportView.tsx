@@ -698,8 +698,10 @@ export const ReportView: React.FC<ReportViewProps> = ({ result, onBack, onDownlo
           {(() => {
             const evidence = result.phase_3_strategy.evidence_summary;
             if (!evidence) return null;
+            const { lz_maturity_label, crawl_walk_run } = result.phase_2_validation;
+            const classification = lz_maturity_label || crawl_walk_run;
             const useSourceObservationTitle = isInsufficientEvidenceReport(
-              evidence.maturity_classification,
+              classification,
               result.phase_2_validation.metrics.evidence_density,
               result.quality_gate.decision
             );
@@ -727,7 +729,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ result, onBack, onDownlo
                     <h3 className="text-xl font-display font-bold text-slate-900">{evidence.headline}</h3>
                   </div>
                   <span className="px-3 py-1 rounded-full bg-white border border-emerald-200 text-xs font-bold text-emerald-800 whitespace-nowrap">
-                    {evidence.maturity_classification}
+                    {classification}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
