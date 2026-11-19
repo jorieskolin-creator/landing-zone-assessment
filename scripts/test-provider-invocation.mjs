@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { invokeProvider } from '../lib/providerInvocation.js';
-import { OUTPUT_CONTRACT_IDS } from '../lib/outputContracts.js';
+import { getOutputContract, OUTPUT_CONTRACT_IDS, structuredOutputForPacket } from '../lib/outputContracts.js';
 
 const packet = {
   provider: 'xai',
@@ -395,28 +395,42 @@ await assert.rejects(
     && !String(error?.message).includes('optional properties'),
 );
 
-let googleForensicRequest;
-await invokeProvider({
-  ...packet,
-  stage: 'forensic_audit',
-  provider: 'google',
-  model: 'gemini-3.8-flash',
-  output_contract: OUTPUT_CONTRACT_IDS.forensicAudit,
-  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
-}, {
-  env: { GEMINI_API_KEY: 'test-gemini-key' },
-  fetchFn: async (_url, options) => {
-    googleForensicRequest = JSON.parse(options.body);
-    return {
-      ok: true,
-      json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"items":[]}' }] } }] }),
-    };
-  },
-});
-const googleForensicQuote = googleForensicRequest.generationConfig.responseJsonSchema
-  .properties.items.items.properties.evidence_quotes.items;
-assert.equal(googleForensicQuote.properties.page_number, undefined);
-assert.deepEqual(Object.keys(googleForensicQuote.properties).sort(), googleForensicQuote.required.sort());
+for (const [stage, contractId] of [
+  ['forensic_audit', OUTPUT_CONTRACT_IDS.forensicAudit],
+  ['targeted_rescan', OUTPUT_CONTRACT_IDS.targetedRescan],
+]) {
+  const batchPacket = {
+    ...packet,
+    stage,
+    provider: 'google',
+    model: 'gemini-3.8-flash',
+    system_instruction: 'Batch E: Security baseline. Return valid JSON only.',
+    output_contract: contractId,
+    settings: { max_tokens: 32768, reasoning_effort: 'medium' },
+  };
+  let googleRequestBody;
+  await invokeProvider(batchPacket, {
+    env: { GEMINI_API_KEY: 'test-gemini-key' },
+    fetchFn: async (_url, options) => {
+      googleRequestBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"items":[]}' }] } }] }),
+      };
+    },
+  });
+  const googleQuotes = googleRequestBody.generationConfig.responseJsonSchema
+    .properties.items.items.properties.evidence_quotes;
+  assert.equal(googleQuotes.maxItems, 1, `Gemini ${stage} must allow only one quote per item`);
+  assert.equal(googleQuotes.items.properties.page_number, undefined);
+  assert.deepEqual(Object.keys(googleQuotes.items.properties).sort(), [...googleQuotes.items.required].sort());
+
+  const sharedQuotes = getOutputContract(contractId).schema.properties.items.items.properties.evidence_quotes;
+  const xaiQuotes = structuredOutputForPacket({ ...batchPacket, provider: 'xai', model: 'grok-4.7' }).schema
+    .properties.items.items.properties.evidence_quotes;
+  assert.equal(sharedQuotes.maxItems, 3, `Worker ${stage} must retain the full evidence contract`);
+  assert.equal(xaiQuotes.maxItems, 3, `Grok ${stage} must retain the full evidence contract`);
+}
 
 await assert.rejects(
   invokeProvider({
