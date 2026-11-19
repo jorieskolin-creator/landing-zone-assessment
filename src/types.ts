@@ -413,7 +413,7 @@ export interface AssessmentEvidenceSummary {
   // Fact-only synopsis. Must be grounded in Phase 1 quotes or Phase 2 metrics;
   // no tactic IDs, case studies, or implementation directives.
   headline: string;
-  maturity_classification: Phase2Validation['crawl_walk_run'];
+  maturity_classification: LzMaturityLabel | Phase2Validation['crawl_walk_run'];
   key_metrics: string[];
   confirmed_strengths: string[];
   confirmed_gaps: string[];

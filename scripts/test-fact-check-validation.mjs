@@ -19,6 +19,8 @@ await writeFile(modulePath, compiled, 'utf8');
 
 const {
   buildRegenerateAppendix,
+  buildRoadmapFactCheckPrompt,
+  buildSummaryFactCheckPrompt,
   claimsForRepairScope,
   determineFactCheckRepairScope,
   mergeRequiredFactChecks,
@@ -140,6 +142,30 @@ assert.deepEqual(claimsForRepairScope([summaryDefect, roadmapDefect], 'roadmap')
 assert.match(buildRegenerateAppendix([summaryDefect], 'summary'), /Regenerate ONLY executive_summaries/);
 assert.match(buildRegenerateAppendix([roadmapDefect], 'roadmap'), /Regenerate ONLY planning_decision/);
 assert.match(buildRegenerateAppendix([summaryDefect, roadmapDefect], 'both'), /Regenerate both/);
+
+const scopedReview = {
+  contentToCheck: 'Apply a hierarchy-wide change [AP-G3].',
+  remediationRoadmapText: 'Pilot expiry of the designated emergency-only account [B2].',
+  lockedFindingsText: 'AP-G3 is partial at the production subscription only.',
+  sourceDocument: 'The waiver is scoped to one production subscription. An account is designated emergency-only.',
+  phase1: {
+    maturity: { F1: { count: 0, evidence_check_status: 'unsupported', evidence_quotes: [] } },
+    antipattern: { 'AP-G3': { count: 1, evidence_check_status: 'supported', question_results: ['not_supported', 'unknown', 'supported'], evidence_quotes: [{ quote: 'One production subscription' }] } },
+  },
+  phase2: {
+    crawl_walk_run: 'Run', lz_maturity_label: 'Operate', metrics: {}, assessment_sufficiency: {},
+    silent_areas: [], score_evidence_gaps: [], maturity_gaps: [], antipattern_findings: [],
+    verified_antipattern_absences: [], unknown_antipattern_absences: [], verification_unresolved: [],
+  },
+};
+const summaryPrompt = buildSummaryFactCheckPrompt(scopedReview);
+assert.match(summaryPrompt, /classification=Operate, internal_maturity_band=Run/);
+assert.match(summaryPrompt, /maturity\.F1.*unsupported.*no verified citation/);
+assert.match(summaryPrompt, /subscription-scoped waiver is not evidence of a hierarchy-wide exclusion/);
+const roadmapPrompt = buildRoadmapFactCheckPrompt(scopedReview);
+assert.match(roadmapPrompt, /antipattern\.AP-G3.*questions=not_supported,unknown,supported.*One production subscription/);
+assert.match(roadmapPrompt, /designated emergency-only are standing, flag it as BLOCKING_UNSAFE_ROADMAP/);
+assert.match(roadmapPrompt, /actions that expand the scope without another verified finding as BLOCKING_UNSAFE_ROADMAP/);
 
 const analysisSource = await readFile(new URL('../src/services/analysisService.ts', import.meta.url), 'utf8');
 assert.match(analysisSource, /determineFactCheckRepairScope\(lastUnsupported\)/);

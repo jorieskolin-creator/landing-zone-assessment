@@ -38,6 +38,7 @@ import {
   classifyFinalRequiredTactics,
   findMissingRequiredTacticIds,
   findRoadmapActionsMissingCriterionReferences,
+  hasUnboundRoadmapTactic,
   sanitizeRoadmapTacticGrounding,
   TacticGroundingAdjustment,
   TacticSelectionPlan
@@ -822,7 +823,8 @@ Assessment Resolution: ${Math.round(validationData.metrics.assessment_resolution
 Assessment Sufficiency: ${validationData.assessment_sufficiency.decision}
 Assessment Sufficiency Warnings: ${validationData.assessment_sufficiency.warning_reasons.join(' ') || 'None'}
 Published Maturity Classification: ${validationData.lz_maturity_label || validationData.crawl_walk_run}
-Kernel Maturity Band: ${validationData.crawl_walk_run}
+Kernel Maturity Band (internal; not the published classification): ${validationData.crawl_walk_run}
+Use the published classification in report prose. In the schema field maturity_classification only, return the internal band; runtime replaces that field with the published classification. Treat unresolved citations as a verification gap, not as a control deficiency. Keep AP-G3 assertions to the exact scope evidenced by locked findings; a subscription waiver does not show hierarchy-wide exclusion.
 Maturity Depth Index: ${Math.round(validationData.metrics.maturity_depth)}%
 Anti-Pattern Burden: ${Math.round(validationData.metrics.antipattern_burden)}%
 Anti-Pattern Burden Confidence: ${validationData.metrics.antipattern_burden_confidence || 'unknown'}
@@ -977,7 +979,8 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         regenerated: Boolean(correctionAppendix),
         recordModel: model => { actuals.roadmap_synthesis = model; },
         validate: value => findMissingRequiredTacticIds(value, requiredPlan).length === 0
-          && findRoadmapActionsMissingCriterionReferences(value).length === 0,
+          && findRoadmapActionsMissingCriterionReferences(value).length === 0
+          && !hasUnboundRoadmapTactic(value, requiredPlan),
         buildUserText: formatRetry => [
           ROADMAP_SYNTHESIS_USER_PROMPT,
           confidenceBracket === 'MEDIUM' ? ROADMAP_SYNTHESIS_PROMPT_CAUTIOUS_APPENDIX : '',
@@ -985,8 +988,9 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
           `\n\n### LOCKED FINDINGS JSON (IMMUTABLE)\n${compactLockedFindings(lockedStrategy)}`,
           `\n\n### DIAGNOSTIC FINDINGS (Phase 1 & 2)\n${handoffSummary}`,
           `\n\n${requiredPlan === tacticSelectionPlan ? tacticSelectionContext : buildTacticSelectionContext(requiredPlan)}`,
+          '\n\n### ROADMAP SCOPE LIMITS\nFor an Azure account evidenced as emergency-only, withhold any expiry pilot, expiry, or removal based solely on its standing assignment. Request human review of B1/B2 expiry requirements versus B5 emergency access; do not change the locked findings or generalize this hold to routine administrators. For a verified AP-G3 waiver, scope actions to the affected assignment and evidenced boundary; do not expand subscription evidence to a broader hierarchy.',
           correctionAppendix || '',
-          formatRetry ? '\n\n### OUTPUT CONTRACT CORRECTION\nThe previous provider chain did not satisfy the complete roadmap contract. Return only the schema-compliant roadmap object, include every REQUIRED tactic from the governed selection plan, include at least one exact bracketed finding reference in every action, and add no commentary.' : '',
+          formatRetry ? '\n\n### OUTPUT CONTRACT CORRECTION\nThe previous provider chain did not satisfy the complete roadmap contract. Return only the schema-compliant roadmap object, include every REQUIRED tactic from the governed selection plan, include at least one exact bracketed finding reference in every action and cite an activated criterion for each tactic ID. Do not include unmapped tactics or add commentary.' : '',
         ].join(''),
       });
     };
@@ -1157,7 +1161,7 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
       headline: overallScoreAvailable
         ? `${validationData.lz_maturity_label || validationData.crawl_walk_run} landing-zone maturity with a ${Math.round(validationData.metrics.adjusted_maturity!)}/100 resolution-adjusted score`
         : 'Maturity classification unavailable because Assessment Sufficiency did not pass',
-      maturity_classification: validationData.crawl_walk_run,
+      maturity_classification: validationData.lz_maturity_label || validationData.crawl_walk_run,
       key_metrics: [
         overallScoreAvailable
           ? `Adjusted Landing Zone Maturity: ${Math.round(validationData.metrics.adjusted_maturity!)}/100`
@@ -1284,7 +1288,10 @@ ${Object.entries(validationData.category_scores).map(([cat, score]) => unresolve
         executive_summaries: normalized.executive_summaries,
         executive_summary: normalized.executive_summary,
         active_persona: normalized.active_persona,
-        evidence_summary: raw.phase_3_strategy.evidence_summary?.headline ? raw.phase_3_strategy.evidence_summary : buildFallbackEvidenceSummary(),
+        evidence_summary: raw.phase_3_strategy.evidence_summary?.headline ? {
+          ...raw.phase_3_strategy.evidence_summary,
+          maturity_classification: validationData.lz_maturity_label || validationData.crawl_walk_run,
+        } : buildFallbackEvidenceSummary(),
         diagnosis: typeof incomingDiagnosis?.primary_bottleneck === 'string' && incomingDiagnosis.primary_bottleneck.trim().length > 0
           ? { ...incomingDiagnosis, primary_bottleneck: incomingDiagnosis.primary_bottleneck.trim() }
           : buildFallbackDiagnosis(),

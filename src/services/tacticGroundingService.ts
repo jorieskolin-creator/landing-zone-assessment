@@ -143,7 +143,7 @@ export const buildTacticSelectionPlan = (
     const activatedBy = [...entry.maturity_bindings, ...entry.antipattern_bindings]
       .filter(binding => activeCriterionSet.has(binding.criterion_id))
       .map(binding => binding.criterion_id);
-    if (activatedBy.length === 0 && !activeCategories.has(entry.category)) return [];
+    if (activatedBy.length === 0) return [];
     return [candidateFor(entry, activatedBy)];
   });
 
@@ -158,11 +158,8 @@ export const buildTacticSelectionPlan = (
 const compactCandidate = (candidate: TacticSelectionCandidate, required: boolean): string => {
   const identity = [
     `${required ? 'REQUIRED' : 'OPTIONAL'} [${candidate.tactic_id}] ${candidate.canonical_name}`,
-    candidate.activated_by.length > 0 ? `Activated/matched criteria: ${candidate.activated_by.join(', ')}` : `Home category candidate: ${candidate.category}`,
+    `Activated/matched criteria: ${candidate.activated_by.join(', ')}`,
   ];
-  if (!required) {
-    return [...identity, `Semantic hints: ${candidate.semantic_hints.join(', ')}`].join('\n');
-  }
   return [
     ...identity,
     `Goal: ${candidate.activity_goal}`,
@@ -182,12 +179,12 @@ export const buildTacticSelectionContext = (plan: TacticSelectionPlan): string =
   '',
   'Every REQUIRED tactic must be evaluated and initially appear in at least one roadmap action with its exact bracketed ID. If prerequisites are not established, use a bounded validation/preparation action; do not invent current-state facts. If locked findings establish a supplied do-not-use condition, expose that conflict for independent Quality Checker review rather than disguising it.',
   '',
-  `Step 2 — Category and semantic candidates (${plan.active_categories.join(', ') || 'none'}):`,
+  'Step 2 — Exact optional bindings:',
   plan.optional.length > 0
     ? plan.optional.map(candidate => compactCandidate(candidate, false)).join('\n\n')
-    : 'No optional same-category candidate is available.',
+    : 'No optional tactic has a verified criterion binding.',
   '',
-  'Evaluate OPTIONAL tactics using the locked findings, use/do-not-use rules, semantic hints, expected artifacts, and risk controls. Select only semantically justified tactics. You may evaluate a cross-category approved tactic when the locked finding genuinely spans domains.',
+  'Evaluate OPTIONAL tactics using the locked findings and the supplied use/do-not-use rules. Every tactic ID in an action must cite at least one exact activated criterion for that tactic. Category and title similarity do not authorize a tactic.',
   '',
   'Step 3 — Supplemental actions:',
   'If the approved catalog does not fully address a verified finding, add a grounded action without a tactic ID. Do not invent a TAC-* ID. Make its owner, artifact, acceptance condition, and adapted risk control explicit. Prefer an approved tactic whenever it genuinely implements the action.',
@@ -206,6 +203,14 @@ export const findRoadmapActionsMissingCriterionReferences = (strategyData: any):
     .flatMap((phase: any) => Array.isArray(phase?.actions) ? phase.actions : [])
     .map((action: unknown) => typeof action === 'string' ? action.trim() : String(action ?? '').trim())
     .filter((action: string) => action.length > 0 && !CRITERION_REFERENCE_RX.test(action));
+
+export const hasUnboundRoadmapTactic = (strategyData: any, plan: TacticSelectionPlan): boolean => {
+  const allowed = new Map([...plan.required, ...plan.optional].map(candidate => [candidate.tactic_id, candidate.activated_by]));
+  const actions: unknown[] = (strategyData?.phase_3_strategy?.remediation_roadmap || [])
+    .flatMap((phase: any) => Array.isArray(phase?.actions) ? phase.actions : []);
+  return actions.some(action => typeof action === 'string' && Array.from(action.matchAll(TACTIC_RX()))
+    .some(([, id]) => !allowed.get(id)?.some(criterion => action.includes(`[${criterion}]`))));
+};
 
 export const classifyFinalRequiredTactics = (
   strategyData: any,
