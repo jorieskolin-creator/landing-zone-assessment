@@ -282,6 +282,18 @@ export interface SemanticGapRetrievalPassTrace {
   stop_reason: 'NEW_EVIDENCE_SELECTED' | 'NO_NEW_TERMS' | 'NO_NEW_CANDIDATES' | 'PACKET_LIMIT_REACHED' | 'MAX_PASSES_REACHED';
 }
 
+export interface CitationRecoveryTrace {
+  domain_id: string;
+  stream: EvidenceCheckItem['stream'];
+  criterion_id: string;
+  packet_hash: string;
+  reason: 'CHUNK_NOT_IN_PACKET' | 'SOURCE_MISMATCH' | 'QUOTE_NOT_BOUND' | 'AMBIGUOUS_QUOTE'
+    | 'UNAPPROVED_DERIVED_CITATION' | 'MISSING_CITATION';
+  outcome: 'locator_repaired' | 'rescan_reverified' | 'rescan_rejected' | 'rescan_unavailable' | 'not_recovered';
+  rescan_packet_hash?: string;
+  final_disposition?: EvidenceCheckStatus;
+}
+
 export interface SemanticGapRetrievalTrace {
   schema_version: 'semantic_gap_retrieval_trace_v1';
   policy_version: 'weak_evidence_semantic_retrieval_v1';
@@ -289,6 +301,7 @@ export interface SemanticGapRetrievalTrace {
   scoring_authority: false;
   max_passes: 2;
   passes: SemanticGapRetrievalPassTrace[];
+  citation_recovery?: CitationRecoveryTrace[];
 }
 
 export type PipelineProgressStage =
