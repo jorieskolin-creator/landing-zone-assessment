@@ -1,7 +1,7 @@
 // Public model-routing contracts. Exact model IDs, role assignments and
 // provider policy are server-owned in lib/modelRoutingPolicy.js.
 
-export type Provider = 'anthropic' | 'google' | 'meta' | 'openai' | 'xai';
+export type Provider = 'anthropic' | 'google' | 'openai' | 'xai';
 export type AiRole = 'REASONER' | 'WORKHORSE' | 'QUALITY_CHECKER';
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
@@ -33,8 +33,8 @@ export interface ModelRoutingConfig {
   stage_roles: Record<StageId, AiRole>;
   roles: Record<AiRole, {
     role: AiRole;
-    primary_provider: 'ANTHROPIC' | 'GOOGLE' | 'META' | 'OPENAI' | 'XAI';
-    fallback_provider: 'ANTHROPIC' | 'GOOGLE' | 'META' | 'OPENAI' | 'XAI';
+    primary_provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI' | 'XAI';
+    fallback_provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI' | 'XAI';
     profiles: ModelProfile[];
   }>;
   routes: Record<StageId, ModelProfile[]>;

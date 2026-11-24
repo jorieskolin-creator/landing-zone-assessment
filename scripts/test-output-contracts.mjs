@@ -508,14 +508,14 @@ assert.throws(
   /INVALID_OUTPUT_CONTRACT/,
 );
 
-const metaEvidence = structuredOutputForPacket({
+const xaiEvidence = structuredOutputForPacket({
   stage: 'evidence_check',
-  provider: 'meta',
+  provider: 'xai',
   output_contract: OUTPUT_CONTRACT_IDS.evidenceCheck,
 });
-assert.equal(metaEvidence.name, OUTPUT_CONTRACT_IDS.evidenceCheck);
-assert.equal(metaEvidence.schema.additionalProperties, false);
-assert.equal(metaEvidence.schema.properties.items.minItems, 10);
+assert.equal(xaiEvidence.name, OUTPUT_CONTRACT_IDS.evidenceCheck);
+assert.equal(xaiEvidence.schema.additionalProperties, false);
+assert.equal(xaiEvidence.schema.properties.items.minItems, 10);
 
 const orchestrator = await readFile(new URL('../src/orchestrator.ts', import.meta.url), 'utf8');
 assert.match(orchestrator, /OUTPUT_CONTRACT_IDS\.forensicAudit/);

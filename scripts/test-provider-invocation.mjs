@@ -253,39 +253,66 @@ await assert.rejects(
   error => error?.code === 'INCOMPLETE_RESPONSE' && error?.terminationReason === 'MAX_OUTPUT_TOKENS',
 );
 
-let metaRequest;
-const metaResult = await invokeProvider({
+
+await assert.rejects(
+  invokeProvider({
+    ...packet,
+    stage: 'fact_check',
+    provider: 'meta',
+    model: 'muse-spark-1.1',
+    output_contract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
+    settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+  }, {
+    env: {},
+    fetchFn: async () => { throw new Error('must not dispatch removed Meta provider'); },
+  }),
+  /PROVIDER_NOT_CONFIGURED/,
+);
+
+let carbonRequest;
+await invokeProvider({
   ...packet,
-  stage: 'fact_check',
-  provider: 'meta',
-  model: 'muse-spark-1.1',
-  output_contract: OUTPUT_CONTRACT_IDS.summaryFactCheck,
-  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
+  stage: 'roadmap_synthesis',
+  provider: 'google',
+  model: 'gemini-4-carbon',
+  output_contract: OUTPUT_CONTRACT_IDS.roadmapSynthesis,
+  settings: { max_tokens: 49152, reasoning_effort: 'high' },
 }, {
-  env: { META_API_KEY: 'test-meta-key' },
+  env: { ['GEMINI_' + 'API_KEY']: 'synthetic-key' },
   fetchFn: async (url, options) => {
-    metaRequest = { url, headers: options.headers, body: JSON.parse(options.body) };
+    carbonRequest = { url, body: JSON.parse(options.body) };
     return {
       ok: true,
-      json: async () => ({
-        choices: [{ finish_reason: 'stop', message: { content: '{"schema_version":"ok"}' } }],
-        usage: { prompt_tokens: 11, completion_tokens: 6, completion_tokens_details: { reasoning_tokens: 2 } },
-      }),
+      json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"phase_3_strategy":{}}' }] } }] }),
     };
   },
 });
-assert.equal(metaRequest.url, 'https://api.meta.ai/v1/chat/completions');
-assert.equal(metaRequest.headers.Authorization, 'Bearer test-meta-key');
-assert.equal(metaRequest.body.model, 'muse-spark-1.1');
-assert.equal(metaRequest.body.max_completion_tokens, 8192);
-assert.equal(metaRequest.body.reasoning_effort, 'medium');
-assert.equal(metaRequest.body.response_format.type, 'json_schema');
-assert.equal(metaRequest.body.response_format.json_schema.name, OUTPUT_CONTRACT_IDS.summaryFactCheck);
-assert.equal(metaRequest.body.response_format.json_schema.strict, true);
-assert.equal(metaResult.text, '{"schema_version":"ok"}');
-assert.deepEqual(metaResult.usage, { input_tokens: 11, output_tokens: 6, reasoning_tokens: 2 });
-assert.equal(metaRequest.body.response_format.json_schema.schema.properties.claims.maxItems, 15);
+assert.equal(carbonRequest.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-4-carbon:generateContent');
+assert.equal(carbonRequest.body.generationConfig.thinkingConfig.thinkingLevel, 'high');
+assert.equal(carbonRequest.body.generationConfig.maxOutputTokens, 49152);
 
+let terraRequest;
+await invokeProvider({
+  ...packet,
+  stage: 'evidence_check',
+  provider: 'openai',
+  model: 'gpt-6.1-terra',
+  output_contract: OUTPUT_CONTRACT_IDS.evidenceCheck,
+  settings: { max_tokens: 32768, reasoning_effort: 'medium' },
+}, {
+  env: { ['OPENAI_' + 'API_KEY']: 'synthetic-key' },
+  fetchFn: async (url, options) => {
+    terraRequest = { url, body: JSON.parse(options.body) };
+    return {
+      ok: true,
+      json: async () => ({ status: 'completed', output_text: '{"items":[]}' }),
+    };
+  },
+});
+assert.equal(terraRequest.url, 'https://api.openai.com/v1/responses');
+assert.equal(terraRequest.body.model, 'gpt-6.1-terra');
+assert.equal(terraRequest.body.max_output_tokens, 32768);
+assert.deepEqual(terraRequest.body.reasoning, { effort: 'medium' });
 let googleFactCheckRequest;
 await invokeProvider({
   ...packet,
@@ -306,67 +333,6 @@ await invokeProvider({
 });
 assert.equal(googleFactCheckRequest.generationConfig.responseJsonSchema.properties.claims.maxItems, undefined);
 assert.equal(googleFactCheckRequest.generationConfig.responseJsonSchema.properties.claims.minItems, 1);
-
-let metaKeyRequest;
-await invokeProvider({
-  ...packet,
-  provider: 'meta',
-  model: 'muse-spark-1.3-contributor',
-  settings: { max_tokens: 8192, reasoning_effort: 'medium' },
-}, {
-  env: { MODEL_API_KEY: 'preferred-model-key', META_API_KEY: 'legacy-meta-key' },
-  fetchFn: async (_url, options) => {
-    metaKeyRequest = JSON.parse(options.body);
-    assert.equal(options.headers.Authorization, 'Bearer preferred-model-key');
-    return {
-      ok: true,
-      json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{}' } }] }),
-    };
-  },
-});
-assert.equal(metaKeyRequest.model, 'muse-spark-1.3-contributor');
-assert.equal(metaKeyRequest.response_format, undefined, 'Meta without an output contract must not send json_object');
-
-let contributorEvidenceRequest;
-await invokeProvider({
-  ...packet,
-  stage: 'evidence_check',
-  provider: 'meta',
-  model: 'muse-spark-1.3-contributor',
-  output_contract: OUTPUT_CONTRACT_IDS.evidenceCheck,
-  settings: { max_tokens: 32768, reasoning_effort: 'medium' },
-}, {
-  env: { MODEL_API_KEY: 'alias-model-key' },
-  fetchFn: async (_url, options) => {
-    contributorEvidenceRequest = JSON.parse(options.body);
-    assert.equal(options.headers.Authorization, 'Bearer alias-model-key');
-    return {
-      ok: true,
-      json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{"items":[]}' } }] }),
-    };
-  },
-});
-assert.equal(contributorEvidenceRequest.model, 'muse-spark-1.3-contributor');
-assert.equal(contributorEvidenceRequest.max_completion_tokens, 32768);
-assert.equal(contributorEvidenceRequest.response_format.type, 'json_schema');
-assert.equal(contributorEvidenceRequest.response_format.json_schema.name, OUTPUT_CONTRACT_IDS.evidenceCheck);
-assert.equal(contributorEvidenceRequest.response_format.json_schema.schema.properties.items.minItems, 10);
-
-await assert.rejects(
-  invokeProvider({
-    ...packet,
-    provider: 'meta',
-    model: 'muse-spark-1.1',
-    settings: { max_tokens: 8192, reasoning_effort: 'medium' },
-  }, {
-    env: { META_API_KEY: 'test-key' },
-    fetchFn: async () => ({
-      ok: true,
-      json: async () => ({ choices: [{ finish_reason: 'length', message: { content: '{"ok"' } }] }),
-    }),
-  }),
-  error => error?.code === 'INCOMPLETE_RESPONSE' && error?.terminationReason === 'MAX_OUTPUT_TOKENS',
-);
 
 await assert.rejects(
   invokeProvider({
